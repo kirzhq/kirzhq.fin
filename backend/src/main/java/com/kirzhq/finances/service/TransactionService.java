@@ -35,7 +35,8 @@ public class TransactionService {
         return transactionRepository.findAll().stream()
                 .filter(transaction -> transaction.getTransactionDate().getYear() == year)
                 .filter(transaction -> month == null || transaction.getTransactionDate().getMonthValue() == month)
-                .sorted(Comparator.comparing(Transaction::getTransactionDate).reversed())
+                .sorted(Comparator.comparing(Transaction::getTransactionDate).reversed()
+                        .thenComparing(Transaction::getId, Comparator.reverseOrder()))
                 .map(this::toResponse)
                 .toList();
     }
