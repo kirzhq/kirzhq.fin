@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
-  createCategory, createTransaction, deleteTransaction, getCategories,
-  getSummary, getTransactions, getVehicles, updateTransaction,
+  createCategory, createTransaction, deleteTransaction, exportVehicle, getCategories,
+  getSummary, getTransactions, getVehicleSummary, getVehicles, updateTransaction,
 } from './api';
-import type { Category, Summary, Transaction, TransactionType, Vehicle } from './types';
+import type { Category, Summary, Transaction, TransactionType, Vehicle, VehicleSummary } from './types';
 
 type View = 'overview' | 'operations' | 'vehicles' | 'categories';
 const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
@@ -22,6 +22,7 @@ export default function App() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehicleSummary, setVehicleSummary] = useState<VehicleSummary | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -46,6 +47,7 @@ export default function App() {
       setSummary(totals);
       setCategories(categoryItems);
       setVehicles(vehicleItems);
+      setVehicleSummary(vehicleItems[0] ? await getVehicleSummary(vehicleItems[0].id, year) : null);
       setForm((current) => ({
         ...current,
         category: categoryItems.some((item) => item.type === current.type && item.name === current.category)
@@ -187,17 +189,19 @@ export default function App() {
       </>}
 
       {view === 'vehicles' && <>
+        <div className="section-actions"><button className="primary export-button" onClick={() => vehicles[0] && exportVehicle(vehicles[0].id, year).catch((requestError) => setError(message(requestError)))}>Скачать Excel за {year} год</button></div>
         <section className="metrics vehicle-metrics">
-          <Metric title="Всего на автомобили" value={vehicleTotal} kind="expense" />
-          <Metric title="Топливо" value={fuelTotal} kind="balance" />
-          <Metric title="Обслуживание и прочее" value={vehicleTotal - fuelTotal} />
-          <Metric title="Операций" value={vehicleTransactions.length} plain />
+          <Metric title="Всего на автомобиль" value={vehicleSummary?.total ?? vehicleTotal} kind="expense" />
+          <Metric title="Топливо" value={vehicleSummary?.fuel ?? fuelTotal} kind="balance" />
+          <Metric title="Среднее на бензин в месяц" value={vehicleSummary?.averageMonthlyFuel} kind="income" />
+          <Metric title="Обслуживание и прочее" value={vehicleSummary?.other ?? vehicleTotal - fuelTotal} />
+          <Metric title="Операций" value={vehicleSummary?.operationCount ?? vehicleTransactions.length} plain />
         </section>
         <section className="content-grid lower">
           <article className="card"><CardTitle title="Мой автомобиль" subtitle="Lada Vesta" />
             <div className="vehicle-list">{vehicles.map((vehicle) => <div key={vehicle.id}><span>🚙</span><div><strong>{vehicle.name}</strong><small>{formatMoney(vehicleTransactions.filter((item) => item.vehicleId === vehicle.id).reduce((sum, item) => sum + item.amount, 0))} за {year} год</small></div></div>)}</div>
           </article>
-          <article className="card"><CardTitle title="Расходы на автомобили" subtitle={`${year} год`} /><div className="car-breakdown"><div><span>Топливо</span><strong>{formatMoney(fuelTotal)}</strong></div><div><span>Остальные расходы</span><strong>{formatMoney(vehicleTotal - fuelTotal)}</strong></div></div></article>
+          <article className="card"><CardTitle title="Расходы на автомобиль" subtitle={`${year} год · ${vehicleSummary?.activeMonths ?? 0} мес. с расходами`} /><div className="car-breakdown"><div><span>Топливо</span><strong>{formatMoney(vehicleSummary?.fuel ?? fuelTotal)}</strong></div><div><span>Среднее топливо в месяц</span><strong>{formatMoney(vehicleSummary?.averageMonthlyFuel ?? 0)}</strong></div><div><span>Остальные расходы</span><strong>{formatMoney(vehicleSummary?.other ?? vehicleTotal - fuelTotal)}</strong></div></div></article>
         </section>
         <TransactionTable items={vehicleTransactions} loading={loading} onEdit={editOperation} onDelete={removeOperation} />
       </>}

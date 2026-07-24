@@ -9,8 +9,12 @@ from `Финансовый вопрос.xlsx` through a versioned database migra
 
 Operations can be edited and deleted. Categories are managed on a separate
 settings page. Vehicle expenses are linked to the Lada Vesta and shown in a dedicated
-section. A transaction date determines its year, so 2027 and later years use the
-same database and interface without annual schema copies.
+section. The vehicle report can be exported to Excel for the selected year and
+shows average monthly fuel spending. Fuel operations are detected by `бензин`,
+`АЗС` or `топливо` in the operation comment; the average is calculated across
+months that contain vehicle expenses. A transaction date determines its year,
+so 2027 and later years use the same database and interface without annual
+schema copies.
 
 The selected year applies to every section from the sidebar. The dashboard has
 light and dark themes with a saved browser preference, and its expense legend

@@ -22,6 +22,15 @@ export type Vehicle = {
   name: string;
 };
 
+export type VehicleSummary = {
+  total: number;
+  fuel: number;
+  other: number;
+  averageMonthlyFuel: number;
+  activeMonths: number;
+  operationCount: number;
+};
+
 export type Summary = {
   income: number;
   expense: number;

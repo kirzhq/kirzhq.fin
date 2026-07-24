@@ -83,6 +83,9 @@ td:last-child, th:last-child { text-align: right; }
 .category-groups { display: grid; gap: 24px; }
 .category-groups h3 { margin: 0 0 11px; font-size: 13px; color: #777584; }
 .vehicle-list { display: grid; gap: 10px; }
+.section-actions { display: flex; justify-content: flex-end; margin: -62px 0 24px; }
+.export-button { padding-inline: 18px; }
+.vehicle-metrics { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .vehicle-list > div { display: flex; align-items: center; gap: 12px; padding: 13px; border: 1px solid #eceaf1; border-radius: 12px; }
 .vehicle-list > div > span { display: grid; place-items: center; width: 42px; height: 42px; background: #f2efff; border-radius: 11px; }
 .vehicle-list strong, .vehicle-list small { display: block; }.vehicle-list small { margin-top: 3px; color: #92909e; }
@@ -118,10 +121,12 @@ html[data-theme="dark"] .donut-caption { fill: #aaa7b8; }
 html[data-theme="dark"] .donut-total { fill: #f5f3fb; }
 html[data-theme="dark"] .recharts-text { fill: #aaa7b8; }
 html[data-theme="dark"] .recharts-default-tooltip { background: #302e43 !important; border-color: #49465d !important; }
-@media (max-width: 1050px) { .metrics { grid-template-columns: 1fr 1fr; }.content-grid, .content-grid.lower { grid-template-columns: 1fr; } }
+@media (max-width: 1200px) { .vehicle-metrics { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 1050px) { .metrics, .vehicle-metrics { grid-template-columns: 1fr 1fr; }.content-grid, .content-grid.lower { grid-template-columns: 1fr; } }
 @media (max-width: 700px) {
   .app { display: block; }.sidebar { position: static; height: auto; padding: 15px; }.brand { padding-bottom: 10px; }
   .sidebar-controls { grid-template-columns: 1fr 1fr; }
+  .section-actions { margin: 0 0 16px; justify-content: stretch; }.section-actions button { width: 100%; }
   nav { display: flex; overflow-x: auto; } nav p { display: none; } nav button { white-space: nowrap; }
   main { padding: 22px 14px 40px; }.metrics { grid-template-columns: 1fr 1fr; }.transaction-form { grid-template-columns: 1fr; }
   .segmented { grid-column: auto; }.category-form, .inline-form { grid-template-columns: 1fr; }.comment-field, .form-actions { grid-column: auto; }

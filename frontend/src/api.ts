@@ -1,4 +1,4 @@
-import type { Category, Summary, Transaction, TransactionType, Vehicle } from './types';
+import type { Category, Summary, Transaction, TransactionType, Vehicle, VehicleSummary } from './types';
 
 const API_BASE = '/api';
 
@@ -64,4 +64,20 @@ export function createCategory(payload: { name: string; type: TransactionType })
 
 export function getVehicles() {
   return request<Vehicle[]>('/vehicles');
+}
+
+export function getVehicleSummary(id: number, year: number) {
+  return request<VehicleSummary>(`/vehicles/${id}/summary?year=${year}`);
+}
+
+export async function exportVehicle(id: number, year: number) {
+  const response = await fetch(`${API_BASE}/vehicles/${id}/export?year=${year}`);
+  if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `lada-vesta-${year}.xlsx`;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
