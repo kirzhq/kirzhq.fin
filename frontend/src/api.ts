@@ -129,3 +129,29 @@ export async function deleteDebt(id: number) {
 export function payDebt(id: number, payload: { amount: number; paymentDate: string; comment: string }) {
   return request<Debt>(`/debts/${id}/payments`, { method: 'POST', body: JSON.stringify(payload) });
 }
+
+export async function exportBackup() {
+  const response = await fetch(`${API_BASE}/backup/export`);
+  ensureAuthenticated(response);
+  if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `kirzhq-fin-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function importBackup(file: File) {
+  let backup: unknown;
+  try {
+    backup = JSON.parse(await file.text());
+  } catch {
+    throw new Error('Не удалось прочитать файл резервной копии');
+  }
+  return request<{ imported: boolean }>('/backup/import', {
+    method: 'POST',
+    body: JSON.stringify(backup),
+  });
+}

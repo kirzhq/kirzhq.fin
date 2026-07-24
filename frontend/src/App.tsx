@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
   createCategory, createDebt, createTransaction, deleteDebt, deleteTransaction, exportVehicle, getCategories,
-  getDebts, getSummary, getTransactions, getVehicleSummary, getVehicles, payDebt, updateDebt, updateTransaction,
+  getDebts, getSummary, getTransactions, getVehicleSummary, getVehicles, importBackup, exportBackup,
+  payDebt, updateDebt, updateTransaction,
 } from './api';
 import type { Category, Debt, Summary, Transaction, TransactionType, Vehicle, VehicleSummary } from './types';
 
@@ -39,6 +40,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => localStorage.getItem('finance-theme') === 'dark' ? 'dark' : 'light');
   const referenceDataLoaded = useRef(false);
+  const backupInput = useRef<HTMLInputElement>(null);
 
   const availableCategories = categories.filter((category) => category.type === form.type);
   const vehicleTransactions = useMemo(() => transactions.filter((item) => item.category === 'Машина'), [transactions]);
@@ -121,6 +123,21 @@ export default function App() {
       else await createTransaction(payload);
       cancelEdit();
       await loadData();
+    } catch (requestError) {
+      setError(message(requestError));
+    }
+  }
+
+  async function restoreBackup(file?: File) {
+    if (!file) return;
+    if (backupInput.current) backupInput.current.value = '';
+    if (!window.confirm('Импорт заменит все текущие финансовые данные содержимым файла. Продолжить?')) return;
+    try {
+      await importBackup(file);
+      referenceDataLoaded.current = false;
+      await loadData();
+      setError('');
+      window.alert('Резервная копия успешно восстановлена.');
     } catch (requestError) {
       setError(message(requestError));
     }
@@ -229,8 +246,8 @@ export default function App() {
         </button>
       </div>
       <nav>
-        <button className={view === 'overview' && month === null ? 'active' : ''} onClick={() => openView('overview', null)}>Обзор за год</button>
-        <button className={view === 'vehicles' ? 'active' : ''} onClick={() => openView('vehicles', null)}>Автомобили</button>
+        <button className={view === 'overview' && month === null ? 'active' : ''} onClick={() => openView('overview', null)}>Главная</button>
+        <button className={view === 'vehicles' ? 'active' : ''} onClick={() => openView('vehicles', null)}>Автомобиль</button>
         <button className={view === 'debts' ? 'active' : ''} onClick={() => openView('debts', null)}>Долги</button>
         <button className={view === 'categories' ? 'active' : ''} onClick={() => openView('categories')}>Категории</button>
         <p>Месяцы</p>
@@ -241,6 +258,16 @@ export default function App() {
     <main>
       <header className="topbar">
         <div><p className="kicker">{subtitle(view, month)}</p><h1>{title(view, month, year)}</h1></div>
+        {view === 'overview' && month === null && <div className="backup-actions">
+          <button type="button" onClick={() => exportBackup().catch((requestError) => setError(message(requestError)))}>
+            <span>↓</span> Экспорт
+          </button>
+          <button type="button" onClick={() => backupInput.current?.click()}>
+            <span>↑</span> Импорт
+          </button>
+          <input ref={backupInput} type="file" accept=".json,application/json" hidden
+            onChange={(event) => void restoreBackup(event.target.files?.[0])} />
+        </div>}
       </header>
       {error && <div className="error">{error}<button onClick={() => setError('')}>×</button></div>}
 
@@ -400,7 +427,7 @@ function DebtView({ debts, form, setForm, editingId, payingId, paymentForm, setP
 
 function Metric({ title, value, kind, plain }: { title: string; value?: number; kind?: string; plain?: boolean }) { return <article className={`metric ${kind ?? ''}`}><span>{title}</span><strong>{plain ? value ?? 0 : formatMoney(value ?? 0)}</strong></article>; }
 function CardTitle({ title, subtitle }: { title: string; subtitle: string }) { return <div className="card-title"><div><h2>{title}</h2><p>{subtitle}</p></div></div>; }
-function title(view: View, month: number | null, year: number) { if (view === 'vehicles') return 'Автомобили'; if (view === 'debts') return 'Долги'; if (view === 'categories') return 'Категории'; return month ? months[month - 1] : `Весь ${year} год`; }
+function title(view: View, month: number | null, year: number) { if (view === 'vehicles') return 'Автомобиль'; if (view === 'debts') return 'Долги'; if (view === 'categories') return 'Категории'; return month ? months[month - 1] : `Весь ${year} год`; }
 function subtitle(view: View, month: number | null) { if (view === 'vehicles') return 'Расходы на транспорт'; if (view === 'debts') return 'Контроль обязательств'; if (view === 'categories') return 'Настройки справочника'; return month ? 'Отчёт за месяц' : 'Финансовый обзор'; }
 function formatMoney(value: number) { return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 2 }).format(value); }
 function compactMoney(value: number) { return new Intl.NumberFormat('ru-RU', { notation: 'compact', maximumFractionDigits: 1 }).format(value); }
