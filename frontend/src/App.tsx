@@ -1,240 +1,238 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
-import {
-  createCategory,
-  createTransaction,
-  getCategories,
-  getSummary,
-  getTransactions,
+  createCategory, createTransaction, createVehicle, deleteTransaction, getCategories,
+  getSummary, getTransactions, getVehicles, updateTransaction,
 } from './api';
-import type { Category, Summary, Transaction, TransactionType } from './types';
+import type { Category, Summary, Transaction, TransactionType, Vehicle } from './types';
 
-const months = [
-  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
-];
+type View = 'overview' | 'operations' | 'vehicles' | 'categories';
+const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const shortMonths = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 const colors = ['#6c5ce7', '#00b894', '#fdcb6e', '#e17055', '#0984e3', '#e84393', '#00cec9', '#a29bfe'];
-const today = new Date();
+const emptyForm = {
+  type: 'EXPENSE' as TransactionType, category: '', amount: '',
+  transactionDate: new Date().toISOString().slice(0, 10), description: '', vehicleId: null as number | null,
+};
 
 export default function App() {
-  const [year, setYear] = useState(2026);
+  const [view, setView] = useState<View>('overview');
+  const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [categoryName, setCategoryName] = useState('');
   const [categoryType, setCategoryType] = useState<TransactionType>('EXPENSE');
-  const [form, setForm] = useState({
-    type: 'EXPENSE' as TransactionType,
-    category: '',
-    amount: '',
-    transactionDate: today.toISOString().slice(0, 10),
-    description: '',
-  });
+  const [vehicleName, setVehicleName] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const availableCategories = useMemo(
-    () => categories.filter((category) => category.type === form.type),
-    [categories, form.type],
-  );
+  const availableCategories = categories.filter((category) => category.type === form.type);
+  const vehicleTransactions = useMemo(() => transactions.filter((item) => item.category === 'Машина'), [transactions]);
+  const vehicleTotal = vehicleTransactions.reduce((total, item) => total + item.amount, 0);
+  const fuelTotal = vehicleTransactions.filter((item) => /бенз|азс|топлив/i.test(item.description)).reduce((total, item) => total + item.amount, 0);
 
   async function loadData() {
     setLoading(true);
-    setError('');
     try {
-      const [transactionData, summaryData, categoryData] = await Promise.all([
-        getTransactions(year, month),
-        getSummary(year, month),
-        getCategories(),
+      const [items, totals, categoryItems, vehicleItems] = await Promise.all([
+        getTransactions(year, month), getSummary(year, month), getCategories(), getVehicles(),
       ]);
-      setTransactions(transactionData);
-      setSummary(summaryData);
-      setCategories(categoryData);
-      setForm((current) => {
-        const matching = categoryData.filter((category) => category.type === current.type);
-        return { ...current, category: matching.some((item) => item.name === current.category) ? current.category : matching[0]?.name ?? '' };
-      });
+      setTransactions(items);
+      setSummary(totals);
+      setCategories(categoryItems);
+      setVehicles(vehicleItems);
+      setForm((current) => ({
+        ...current,
+        category: categoryItems.some((item) => item.type === current.type && item.name === current.category)
+          ? current.category : categoryItems.find((item) => item.type === current.type)?.name ?? '',
+        vehicleId: current.vehicleId ?? vehicleItems[0]?.id ?? null,
+      }));
+      setError('');
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Не удалось загрузить данные');
+      setError(message(requestError));
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => {
-    void loadData();
-  }, [year, month]);
+  useEffect(() => { void loadData(); }, [year, month]);
 
-  async function addTransaction(event: React.FormEvent) {
+  function openView(nextView: View, selectedMonth: number | null = month) {
+    setView(nextView);
+    setMonth(selectedMonth);
+    if (nextView !== 'operations') cancelEdit();
+  }
+
+  function changeType(type: TransactionType) {
+    setForm((current) => ({
+      ...current, type,
+      category: categories.find((category) => category.type === type)?.name ?? '',
+    }));
+  }
+
+  async function saveOperation(event: React.FormEvent) {
     event.preventDefault();
+    const payload = {
+      type: form.type, category: form.category, amount: Number(form.amount),
+      transactionDate: form.transactionDate, description: form.description,
+      vehicleId: form.category === 'Машина' ? form.vehicleId : null,
+    };
     try {
-      await createTransaction({
-        ...form,
-        amount: Number(form.amount),
-      });
-      setForm((current) => ({ ...current, amount: '', description: '' }));
+      if (editingId) await updateTransaction(editingId, payload);
+      else await createTransaction(payload);
+      cancelEdit();
       await loadData();
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Не удалось сохранить операцию');
+      setError(message(requestError));
+    }
+  }
+
+  function editOperation(item: Transaction) {
+    setEditingId(item.id);
+    setForm({
+      type: item.type, category: item.category, amount: String(item.amount),
+      transactionDate: item.transactionDate, description: item.description, vehicleId: item.vehicleId,
+    });
+    setView('operations');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setForm((current) => ({ ...emptyForm, category: categories.find((item) => item.type === 'EXPENSE')?.name ?? '', vehicleId: current.vehicleId ?? vehicles[0]?.id ?? null }));
+  }
+
+  async function removeOperation(item: Transaction) {
+    if (!window.confirm(`Удалить операцию «${item.category}» на ${formatMoney(item.amount)}?`)) return;
+    try {
+      await deleteTransaction(item.id);
+      if (editingId === item.id) cancelEdit();
+      await loadData();
+    } catch (requestError) {
+      setError(message(requestError));
     }
   }
 
   async function addCategory(event: React.FormEvent) {
     event.preventDefault();
-    if (!categoryName.trim()) return;
     try {
-      const created = await createCategory({ name: categoryName.trim(), type: categoryType });
+      await createCategory({ name: categoryName.trim(), type: categoryType });
       setCategoryName('');
-      setCategories((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name, 'ru')));
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Не удалось создать категорию');
-    }
+      await loadData();
+    } catch (requestError) { setError(message(requestError)); }
   }
 
-  const chartData = (summary?.monthlyPoints ?? []).map((point, index) => ({
-    ...point,
-    monthLabel: shortMonths[index] ?? point.month,
-  }));
+  async function addVehicle(event: React.FormEvent) {
+    event.preventDefault();
+    try {
+      await createVehicle(vehicleName.trim());
+      setVehicleName('');
+      await loadData();
+    } catch (requestError) { setError(message(requestError)); }
+  }
 
-  return (
-    <div className="app">
-      <aside className="sidebar">
-        <div className="brand"><span>₽</span><strong>Мои финансы</strong></div>
-        <nav>
-          <button className={month === null ? 'active' : ''} onClick={() => setMonth(null)}>Обзор за год</button>
-          <p>Месяцы</p>
-          {months.map((name, index) => (
-            <button key={name} className={month === index + 1 ? 'active' : ''} onClick={() => setMonth(index + 1)}>
-              {name}
-            </button>
-          ))}
-        </nav>
-      </aside>
+  const chartData = (summary?.monthlyPoints ?? []).map((point, index) => ({ ...point, monthLabel: month ? months[month - 1] : shortMonths[index] }));
+  const yearOptions = Array.from({ length: new Date().getFullYear() + 5 - 2024 + 1 }, (_, index) => 2024 + index);
 
-      <main>
-        <header className="topbar">
-          <div>
-            <p className="kicker">{month ? 'Отчёт за месяц' : 'Финансовый обзор'}</p>
-            <h1>{month ? months[month - 1] : `Весь ${year} год`}</h1>
-          </div>
-          <select value={year} onChange={(event) => setYear(Number(event.target.value))}>
-            {[2024, 2025, 2026, 2027].map((value) => <option key={value}>{value}</option>)}
-          </select>
-        </header>
+  return <div className="app">
+    <aside className="sidebar">
+      <div className="brand"><span>₽</span><strong>Мои финансы</strong></div>
+      <nav>
+        <button className={view === 'overview' && month === null ? 'active' : ''} onClick={() => openView('overview', null)}>Обзор за год</button>
+        <button className={view === 'operations' ? 'active' : ''} onClick={() => openView('operations')}>Операции</button>
+        <button className={view === 'vehicles' ? 'active' : ''} onClick={() => openView('vehicles', null)}>Автомобили</button>
+        <button className={view === 'categories' ? 'active' : ''} onClick={() => openView('categories')}>Категории</button>
+        <p>Месяцы</p>
+        {months.map((name, index) => <button key={name} className={view === 'overview' && month === index + 1 ? 'active' : ''} onClick={() => openView('overview', index + 1)}>{name}</button>)}
+      </nav>
+    </aside>
 
-        {error && <div className="error">{error}<button onClick={() => setError('')}>×</button></div>}
+    <main>
+      <header className="topbar">
+        <div><p className="kicker">{subtitle(view, month)}</p><h1>{title(view, month, year)}</h1></div>
+        <select value={year} onChange={(event) => setYear(Number(event.target.value))}>{yearOptions.map((value) => <option key={value}>{value}</option>)}</select>
+      </header>
+      {error && <div className="error">{error}<button onClick={() => setError('')}>×</button></div>}
 
+      {view === 'overview' && <>
         <section className="metrics">
           <Metric title="Доход" value={summary?.income} kind="income" />
           <Metric title="Расход" value={summary?.expense} kind="expense" />
           <Metric title="Сальдо" value={summary?.balance} kind="balance" />
           <Metric title="Операций" value={transactions.length} plain />
         </section>
-
         <section className="content-grid">
-          <article className="card flow-card">
-            <CardTitle title={month ? 'Доходы и расходы' : 'Динамика по месяцам'} subtitle={month ? months[month - 1] : `${year} год`} />
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e9e8f0" />
-                <XAxis dataKey="monthLabel" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} />
-                <Tooltip formatter={(value) => formatMoney(Number(value))} />
-                <Legend formatter={(value) => value === 'income' ? 'Доход' : 'Расход'} />
-                <Bar dataKey="income" fill="#00b894" radius={[5, 5, 0, 0]} />
-                <Bar dataKey="expense" fill="#6c5ce7" radius={[5, 5, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <article className="card"><CardTitle title={month ? 'Доходы и расходы' : 'Динамика по месяцам'} subtitle={month ? months[month - 1] : `${year} год`} />
+            <ResponsiveContainer width="100%" height={320}><BarChart data={chartData}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e9e8f0" /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip formatter={(value) => formatMoney(Number(value))} /><Legend formatter={(value) => value === 'income' ? 'Доход' : 'Расход'} /><Bar dataKey="income" fill="#00b894" radius={[5, 5, 0, 0]} /><Bar dataKey="expense" fill="#6c5ce7" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer>
           </article>
-
-          <article className="card category-chart">
-            <CardTitle title="Расходы по категориям" subtitle={month ? months[month - 1] : `${year} год`} />
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie data={summary?.categoryPoints ?? []} dataKey="amount" nameKey="category" innerRadius={62} outerRadius={92} paddingAngle={2}>
-                  {(summary?.categoryPoints ?? []).map((entry, index) => <Cell key={entry.category} fill={colors[index % colors.length]} />)}
-                </Pie>
-                <Tooltip formatter={(value) => formatMoney(Number(value))} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="legend-list">
-              {(summary?.categoryPoints ?? []).slice(0, 6).map((point, index) => (
-                <div key={point.category}><i style={{ background: colors[index % colors.length] }} /><span>{point.category}</span><strong>{formatMoney(point.amount)}</strong></div>
-              ))}
-            </div>
+          <article className="card"><CardTitle title="Расходы по категориям" subtitle={month ? months[month - 1] : `${year} год`} />
+            <ResponsiveContainer width="100%" height={230}><PieChart><Pie data={summary?.categoryPoints ?? []} dataKey="amount" nameKey="category" innerRadius={62} outerRadius={94} paddingAngle={2}>{(summary?.categoryPoints ?? []).map((entry, index) => <Cell key={entry.category} fill={colors[index % colors.length]} />)}</Pie><Tooltip formatter={(value) => formatMoney(Number(value))} /></PieChart></ResponsiveContainer>
+            <div className="legend-list">{(summary?.categoryPoints ?? []).slice(0, 7).map((point, index) => <div key={point.category}><i style={{ background: colors[index % colors.length] }} /><span>{point.category}</span><strong>{formatMoney(point.amount)}</strong></div>)}</div>
           </article>
         </section>
+      </>}
 
+      {view === 'operations' && <>
+        <article className="card operation-editor">
+          <CardTitle title={editingId ? 'Редактировать операцию' : 'Добавить операцию'} subtitle={editingId ? `Операция №${editingId}` : 'Одна форма для доходов и расходов'} />
+          <OperationForm form={form} setForm={setForm} categories={availableCategories} vehicles={vehicles} editing={Boolean(editingId)} onType={changeType} onSubmit={saveOperation} onCancel={cancelEdit} />
+        </article>
+        <TransactionTable items={transactions} loading={loading} onEdit={editOperation} onDelete={removeOperation} />
+      </>}
+
+      {view === 'vehicles' && <>
+        <section className="metrics vehicle-metrics">
+          <Metric title="Всего на автомобили" value={vehicleTotal} kind="expense" />
+          <Metric title="Топливо" value={fuelTotal} kind="balance" />
+          <Metric title="Обслуживание и прочее" value={vehicleTotal - fuelTotal} />
+          <Metric title="Операций" value={vehicleTransactions.length} plain />
+        </section>
         <section className="content-grid lower">
-          <article className="card">
-            <CardTitle title="Добавить операцию" subtitle="Доход или расход" />
-            <form className="transaction-form" onSubmit={addTransaction}>
-              <div className="segmented">
-                <button type="button" className={form.type === 'EXPENSE' ? 'selected' : ''} onClick={() => setForm({ ...form, type: 'EXPENSE', category: categories.find((c) => c.type === 'EXPENSE')?.name ?? '' })}>Расход</button>
-                <button type="button" className={form.type === 'INCOME' ? 'selected' : ''} onClick={() => setForm({ ...form, type: 'INCOME', category: categories.find((c) => c.type === 'INCOME')?.name ?? '' })}>Доход</button>
-              </div>
-              <label>Категория<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })}>{availableCategories.map((category) => <option key={category.id}>{category.name}</option>)}</select></label>
-              <label>Сумма<input required type="number" min="0.01" step="0.01" placeholder="0 ₽" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} /></label>
-              <label>Дата<input required type="date" value={form.transactionDate} onChange={(event) => setForm({ ...form, transactionDate: event.target.value })} /></label>
-              <label>Комментарий<input value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Необязательно" /></label>
-              <button className="primary" type="submit">Сохранить операцию</button>
-            </form>
+          <article className="card"><CardTitle title="Мои автомобили" subtitle={`${vehicles.length} автомобилей`} />
+            <div className="vehicle-list">{vehicles.map((vehicle) => <div key={vehicle.id}><span>🚙</span><div><strong>{vehicle.name}</strong><small>{formatMoney(vehicleTransactions.filter((item) => item.vehicleId === vehicle.id).reduce((sum, item) => sum + item.amount, 0))} за {year} год</small></div></div>)}</div>
+            <form className="inline-form" onSubmit={addVehicle}><input required value={vehicleName} onChange={(event) => setVehicleName(event.target.value)} placeholder="Название автомобиля" /><button className="primary">Добавить</button></form>
           </article>
-
-          <article className="card">
-            <CardTitle title="Категории" subtitle={`${categories.length} категорий`} />
-            <div className="category-pills">{categories.map((category) => <span key={category.id} className={category.type === 'INCOME' ? 'income-pill' : ''}>{category.name}</span>)}</div>
-            <form className="category-form" onSubmit={addCategory}>
-              <input value={categoryName} onChange={(event) => setCategoryName(event.target.value)} placeholder="Название новой категории" />
-              <select value={categoryType} onChange={(event) => setCategoryType(event.target.value as TransactionType)}>
-                <option value="EXPENSE">Расход</option><option value="INCOME">Доход</option>
-              </select>
-              <button className="primary">Добавить</button>
-            </form>
-          </article>
+          <article className="card"><CardTitle title="Расходы на автомобили" subtitle={`${year} год`} /><div className="car-breakdown"><div><span>Топливо</span><strong>{formatMoney(fuelTotal)}</strong></div><div><span>Остальные расходы</span><strong>{formatMoney(vehicleTotal - fuelTotal)}</strong></div></div></article>
         </section>
+        <TransactionTable items={vehicleTransactions} loading={loading} onEdit={editOperation} onDelete={removeOperation} />
+      </>}
 
-        <section className="card transactions">
-          <CardTitle title="Операции" subtitle={loading ? 'Загрузка…' : `${transactions.length} записей`} />
-          <div className="table-wrap"><table><thead><tr><th>Дата</th><th>Категория</th><th>Комментарий</th><th>Тип</th><th>Сумма</th></tr></thead>
-            <tbody>{transactions.map((transaction) => <tr key={transaction.id}>
-              <td>{formatDate(transaction.transactionDate)}</td><td><b>{transaction.category}</b></td><td>{transaction.description || '—'}</td>
-              <td><span className={`type ${transaction.type.toLowerCase()}`}>{transaction.type === 'INCOME' ? 'Доход' : 'Расход'}</span></td>
-              <td className={transaction.type === 'INCOME' ? 'money-in' : 'money-out'}>{transaction.type === 'INCOME' ? '+' : '−'} {formatMoney(transaction.amount)}</td>
-            </tr>)}</tbody>
-          </table></div>
-        </section>
-      </main>
-    </div>
-  );
+      {view === 'categories' && <article className="card settings-card">
+        <CardTitle title="Категории операций" subtitle="Используются во всех годах" />
+        <div className="category-groups"><CategoryGroup title="Расходы" items={categories.filter((item) => item.type === 'EXPENSE')} /><CategoryGroup title="Доходы" items={categories.filter((item) => item.type === 'INCOME')} /></div>
+        <form className="category-form" onSubmit={addCategory}><input required value={categoryName} onChange={(event) => setCategoryName(event.target.value)} placeholder="Название новой категории" /><select value={categoryType} onChange={(event) => setCategoryType(event.target.value as TransactionType)}><option value="EXPENSE">Расход</option><option value="INCOME">Доход</option></select><button className="primary">Добавить</button></form>
+      </article>}
+    </main>
+  </div>;
 }
 
-function Metric({ title, value, kind, plain }: { title: string; value?: number; kind?: string; plain?: boolean }) {
-  return <article className={`metric ${kind ?? ''}`}><span>{title}</span><strong>{plain ? value ?? 0 : formatMoney(value ?? 0)}</strong></article>;
+function OperationForm({ form, setForm, categories, vehicles, editing, onType, onSubmit, onCancel }: any) {
+  return <form className="transaction-form" onSubmit={onSubmit}>
+    <div className="segmented"><button type="button" className={form.type === 'EXPENSE' ? 'selected' : ''} onClick={() => onType('EXPENSE')}>Расход</button><button type="button" className={form.type === 'INCOME' ? 'selected' : ''} onClick={() => onType('INCOME')}>Доход</button></div>
+    <label>Категория<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })}>{categories.map((category: Category) => <option key={category.id}>{category.name}</option>)}</select></label>
+    <label>Сумма<input required type="number" min="0.01" step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} placeholder="0 ₽" /></label>
+    {form.category === 'Машина' && <label>Автомобиль<select required value={form.vehicleId ?? ''} onChange={(event) => setForm({ ...form, vehicleId: Number(event.target.value) })}>{vehicles.map((vehicle: Vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.name}</option>)}</select></label>}
+    <label>Дата<input required type="date" value={form.transactionDate} onChange={(event) => setForm({ ...form, transactionDate: event.target.value })} /></label>
+    <label className="comment-field">Комментарий<input value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Необязательно" /></label>
+    <div className="form-actions"><button className="primary">{editing ? 'Сохранить изменения' : 'Сохранить операцию'}</button>{editing && <button type="button" className="secondary" onClick={onCancel}>Отмена</button>}</div>
+  </form>;
 }
-function CardTitle({ title, subtitle }: { title: string; subtitle: string }) {
-  return <div className="card-title"><div><h2>{title}</h2><p>{subtitle}</p></div></div>;
+
+function TransactionTable({ items, loading, onEdit, onDelete }: { items: Transaction[]; loading: boolean; onEdit: (item: Transaction) => void; onDelete: (item: Transaction) => void }) {
+  return <section className="card transactions"><CardTitle title="Операции" subtitle={loading ? 'Загрузка…' : `${items.length} записей`} /><div className="table-wrap"><table><thead><tr><th>Дата</th><th>Категория</th><th>Комментарий</th><th>Автомобиль</th><th>Сумма</th><th /></tr></thead><tbody>{items.map((item) => <tr key={item.id}><td>{formatDate(item.transactionDate)}</td><td><b>{item.category}</b></td><td>{item.description || '—'}</td><td>{item.vehicleName ?? '—'}</td><td className={item.type === 'INCOME' ? 'money-in' : 'money-out'}>{item.type === 'INCOME' ? '+' : '−'} {formatMoney(item.amount)}</td><td className="row-actions"><button onClick={() => onEdit(item)} title="Редактировать">✎</button><button className="delete" onClick={() => onDelete(item)} title="Удалить">×</button></td></tr>)}</tbody></table></div></section>;
 }
-function formatMoney(value: number) {
-  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 2 }).format(value);
-}
-function compactMoney(value: number) {
-  return new Intl.NumberFormat('ru-RU', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
-}
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('ru-RU').format(new Date(`${value}T00:00:00`));
-}
+
+function CategoryGroup({ title, items }: { title: string; items: Category[] }) { return <div><h3>{title}</h3><div className="category-pills">{items.map((item) => <span key={item.id} className={item.type === 'INCOME' ? 'income-pill' : ''}>{item.name}</span>)}</div></div>; }
+function Metric({ title, value, kind, plain }: { title: string; value?: number; kind?: string; plain?: boolean }) { return <article className={`metric ${kind ?? ''}`}><span>{title}</span><strong>{plain ? value ?? 0 : formatMoney(value ?? 0)}</strong></article>; }
+function CardTitle({ title, subtitle }: { title: string; subtitle: string }) { return <div className="card-title"><div><h2>{title}</h2><p>{subtitle}</p></div></div>; }
+function title(view: View, month: number | null, year: number) { if (view === 'operations') return 'Операции'; if (view === 'vehicles') return 'Автомобили'; if (view === 'categories') return 'Категории'; return month ? months[month - 1] : `Весь ${year} год`; }
+function subtitle(view: View, month: number | null) { if (view === 'operations') return 'Добавление и управление'; if (view === 'vehicles') return 'Расходы на транспорт'; if (view === 'categories') return 'Настройки справочника'; return month ? 'Отчёт за месяц' : 'Финансовый обзор'; }
+function formatMoney(value: number) { return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 2 }).format(value); }
+function compactMoney(value: number) { return new Intl.NumberFormat('ru-RU', { notation: 'compact', maximumFractionDigits: 1 }).format(value); }
+function formatDate(value: string) { return new Intl.DateTimeFormat('ru-RU').format(new Date(`${value}T00:00:00`)); }
+function message(error: unknown) { return error instanceof Error ? error.message : 'Произошла ошибка'; }

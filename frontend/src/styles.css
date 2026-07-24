@@ -30,6 +30,7 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); letter-spacing: -.04em; }
 .metric strong { font-size: clamp(17px, 2vw, 24px); letter-spacing: -.03em; }
 .content-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr); gap: 16px; margin-bottom: 16px; }
 .content-grid.lower { grid-template-columns: 1fr 1fr; }
+.operation-editor { margin-bottom: 16px; }
 .card { padding: 22px; }
 .card-title { display: flex; justify-content: space-between; margin-bottom: 16px; }
 .card-title h2 { margin: 0 0 4px; font-size: 17px; }
@@ -46,23 +47,41 @@ input:focus, select:focus { border-color: #8071f2; box-shadow: 0 0 0 3px #8071f2
 .segmented button.selected { background: white; color: #5b4cd4; box-shadow: 0 2px 8px #2d2b3f12; font-weight: 700; }
 .primary { border: 0; border-radius: 9px; padding: 11px 16px; background: #6c5ce7; color: white; font-weight: 700; }
 .transaction-form .primary { align-self: end; }
+.comment-field { grid-column: 1 / -1; }
+.form-actions { grid-column: 1 / -1; display: flex; gap: 9px; }
+.secondary { border: 1px solid #dedce6; border-radius: 9px; padding: 11px 16px; color: #676575; background: white; font-weight: 700; }
 .category-pills { display: flex; flex-wrap: wrap; gap: 7px; max-height: 148px; overflow-y: auto; }
 .category-pills span { padding: 7px 10px; border-radius: 20px; background: #f2efff; color: #5b4cd4; font-size: 11px; font-weight: 600; }
 .category-pills span.income-pill { background: #e8faf4; color: #008b70; }
 .category-form { display: grid; grid-template-columns: 1fr 110px auto; gap: 8px; margin-top: 18px; }
 .transactions { margin-top: 0; }
+.operation-editor + .transactions, .content-grid + .transactions, .vehicle-metrics + .content-grid { margin-top: 16px; }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 12px; }
 th, td { padding: 13px 10px; border-bottom: 1px solid #efedf3; text-align: left; white-space: nowrap; }
 th { color: #9997a5; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
 td:last-child, th:last-child { text-align: right; }
+.row-actions { display: flex; justify-content: flex-end; gap: 5px; }
+.row-actions button { width: 28px; height: 28px; border: 1px solid #dedce6; border-radius: 7px; background: white; color: #6c5ce7; }
+.row-actions button.delete { color: #c84d4d; }
 .type { padding: 5px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; }
 .type.income { color: #008b70; background: #e8faf4; }.type.expense { color: #b64f3e; background: #fff0ec; }
 .money-in { color: #008b70; font-weight: 700; }.money-out { color: #b64f3e; font-weight: 700; }
+.settings-card { max-width: 1000px; }
+.category-groups { display: grid; gap: 24px; }
+.category-groups h3 { margin: 0 0 11px; font-size: 13px; color: #777584; }
+.vehicle-list { display: grid; gap: 10px; }
+.vehicle-list > div { display: flex; align-items: center; gap: 12px; padding: 13px; border: 1px solid #eceaf1; border-radius: 12px; }
+.vehicle-list > div > span { display: grid; place-items: center; width: 42px; height: 42px; background: #f2efff; border-radius: 11px; }
+.vehicle-list strong, .vehicle-list small { display: block; }.vehicle-list small { margin-top: 3px; color: #92909e; }
+.inline-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 16px; }
+.car-breakdown { display: grid; gap: 12px; }
+.car-breakdown div { display: flex; justify-content: space-between; padding: 16px; border-radius: 12px; background: #f7f6fa; }
+.car-breakdown span { color: #777584; }
 @media (max-width: 1050px) { .metrics { grid-template-columns: 1fr 1fr; }.content-grid, .content-grid.lower { grid-template-columns: 1fr; } }
 @media (max-width: 700px) {
   .app { display: block; }.sidebar { position: static; height: auto; padding: 15px; }.brand { padding-bottom: 10px; }
   nav { display: flex; overflow-x: auto; } nav p { display: none; } nav button { white-space: nowrap; }
   main { padding: 22px 14px 40px; }.metrics { grid-template-columns: 1fr 1fr; }.transaction-form { grid-template-columns: 1fr; }
-  .segmented { grid-column: auto; }.category-form { grid-template-columns: 1fr; }
+  .segmented { grid-column: auto; }.category-form, .inline-form { grid-template-columns: 1fr; }.comment-field, .form-actions { grid-column: auto; }
 }

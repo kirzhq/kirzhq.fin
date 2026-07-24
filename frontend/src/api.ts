@@ -1,4 +1,4 @@
-import type { Category, Summary, Transaction, TransactionType } from './types';
+import type { Category, Summary, Transaction, TransactionType, Vehicle } from './types';
 
 const API_BASE = '/api';
 
@@ -32,11 +32,23 @@ export function getSummary(year: number, month: number | null) {
   return request<Summary>(`/summary?${periodQuery(year, month)}`);
 }
 
-export function createTransaction(payload: Omit<Transaction, 'id'>) {
+export function createTransaction(payload: Omit<Transaction, 'id' | 'vehicleName'>) {
   return request<Transaction>('/transactions', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export function updateTransaction(id: number, payload: Omit<Transaction, 'id' | 'vehicleName'>) {
+  return request<Transaction>(`/transactions/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteTransaction(id: number) {
+  const response = await fetch(`${API_BASE}/transactions/${id}`, { method: 'DELETE' });
+  if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
 }
 
 export function getCategories() {
@@ -47,5 +59,16 @@ export function createCategory(payload: { name: string; type: TransactionType })
   return request<Category>('/categories', {
     method: 'POST',
     body: JSON.stringify(payload),
+  });
+}
+
+export function getVehicles() {
+  return request<Vehicle[]>('/vehicles');
+}
+
+export function createVehicle(name: string) {
+  return request<Vehicle>('/vehicles', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
   });
 }
