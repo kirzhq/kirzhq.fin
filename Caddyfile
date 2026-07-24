@@ -2,17 +2,25 @@
     encode zstd gzip
 
     handle /api/* {
-        forward_auth kirzhq-home-backend:8080 {
-            uri /api/auth/check
+        route {
+            vars original_uri {uri}
+            forward_auth kirzhq-home-backend:8080 {
+                uri /api/auth/check
+            }
+            rewrite * {vars.original_uri}
+            reverse_proxy backend:8080
         }
-        reverse_proxy backend:8080
     }
 
     handle {
-        forward_auth kirzhq-home-backend:8080 {
-            uri /api/auth/check
+        route {
+            vars original_uri {uri}
+            forward_auth kirzhq-home-backend:8080 {
+                uri /api/auth/check
+            }
+            rewrite * {vars.original_uri}
+            reverse_proxy frontend:80
         }
-        reverse_proxy frontend:80
     }
 
     header {
@@ -47,10 +55,14 @@ home.kirzhq.ru {
     }
 
     handle {
-        forward_auth kirzhq-home-backend:8080 {
-            uri /api/auth/check
+        route {
+            vars original_uri {uri}
+            forward_auth kirzhq-home-backend:8080 {
+                uri /api/auth/check
+            }
+            rewrite * {vars.original_uri}
+            reverse_proxy kirzhq-home-frontend:80
         }
-        reverse_proxy kirzhq-home-frontend:80
     }
 
     header {
