@@ -6,7 +6,7 @@ import {
 } from './api';
 import type { Category, Summary, Transaction, TransactionType, Vehicle, VehicleSummary } from './types';
 
-type View = 'overview' | 'operations' | 'vehicles' | 'categories';
+type View = 'overview' | 'vehicles' | 'categories';
 const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const shortMonths = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 const colors = ['#6c5ce7', '#00b894', '#fdcb6e', '#e17055', '#0984e3', '#e84393', '#00cec9', '#a29bfe'];
@@ -88,7 +88,7 @@ export default function App() {
   function openView(nextView: View, selectedMonth: number | null = month) {
     setView(nextView);
     setMonth(selectedMonth);
-    if (nextView !== 'operations') cancelEdit();
+    cancelEdit();
   }
 
   function changeType(type: TransactionType) {
@@ -169,7 +169,6 @@ export default function App() {
       </div>
       <nav>
         <button className={view === 'overview' && month === null ? 'active' : ''} onClick={() => openView('overview', null)}>Обзор за год</button>
-        <button className={view === 'operations' ? 'active' : ''} onClick={() => openView('operations')}>Операции</button>
         <button className={view === 'vehicles' ? 'active' : ''} onClick={() => openView('vehicles', null)}>Автомобили</button>
         <button className={view === 'categories' ? 'active' : ''} onClick={() => openView('categories')}>Категории</button>
         <p>Месяцы</p>
@@ -191,22 +190,20 @@ export default function App() {
           <Metric title="Операций" value={transactions.length} plain />
         </section>
         <section className="content-grid">
-          <article className="card"><CardTitle title={month ? 'Доходы и расходы' : 'Динамика по месяцам'} subtitle={month ? months[month - 1] : `${year} год`} />
-            <ResponsiveContainer width="100%" height={320}><BarChart data={chartData}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#3b394d' : '#e9e8f0'} /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip formatter={(value, name) => [formatMoney(Number(value)), name]} contentStyle={tooltipStyle(theme)} /><Legend /><Bar dataKey="income" name="Доход" fill="#00b894" radius={[5, 5, 0, 0]} /><Bar dataKey="expense" name="Расход" fill="#6c5ce7" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer>
-          </article>
-          <article className="card"><CardTitle title="Расходы по категориям" subtitle={month ? months[month - 1] : `${year} год`} />
+          <div className="dashboard-stack">
+            <article className="card chart-card"><CardTitle title={month ? 'Доходы и расходы' : 'Динамика по месяцам'} subtitle={month ? months[month - 1] : `${year} год`} />
+              <ResponsiveContainer width="100%" height={320}><BarChart data={chartData}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#3b394d' : '#e9e8f0'} /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip formatter={(value, name) => [formatMoney(Number(value)), name]} contentStyle={tooltipStyle(theme)} /><Legend /><Bar dataKey="income" name="Доход" fill="#00b894" radius={[5, 5, 0, 0]} /><Bar dataKey="expense" name="Расход" fill="#6c5ce7" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer>
+            </article>
+            <article className="card operation-editor dashboard-operation">
+              <CardTitle title="Добавить операцию" subtitle="Доход или расход" />
+              <OperationForm form={form} setForm={setForm} categories={availableCategories} vehicles={vehicles} editing={false} onType={changeType} onSubmit={saveOperation} onCancel={cancelEdit} />
+            </article>
+          </div>
+          <article className="card category-chart-card"><CardTitle title="Расходы по категориям" subtitle={month ? months[month - 1] : `${year} год`} />
             <ResponsiveContainer width="100%" height={270}><PieChart><Pie data={summary?.categoryPoints ?? []} dataKey="amount" nameKey="category" innerRadius={72} outerRadius={108} paddingAngle={1} cornerRadius={4} stroke="none">{(summary?.categoryPoints ?? []).map((entry, index) => <Cell key={entry.category} fill={colors[index % colors.length]} />)}<Label value="Расходы" position="center" dy={-12} className="donut-caption" /><Label value={compactMoney(summary?.expense ?? 0)} position="center" dy={13} className="donut-total" /></Pie><Tooltip formatter={(value, _name, item) => [`${formatMoney(Number(value))} · ${summary?.expense ? ((Number(value) / summary.expense) * 100).toFixed(1) : '0'}%`, item.payload?.category ?? 'Категория']} contentStyle={tooltipStyle(theme)} /></PieChart></ResponsiveContainer>
             <div className="legend-list full-legend">{(summary?.categoryPoints ?? []).map((point, index) => <div key={point.category}><i style={{ background: colors[index % colors.length] }} /><span>{point.category}</span><strong>{summary?.expense ? ((point.amount / summary.expense) * 100).toFixed(1) : '0'}%</strong><small>{formatMoney(point.amount)}</small></div>)}</div>
           </article>
         </section>
-        <TransactionTable items={transactions} loading={loading} onEdit={editOperation} onDelete={removeOperation} />
-      </>}
-
-      {view === 'operations' && <>
-        <article className="card operation-editor">
-          <CardTitle title="Добавить операцию" subtitle="Одна форма для доходов и расходов" />
-          <OperationForm form={form} setForm={setForm} categories={availableCategories} vehicles={vehicles} editing={false} onType={changeType} onSubmit={saveOperation} onCancel={cancelEdit} />
-        </article>
         <TransactionTable items={transactions} loading={loading} onEdit={editOperation} onDelete={removeOperation} />
       </>}
 
@@ -265,8 +262,8 @@ function TransactionTable({ items, loading, onEdit, onDelete }: { items: Transac
 function CategoryGroup({ title, items }: { title: string; items: Category[] }) { return <div><h3>{title}</h3><div className="category-pills">{items.map((item) => <span key={item.id} className={item.type === 'INCOME' ? 'income-pill' : ''}>{item.name}</span>)}</div></div>; }
 function Metric({ title, value, kind, plain }: { title: string; value?: number; kind?: string; plain?: boolean }) { return <article className={`metric ${kind ?? ''}`}><span>{title}</span><strong>{plain ? value ?? 0 : formatMoney(value ?? 0)}</strong></article>; }
 function CardTitle({ title, subtitle }: { title: string; subtitle: string }) { return <div className="card-title"><div><h2>{title}</h2><p>{subtitle}</p></div></div>; }
-function title(view: View, month: number | null, year: number) { if (view === 'operations') return 'Операции'; if (view === 'vehicles') return 'Автомобили'; if (view === 'categories') return 'Категории'; return month ? months[month - 1] : `Весь ${year} год`; }
-function subtitle(view: View, month: number | null) { if (view === 'operations') return 'Добавление и управление'; if (view === 'vehicles') return 'Расходы на транспорт'; if (view === 'categories') return 'Настройки справочника'; return month ? 'Отчёт за месяц' : 'Финансовый обзор'; }
+function title(view: View, month: number | null, year: number) { if (view === 'vehicles') return 'Автомобили'; if (view === 'categories') return 'Категории'; return month ? months[month - 1] : `Весь ${year} год`; }
+function subtitle(view: View, month: number | null) { if (view === 'vehicles') return 'Расходы на транспорт'; if (view === 'categories') return 'Настройки справочника'; return month ? 'Отчёт за месяц' : 'Финансовый обзор'; }
 function formatMoney(value: number) { return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 2 }).format(value); }
 function compactMoney(value: number) { return new Intl.NumberFormat('ru-RU', { notation: 'compact', maximumFractionDigits: 1 }).format(value); }
 function formatDate(value: string) { return new Intl.DateTimeFormat('ru-RU').format(new Date(`${value}T00:00:00`)); }

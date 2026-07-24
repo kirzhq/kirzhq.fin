@@ -62,9 +62,13 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); letter-spacing: -.04em; }
 .metric.income::before { background: #00b894; }.metric.expense::before { background: #e17055; }.metric.balance::before { background: #6c5ce7; }
 .metric span { display: block; max-width: 24ch; color: #7f7d8b; font-size: 14px; line-height: 1.45; }
 .metric strong { align-self: end; white-space: nowrap; font-size: clamp(20px, 1.65vw, 27px); font-variant-numeric: tabular-nums; letter-spacing: -.035em; line-height: 1.15; }
-.content-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr); gap: 16px; align-items: start; margin-bottom: 16px; }
+.content-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr); gap: 16px; align-items: stretch; margin-bottom: 16px; }
 .content-grid.lower { grid-template-columns: 1fr 1fr; }
+.dashboard-stack { display: grid; gap: 16px; align-content: start; min-width: 0; }
+.chart-card { min-width: 0; }
+.category-chart-card { height: 100%; }
 .operation-editor { margin-bottom: 16px; }
+.dashboard-operation { margin-bottom: 0; }
 .modal-backdrop { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(20, 18, 31, .62); backdrop-filter: blur(4px); animation: modal-fade-in .16s ease-out; }
 .operation-modal { position: relative; width: min(680px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; box-shadow: 0 24px 80px rgba(18, 15, 34, .3); animation: modal-rise-in .2s ease-out; }
 .modal-close { position: absolute; z-index: 1; top: 14px; right: 14px; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 9px; background: #f1f0f5; color: #676575; font-size: 24px; line-height: 1; }
