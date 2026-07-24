@@ -12,6 +12,10 @@ settings page. Vehicle expenses are linked to the Lada Vesta and shown in a dedi
 section. A transaction date determines its year, so 2027 and later years use the
 same database and interface without annual schema copies.
 
+The selected year applies to every section from the sidebar. The dashboard has
+light and dark themes with a saved browser preference, and its expense legend
+shows every category with both amount and percentage.
+
 ## Production stack
 
 - Java 21 / Spring Boot / Spring Data JPA

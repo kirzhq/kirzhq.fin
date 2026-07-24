@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
   createCategory, createTransaction, deleteTransaction, getCategories,
   getSummary, getTransactions, getVehicles, updateTransaction,
@@ -29,6 +29,7 @@ export default function App() {
   const [categoryType, setCategoryType] = useState<TransactionType>('EXPENSE');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => localStorage.getItem('finance-theme') === 'dark' ? 'dark' : 'light');
 
   const availableCategories = categories.filter((category) => category.type === form.type);
   const vehicleTransactions = useMemo(() => transactions.filter((item) => item.category === 'Машина'), [transactions]);
@@ -60,6 +61,10 @@ export default function App() {
   }
 
   useEffect(() => { void loadData(); }, [year, month]);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('finance-theme', theme);
+  }, [theme]);
 
   function openView(nextView: View, selectedMonth: number | null = month) {
     setView(nextView);
@@ -132,6 +137,12 @@ export default function App() {
   return <div className="app">
     <aside className="sidebar">
       <div className="brand"><span>₽</span><strong>Мои финансы</strong></div>
+      <div className="sidebar-controls">
+        <label>Финансовый год<select value={year} onChange={(event) => setYear(Number(event.target.value))}>{yearOptions.map((value) => <option key={value}>{value}</option>)}</select></label>
+        <button className="theme-toggle" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+          <span>{theme === 'light' ? '☾' : '☀'}</span>{theme === 'light' ? 'Тёмная тема' : 'Светлая тема'}
+        </button>
+      </div>
       <nav>
         <button className={view === 'overview' && month === null ? 'active' : ''} onClick={() => openView('overview', null)}>Обзор за год</button>
         <button className={view === 'operations' ? 'active' : ''} onClick={() => openView('operations')}>Операции</button>
@@ -145,7 +156,6 @@ export default function App() {
     <main>
       <header className="topbar">
         <div><p className="kicker">{subtitle(view, month)}</p><h1>{title(view, month, year)}</h1></div>
-        <select value={year} onChange={(event) => setYear(Number(event.target.value))}>{yearOptions.map((value) => <option key={value}>{value}</option>)}</select>
       </header>
       {error && <div className="error">{error}<button onClick={() => setError('')}>×</button></div>}
 
@@ -158,11 +168,11 @@ export default function App() {
         </section>
         <section className="content-grid">
           <article className="card"><CardTitle title={month ? 'Доходы и расходы' : 'Динамика по месяцам'} subtitle={month ? months[month - 1] : `${year} год`} />
-            <ResponsiveContainer width="100%" height={320}><BarChart data={chartData}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e9e8f0" /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip formatter={(value, name) => [formatMoney(Number(value)), name]} /><Legend /><Bar dataKey="income" name="Доход" fill="#00b894" radius={[5, 5, 0, 0]} /><Bar dataKey="expense" name="Расход" fill="#6c5ce7" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer>
+            <ResponsiveContainer width="100%" height={320}><BarChart data={chartData}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#3b394d' : '#e9e8f0'} /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip formatter={(value, name) => [formatMoney(Number(value)), name]} contentStyle={tooltipStyle(theme)} /><Legend /><Bar dataKey="income" name="Доход" fill="#00b894" radius={[5, 5, 0, 0]} /><Bar dataKey="expense" name="Расход" fill="#6c5ce7" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer>
           </article>
           <article className="card"><CardTitle title="Расходы по категориям" subtitle={month ? months[month - 1] : `${year} год`} />
-            <ResponsiveContainer width="100%" height={250}><PieChart><Pie data={summary?.categoryPoints ?? []} dataKey="amount" nameKey="category" innerRadius={62} outerRadius={94} paddingAngle={2} labelLine={false} label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>{(summary?.categoryPoints ?? []).map((entry, index) => <Cell key={entry.category} fill={colors[index % colors.length]} />)}</Pie><Tooltip formatter={(value, _name, item) => [`${formatMoney(Number(value))} · ${summary?.expense ? ((Number(value) / summary.expense) * 100).toFixed(1) : '0'}%`, item.payload?.category ?? 'Категория']} /></PieChart></ResponsiveContainer>
-            <div className="legend-list">{(summary?.categoryPoints ?? []).slice(0, 7).map((point, index) => <div key={point.category}><i style={{ background: colors[index % colors.length] }} /><span>{point.category}</span><strong>{formatMoney(point.amount)}</strong></div>)}</div>
+            <ResponsiveContainer width="100%" height={270}><PieChart><Pie data={summary?.categoryPoints ?? []} dataKey="amount" nameKey="category" innerRadius={72} outerRadius={108} paddingAngle={1} cornerRadius={4} stroke="none">{(summary?.categoryPoints ?? []).map((entry, index) => <Cell key={entry.category} fill={colors[index % colors.length]} />)}<Label value="Расходы" position="center" dy={-12} className="donut-caption" /><Label value={compactMoney(summary?.expense ?? 0)} position="center" dy={13} className="donut-total" /></Pie><Tooltip formatter={(value, _name, item) => [`${formatMoney(Number(value))} · ${summary?.expense ? ((Number(value) / summary.expense) * 100).toFixed(1) : '0'}%`, item.payload?.category ?? 'Категория']} contentStyle={tooltipStyle(theme)} /></PieChart></ResponsiveContainer>
+            <div className="legend-list full-legend">{(summary?.categoryPoints ?? []).map((point, index) => <div key={point.category}><i style={{ background: colors[index % colors.length] }} /><span>{point.category}</span><strong>{summary?.expense ? ((point.amount / summary.expense) * 100).toFixed(1) : '0'}%</strong><small>{formatMoney(point.amount)}</small></div>)}</div>
           </article>
         </section>
         <TransactionTable items={transactions} loading={loading} onEdit={editOperation} onDelete={removeOperation} />
@@ -226,3 +236,11 @@ function formatMoney(value: number) { return new Intl.NumberFormat('ru-RU', { st
 function compactMoney(value: number) { return new Intl.NumberFormat('ru-RU', { notation: 'compact', maximumFractionDigits: 1 }).format(value); }
 function formatDate(value: string) { return new Intl.DateTimeFormat('ru-RU').format(new Date(`${value}T00:00:00`)); }
 function message(error: unknown) { return error instanceof Error ? error.message : 'Произошла ошибка'; }
+function tooltipStyle(theme: 'light' | 'dark') {
+  return {
+    background: theme === 'dark' ? '#302e43' : '#ffffff',
+    border: `1px solid ${theme === 'dark' ? '#49465d' : '#e5e2ec'}`,
+    borderRadius: '10px',
+    color: theme === 'dark' ? '#f6f4ff' : '#242334',
+  };
+}
