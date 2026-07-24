@@ -50,7 +50,7 @@ home.kirzhq.ru {
         reverse_proxy kirzhq-home-backend:8080
     }
 
-    handle /api/auth/* {
+    handle /api/* {
         reverse_proxy kirzhq-home-backend:8080
     }
 
