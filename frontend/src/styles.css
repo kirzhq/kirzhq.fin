@@ -82,8 +82,9 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); letter-spacing: -.04em; }
 .legend-list { display: grid; gap: 8px; }
 .legend-list div { display: grid; grid-template-columns: 9px 1fr auto; gap: 8px; align-items: center; font-size: 13px; }
 .legend-list i { width: 8px; height: 8px; border-radius: 50%; }.legend-list strong { font-size: 13px; }
-.full-legend { grid-template-columns: 1fr; max-height: 285px; overflow-y: auto; padding-right: 5px; }
-.full-legend div { grid-template-columns: 9px minmax(100px, 1fr) 48px 92px; padding: 5px 0; border-bottom: 1px solid #f0eef4; }
+.full-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }
+.full-legend div { grid-template-columns: 9px minmax(70px, 1fr) 44px 82px; min-width: 0; padding: 7px 0; border-bottom: 1px solid #f0eef4; }
+.full-legend span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .full-legend strong { color: #6c5ce7; text-align: right; }
 .full-legend small { color: #858391; text-align: right; font-size: 12px; }
 .donut-caption { fill: #9997a5; font-size: 13px; }
@@ -163,7 +164,7 @@ html[data-theme="dark"] .donut-caption { fill: #aaa7b8; }
 html[data-theme="dark"] .donut-total { fill: #f5f3fb; }
 html[data-theme="dark"] .recharts-text { fill: #aaa7b8; }
 html[data-theme="dark"] .recharts-default-tooltip { background: #302e43 !important; border-color: #49465d !important; }
-@media (max-width: 1200px) { .vehicle-metrics { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 1200px) { .vehicle-metrics { grid-template-columns: repeat(3, 1fr); }.full-legend { grid-template-columns: 1fr; } }
 @media (max-width: 1050px) { .metrics, .vehicle-metrics { grid-template-columns: 1fr 1fr; }.content-grid, .content-grid.lower { grid-template-columns: 1fr; } }
 @media (max-width: 700px) {
   .app { display: block; }.sidebar { position: static; height: auto; padding: 15px; }.brand { padding-bottom: 10px; }
