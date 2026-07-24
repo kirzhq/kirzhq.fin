@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
-  createCategory, createTransaction, createVehicle, deleteTransaction, getCategories,
+  createCategory, createTransaction, deleteTransaction, getCategories,
   getSummary, getTransactions, getVehicles, updateTransaction,
 } from './api';
 import type { Category, Summary, Transaction, TransactionType, Vehicle } from './types';
@@ -27,7 +27,6 @@ export default function App() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [categoryName, setCategoryName] = useState('');
   const [categoryType, setCategoryType] = useState<TransactionType>('EXPENSE');
-  const [vehicleName, setVehicleName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -127,15 +126,6 @@ export default function App() {
     } catch (requestError) { setError(message(requestError)); }
   }
 
-  async function addVehicle(event: React.FormEvent) {
-    event.preventDefault();
-    try {
-      await createVehicle(vehicleName.trim());
-      setVehicleName('');
-      await loadData();
-    } catch (requestError) { setError(message(requestError)); }
-  }
-
   const chartData = (summary?.monthlyPoints ?? []).map((point, index) => ({ ...point, monthLabel: month ? months[month - 1] : shortMonths[index] }));
   const yearOptions = Array.from({ length: new Date().getFullYear() + 5 - 2024 + 1 }, (_, index) => 2024 + index);
 
@@ -168,13 +158,14 @@ export default function App() {
         </section>
         <section className="content-grid">
           <article className="card"><CardTitle title={month ? 'Доходы и расходы' : 'Динамика по месяцам'} subtitle={month ? months[month - 1] : `${year} год`} />
-            <ResponsiveContainer width="100%" height={320}><BarChart data={chartData}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e9e8f0" /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip formatter={(value) => formatMoney(Number(value))} /><Legend formatter={(value) => value === 'income' ? 'Доход' : 'Расход'} /><Bar dataKey="income" fill="#00b894" radius={[5, 5, 0, 0]} /><Bar dataKey="expense" fill="#6c5ce7" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer>
+            <ResponsiveContainer width="100%" height={320}><BarChart data={chartData}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e9e8f0" /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip formatter={(value, name) => [formatMoney(Number(value)), name]} /><Legend /><Bar dataKey="income" name="Доход" fill="#00b894" radius={[5, 5, 0, 0]} /><Bar dataKey="expense" name="Расход" fill="#6c5ce7" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer>
           </article>
           <article className="card"><CardTitle title="Расходы по категориям" subtitle={month ? months[month - 1] : `${year} год`} />
-            <ResponsiveContainer width="100%" height={230}><PieChart><Pie data={summary?.categoryPoints ?? []} dataKey="amount" nameKey="category" innerRadius={62} outerRadius={94} paddingAngle={2}>{(summary?.categoryPoints ?? []).map((entry, index) => <Cell key={entry.category} fill={colors[index % colors.length]} />)}</Pie><Tooltip formatter={(value) => formatMoney(Number(value))} /></PieChart></ResponsiveContainer>
+            <ResponsiveContainer width="100%" height={250}><PieChart><Pie data={summary?.categoryPoints ?? []} dataKey="amount" nameKey="category" innerRadius={62} outerRadius={94} paddingAngle={2} labelLine={false} label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>{(summary?.categoryPoints ?? []).map((entry, index) => <Cell key={entry.category} fill={colors[index % colors.length]} />)}</Pie><Tooltip formatter={(value, _name, item) => [`${formatMoney(Number(value))} · ${summary?.expense ? ((Number(value) / summary.expense) * 100).toFixed(1) : '0'}%`, item.payload?.category ?? 'Категория']} /></PieChart></ResponsiveContainer>
             <div className="legend-list">{(summary?.categoryPoints ?? []).slice(0, 7).map((point, index) => <div key={point.category}><i style={{ background: colors[index % colors.length] }} /><span>{point.category}</span><strong>{formatMoney(point.amount)}</strong></div>)}</div>
           </article>
         </section>
+        <TransactionTable items={transactions} loading={loading} onEdit={editOperation} onDelete={removeOperation} />
       </>}
 
       {view === 'operations' && <>
@@ -193,9 +184,8 @@ export default function App() {
           <Metric title="Операций" value={vehicleTransactions.length} plain />
         </section>
         <section className="content-grid lower">
-          <article className="card"><CardTitle title="Мои автомобили" subtitle={`${vehicles.length} автомобилей`} />
+          <article className="card"><CardTitle title="Мой автомобиль" subtitle="Lada Vesta" />
             <div className="vehicle-list">{vehicles.map((vehicle) => <div key={vehicle.id}><span>🚙</span><div><strong>{vehicle.name}</strong><small>{formatMoney(vehicleTransactions.filter((item) => item.vehicleId === vehicle.id).reduce((sum, item) => sum + item.amount, 0))} за {year} год</small></div></div>)}</div>
-            <form className="inline-form" onSubmit={addVehicle}><input required value={vehicleName} onChange={(event) => setVehicleName(event.target.value)} placeholder="Название автомобиля" /><button className="primary">Добавить</button></form>
           </article>
           <article className="card"><CardTitle title="Расходы на автомобили" subtitle={`${year} год`} /><div className="car-breakdown"><div><span>Топливо</span><strong>{formatMoney(fuelTotal)}</strong></div><div><span>Остальные расходы</span><strong>{formatMoney(vehicleTotal - fuelTotal)}</strong></div></div></article>
         </section>

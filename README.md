@@ -8,7 +8,7 @@ creation of additional income or expense categories. July 2026 data is imported
 from `Финансовый вопрос.xlsx` through a versioned database migration.
 
 Operations can be edited and deleted. Categories are managed on a separate
-settings page. Vehicle expenses are linked to a vehicle and shown in a dedicated
+settings page. Vehicle expenses are linked to the Lada Vesta and shown in a dedicated
 section. A transaction date determines its year, so 2027 and later years use the
 same database and interface without annual schema copies.
 

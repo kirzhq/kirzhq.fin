@@ -65,10 +65,3 @@ export function createCategory(payload: { name: string; type: TransactionType })
 export function getVehicles() {
   return request<Vehicle[]>('/vehicles');
 }
-
-export function createVehicle(name: string) {
-  return request<Vehicle>('/vehicles', {
-    method: 'POST',
-    body: JSON.stringify({ name }),
-  });
-}
