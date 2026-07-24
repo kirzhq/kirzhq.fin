@@ -47,6 +47,10 @@ public class VehicleService {
                 .orElseThrow(() -> new IllegalArgumentException("Автомобиль не найден"));
     }
 
+    public Long defaultVehicleId() {
+        return repository.findAllByOrderByNameAsc().stream().findFirst().map(Vehicle::getId).orElse(null);
+    }
+
     public VehicleSummaryResponse summary(Long id, int year) {
         List<Transaction> transactions = transactions(id, year);
         BigDecimal total = sum(transactions);

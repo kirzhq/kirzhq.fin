@@ -28,6 +28,8 @@ services:
       DATABASE_USER: ${POSTGRES_USER:-finance}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_ALLOWED_CHAT_ID: ${TELEGRAM_ALLOWED_CHAT_ID:-}
     depends_on:
       db:
         condition: service_healthy
