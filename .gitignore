@@ -14,5 +14,6 @@
 /frontend/*.tsbuildinfo
 
 *.log
+*.dump
 .env
 !.env.example

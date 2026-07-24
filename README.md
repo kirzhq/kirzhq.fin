@@ -25,6 +25,27 @@ React и PostgreSQL.
 браузере. В легенде диаграммы расходов отображаются все категории, суммы и
 проценты.
 
+## Вход с Touch ID
+
+Авторизация реализована через стандарт WebAuthn (passkey). На Mac ключ хранится
+в связке ключей Apple и подтверждается через Touch ID; финансовые данные и
+ключи доступа сохраняются на сервере в PostgreSQL.
+
+Для первой настройки откройте `/login`, войдите временными данными
+`AUTH_USERNAME` и `AUTH_SETUP_PASSWORD`, затем перейдите на
+`/webauthn/register` и зарегистрируйте ключ. После успешной проверки входа с
+Touch ID временный пароль следует заменить в `.env` на новое случайное значение
+и перезапустить backend.
+
+Passkey привязан к домену. Для рабочего сервера параметры должны точно
+соответствовать публичному HTTPS-адресу:
+
+```dotenv
+AUTH_RP_ID=fin.example.com
+AUTH_ORIGIN=https://fin.example.com
+SESSION_COOKIE_SECURE=true
+```
+
 ## Telegram-бот
 
 Бот позволяет просматривать последние операции, добавлять новые и редактировать
@@ -90,6 +111,11 @@ POSTGRES_DB=finance_tracker
 POSTGRES_USER=finance
 SITE_ADDRESS=finance.example.com
 CORS_ALLOWED_ORIGINS=https://finance.example.com
+AUTH_USERNAME=finance
+AUTH_SETUP_PASSWORD=a-separate-long-random-password
+AUTH_RP_ID=finance.example.com
+AUTH_ORIGIN=https://finance.example.com
+SESSION_COOKIE_SECURE=true
 ```
 
 После изменения `.env` пересоберите и перезапустите контейнеры:

@@ -1,7 +1,7 @@
 package com.kirzhq.finances.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.kirzhq.finances.domain.TransactionType;
 import com.kirzhq.finances.web.dto.TransactionRequest;
 import com.kirzhq.finances.web.dto.TransactionResponse;

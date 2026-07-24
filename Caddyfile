@@ -5,6 +5,22 @@
         reverse_proxy backend:8080
     }
 
+    handle /login* {
+        reverse_proxy backend:8080
+    }
+
+    handle /logout {
+        reverse_proxy backend:8080
+    }
+
+    handle /webauthn/* {
+        reverse_proxy backend:8080
+    }
+
+    handle /default-ui.css {
+        reverse_proxy backend:8080
+    }
+
     handle {
         reverse_proxy frontend:80
     }

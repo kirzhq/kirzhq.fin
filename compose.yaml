@@ -30,6 +30,11 @@ services:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_ALLOWED_CHAT_ID: ${TELEGRAM_ALLOWED_CHAT_ID:-}
+      AUTH_USERNAME: ${AUTH_USERNAME:-finance}
+      AUTH_SETUP_PASSWORD: ${AUTH_SETUP_PASSWORD:?Set AUTH_SETUP_PASSWORD in .env}
+      AUTH_RP_ID: ${AUTH_RP_ID:-localhost}
+      AUTH_ORIGIN: ${AUTH_ORIGIN:-http://localhost}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
     depends_on:
       db:
         condition: service_healthy

@@ -2,15 +2,31 @@ import type { Category, Summary, Transaction, TransactionType, Vehicle, VehicleS
 
 const API_BASE = '/api';
 
+function csrfToken() {
+  return document.cookie.split('; ')
+    .find((value) => value.startsWith('XSRF-TOKEN='))
+    ?.split('=').slice(1).join('=');
+}
+
+function ensureAuthenticated(response: Response) {
+  if (response.status === 401 || (response.redirected && response.url.includes('/login'))) {
+    window.location.assign('/login');
+    throw new Error('Требуется авторизация');
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = csrfToken();
   const response = await fetch(`${API_BASE}${path}`, {
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { 'X-XSRF-TOKEN': decodeURIComponent(token) } : {}),
       ...(init?.headers ?? {}),
     },
     ...init,
   });
 
+  ensureAuthenticated(response);
   if (!response.ok) {
     throw new Error(`Request failed with status ${response.status}`);
   }
@@ -47,7 +63,12 @@ export function updateTransaction(id: number, payload: Omit<Transaction, 'id' | 
 }
 
 export async function deleteTransaction(id: number) {
-  const response = await fetch(`${API_BASE}/transactions/${id}`, { method: 'DELETE' });
+  const token = csrfToken();
+  const response = await fetch(`${API_BASE}/transactions/${id}`, {
+    method: 'DELETE',
+    headers: token ? { 'X-XSRF-TOKEN': decodeURIComponent(token) } : {},
+  });
+  ensureAuthenticated(response);
   if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
 }
 
@@ -72,6 +93,7 @@ export function getVehicleSummary(id: number, year: number) {
 
 export async function exportVehicle(id: number, year: number) {
   const response = await fetch(`${API_BASE}/vehicles/${id}/export?year=${year}`);
+  ensureAuthenticated(response);
   if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
   const blob = await response.blob();
   const url = URL.createObjectURL(blob);
