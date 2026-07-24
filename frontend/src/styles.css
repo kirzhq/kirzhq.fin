@@ -116,6 +116,11 @@ input:focus, select:focus { border-color: #8071f2; box-shadow: 0 0 0 3px #8071f2
 .category-form { display: grid; grid-template-columns: 1fr 110px auto; gap: 8px; margin-top: 18px; }
 .transactions { margin-top: 0; }
 .operation-editor + .transactions, .content-grid + .transactions, .vehicle-metrics + .content-grid { margin-top: 16px; }
+.transactions-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.transactions-head .card-title { margin-bottom: 16px; }
+.category-filter { display: grid; grid-template-columns: auto minmax(180px, 230px); align-items: center; gap: 10px; }
+.category-filter span { color: #777584; font-size: 13px; font-weight: 700; }
+.category-filter select { min-width: 180px; padding-block: 9px; }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th, td { padding: 13px 10px; border-bottom: 1px solid #efedf3; text-align: left; white-space: nowrap; }
@@ -192,6 +197,7 @@ html[data-theme="dark"] .metric span,
 html[data-theme="dark"] .kicker,
 html[data-theme="dark"] .card-title p,
 html[data-theme="dark"] .transaction-form label,
+html[data-theme="dark"] .category-filter span,
 html[data-theme="dark"] .category-groups h3,
 html[data-theme="dark"] .vehicle-list small,
 html[data-theme="dark"] .debt-form label,
@@ -233,6 +239,7 @@ html[data-theme="dark"] .backup-actions button:hover { background: #36334c; bord
   .section-actions { margin: 0 0 16px; justify-content: stretch; }.section-actions button { width: 100%; }
   nav { display: flex; overflow-x: auto; } nav p { display: none; } nav button { white-space: nowrap; }
   main { padding: 22px 14px 40px; }.topbar { align-items: flex-start; gap: 14px; }.backup-actions button { padding: 0 12px; }.metrics { grid-template-columns: 1fr 1fr; }.transaction-form { grid-template-columns: 1fr; }
+  .transactions-head { display: block; }.category-filter { grid-template-columns: auto 1fr; margin-bottom: 16px; }.category-filter select { min-width: 0; }
   .debt-form-row, .debt-values, .payment-form { grid-template-columns: 1fr; }.payment-comment, .payment-form .form-actions { grid-column: auto; }
   .segmented { grid-column: auto; }.category-form, .inline-form { grid-template-columns: 1fr; }.comment-field, .form-actions { grid-column: auto; }
 }

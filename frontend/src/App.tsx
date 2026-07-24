@@ -367,7 +367,31 @@ function OperationForm({ form, setForm, categories, vehicles, editing, onType, o
 }
 
 function TransactionTable({ items, loading, onEdit, onDelete }: { items: Transaction[]; loading: boolean; onEdit: (item: Transaction) => void; onDelete: (item: Transaction) => void }) {
-  return <section className="card transactions"><CardTitle title="Операции" subtitle={loading ? 'Загрузка…' : `${items.length} записей`} /><div className="table-wrap"><table><thead><tr><th>Дата</th><th>Категория</th><th>Комментарий</th><th>Сумма</th><th /></tr></thead><tbody>{items.map((item) => <tr key={item.id}><td>{formatDate(item.transactionDate)}</td><td><b>{item.category}</b></td><td>{item.description || '—'}</td><td className={item.type === 'INCOME' ? 'money-in' : 'money-out'}>{item.type === 'INCOME' ? '+' : '−'} {formatMoney(item.amount)}</td><td className="row-actions"><button onClick={() => onEdit(item)} title="Редактировать">✎</button><button className="delete" onClick={() => onDelete(item)} title="Удалить">×</button></td></tr>)}</tbody></table></div></section>;
+  const [category, setCategory] = useState('');
+  const categoryOptions = useMemo(() => [...new Set(items.map((item) => item.category))].sort((a, b) => a.localeCompare(b, 'ru')), [items]);
+  const filteredItems = category ? items.filter((item) => item.category === category) : items;
+
+  useEffect(() => {
+    if (category && !categoryOptions.includes(category)) setCategory('');
+  }, [category, categoryOptions]);
+
+  const subtitle = loading
+    ? 'Загрузка…'
+    : category ? `${filteredItems.length} из ${items.length} записей` : `${items.length} записей`;
+
+  return <section className="card transactions">
+    <div className="transactions-head">
+      <CardTitle title="Операции" subtitle={subtitle} />
+      <label className="category-filter">
+        <span>Категория</span>
+        <select value={category} onChange={(event) => setCategory(event.target.value)}>
+          <option value="">Все категории</option>
+          {categoryOptions.map((name) => <option key={name} value={name}>{name}</option>)}
+        </select>
+      </label>
+    </div>
+    <div className="table-wrap"><table><thead><tr><th>Дата</th><th>Категория</th><th>Комментарий</th><th>Сумма</th><th /></tr></thead><tbody>{filteredItems.map((item) => <tr key={item.id}><td>{formatDate(item.transactionDate)}</td><td><b>{item.category}</b></td><td>{item.description || '—'}</td><td className={item.type === 'INCOME' ? 'money-in' : 'money-out'}>{item.type === 'INCOME' ? '+' : '−'} {formatMoney(item.amount)}</td><td className="row-actions"><button onClick={() => onEdit(item)} title="Редактировать">✎</button><button className="delete" onClick={() => onDelete(item)} title="Удалить">×</button></td></tr>)}</tbody></table></div>
+  </section>;
 }
 
 function CategoryGroup({ title, items }: { title: string; items: Category[] }) { return <div><h3>{title}</h3><div className="category-pills">{items.map((item) => <span key={item.id} className={item.type === 'INCOME' ? 'income-pill' : ''}>{item.name}</span>)}</div></div>; }
