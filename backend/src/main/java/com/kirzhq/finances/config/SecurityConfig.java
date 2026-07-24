@@ -29,8 +29,7 @@ public class SecurityConfig {
 
         return http
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/error", "/favicon.ico").permitAll()
-                        .anyRequest().authenticated())
+                        .anyRequest().permitAll())
                 .requestCache(cache -> cache.disable())
                 .formLogin(form -> form.disable())
                 .exceptionHandling(exceptions -> exceptions.defaultAuthenticationEntryPointFor(

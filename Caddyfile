@@ -2,6 +2,9 @@
     encode zstd gzip
 
     handle /api/* {
+        forward_auth kirzhq-home-backend:8080 {
+            uri /api/auth/check
+        }
         reverse_proxy backend:8080
     }
 
