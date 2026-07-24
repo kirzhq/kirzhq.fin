@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -24,8 +25,11 @@ public class TransactionController {
     }
 
     @GetMapping("/transactions")
-    public List<TransactionResponse> transactions() {
-        return transactionService.findAll();
+    public List<TransactionResponse> transactions(
+            @RequestParam(defaultValue = "2026") int year,
+            @RequestParam(required = false) Integer month
+    ) {
+        return transactionService.findAll(year, month);
     }
 
     @PostMapping("/transactions")
@@ -34,7 +38,10 @@ public class TransactionController {
     }
 
     @GetMapping("/summary")
-    public SummaryResponse summary() {
-        return transactionService.summary();
+    public SummaryResponse summary(
+            @RequestParam(defaultValue = "2026") int year,
+            @RequestParam(required = false) Integer month
+    ) {
+        return transactionService.summary(year, month);
     }
 }

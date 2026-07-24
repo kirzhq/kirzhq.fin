@@ -2,6 +2,11 @@
 
 Personal income and expense tracker built with Spring Boot, React and PostgreSQL.
 
+The interface is in Russian and includes yearly and monthly dashboards, charts,
+transaction history, the original categories from the source workbook, and
+creation of additional income or expense categories. July 2026 data is imported
+from `Финансовый вопрос.xlsx` through a versioned database migration.
+
 ## Production stack
 
 - Java 21 / Spring Boot / Spring Data JPA

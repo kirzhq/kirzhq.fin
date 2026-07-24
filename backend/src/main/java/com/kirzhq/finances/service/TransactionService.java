@@ -22,26 +22,36 @@ public class TransactionService {
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
 
     private final TransactionRepository transactionRepository;
+    private final CategoryService categoryService;
 
-    public TransactionService(TransactionRepository transactionRepository) {
+    public TransactionService(TransactionRepository transactionRepository, CategoryService categoryService) {
         this.transactionRepository = transactionRepository;
+        this.categoryService = categoryService;
     }
 
-    public List<TransactionResponse> findAll() {
+    public List<TransactionResponse> findAll(int year, Integer month) {
         return transactionRepository.findAll().stream()
+                .filter(transaction -> transaction.getTransactionDate().getYear() == year)
+                .filter(transaction -> month == null || transaction.getTransactionDate().getMonthValue() == month)
                 .sorted(Comparator.comparing(Transaction::getTransactionDate).reversed())
                 .map(this::toResponse)
                 .toList();
     }
 
     public TransactionResponse create(TransactionRequest request) {
+        if (!categoryService.exists(request.category(), request.type())) {
+            throw new IllegalArgumentException("Выбранная категория не существует");
+        }
         Transaction transaction = new Transaction();
         applyRequest(transaction, request);
         return toResponse(transactionRepository.save(transaction));
     }
 
-    public SummaryResponse summary() {
-        List<Transaction> transactions = transactionRepository.findAll();
+    public SummaryResponse summary(int year, Integer month) {
+        List<Transaction> transactions = transactionRepository.findAll().stream()
+                .filter(transaction -> transaction.getTransactionDate().getYear() == year)
+                .filter(transaction -> month == null || transaction.getTransactionDate().getMonthValue() == month)
+                .toList();
 
         BigDecimal income = transactions.stream()
                 .filter(transaction -> transaction.getType() == TransactionType.INCOME)
@@ -54,11 +64,17 @@ public class TransactionService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         Map<String, BigDecimal[]> monthly = new LinkedHashMap<>();
+        if (month == null) {
+            for (int monthNumber = 1; monthNumber <= 12; monthNumber++) {
+                monthly.put(YearMonth.of(year, monthNumber).format(MONTH_FORMATTER),
+                        new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO});
+            }
+        }
         transactions.stream()
                 .sorted(Comparator.comparing(Transaction::getTransactionDate))
                 .forEach(transaction -> {
-                    String month = YearMonth.from(transaction.getTransactionDate()).format(MONTH_FORMATTER);
-                    BigDecimal[] values = monthly.computeIfAbsent(month, ignored -> new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO});
+                    String monthKey = YearMonth.from(transaction.getTransactionDate()).format(MONTH_FORMATTER);
+                    BigDecimal[] values = monthly.computeIfAbsent(monthKey, ignored -> new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO});
                     if (transaction.getType() == TransactionType.INCOME) {
                         values[0] = values[0].add(transaction.getAmount());
                     } else {

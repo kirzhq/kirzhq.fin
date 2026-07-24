@@ -1,4 +1,4 @@
-import type { Summary, Transaction } from './types';
+import type { Category, Summary, Transaction, TransactionType } from './types';
 
 const API_BASE = '/api';
 
@@ -18,16 +18,33 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function getTransactions() {
-  return request<Transaction[]>('/transactions');
+function periodQuery(year: number, month: number | null) {
+  const params = new URLSearchParams({ year: String(year) });
+  if (month) params.set('month', String(month));
+  return params.toString();
 }
 
-export function getSummary() {
-  return request<Summary>('/summary');
+export function getTransactions(year: number, month: number | null) {
+  return request<Transaction[]>(`/transactions?${periodQuery(year, month)}`);
+}
+
+export function getSummary(year: number, month: number | null) {
+  return request<Summary>(`/summary?${periodQuery(year, month)}`);
 }
 
 export function createTransaction(payload: Omit<Transaction, 'id'>) {
   return request<Transaction>('/transactions', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getCategories() {
+  return request<Category[]>('/categories');
+}
+
+export function createCategory(payload: { name: string; type: TransactionType }) {
+  return request<Category>('/categories', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
