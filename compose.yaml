@@ -30,7 +30,6 @@ services:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_ALLOWED_CHAT_ID: ${TELEGRAM_ALLOWED_CHAT_ID:-}
-      TELEGRAM_API_BASE_URL: ${TELEGRAM_API_BASE_URL:-http://host.docker.internal:18080}
       AUTH_USERNAME: ${AUTH_USERNAME:-finance}
       AUTH_SETUP_PASSWORD: ${AUTH_SETUP_PASSWORD:?Set AUTH_SETUP_PASSWORD in .env}
       AUTH_RP_ID: ${AUTH_RP_ID:-localhost}
@@ -43,16 +42,6 @@ services:
     networks:
       - private
       - web
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
-  telegram-proxy:
-    image: caddy:2.10-alpine
-    restart: unless-stopped
-    network_mode: host
-    command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile"]
-    volumes:
-      - ./telegram-proxy/Caddyfile:/etc/caddy/Caddyfile:ro
 
   frontend:
     build:
