@@ -9,6 +9,7 @@ import com.kirzhq.finances.web.dto.TransactionResponse;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -21,6 +22,7 @@ import java.util.Map;
 public class TransactionService {
 
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
+    private static final List<String> FOOD_CATEGORIES = List.of("Еда домой", "Еда доставки", "Еда улица");
 
     private final TransactionRepository transactionRepository;
     private final CategoryService categoryService;
@@ -101,10 +103,21 @@ public class TransactionService {
                 .filter(transaction -> transaction.getType() == TransactionType.EXPENSE)
                 .forEach(transaction -> categoryPoints.merge(transaction.getCategory(), transaction.getAmount(), BigDecimal::add));
 
+        BigDecimal foodExpense = transactions.stream()
+                .filter(transaction -> transaction.getType() == TransactionType.EXPENSE)
+                .filter(transaction -> FOOD_CATEGORIES.contains(transaction.getCategory()))
+                .map(Transaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        int calculationDays = calculationDays(year, month);
+
         return new SummaryResponse(
                 income,
                 expense,
                 income.subtract(expense),
+                averagePerDay(expense, calculationDays),
+                foodExpense,
+                averagePerDay(foodExpense, calculationDays),
+                calculationDays,
                 monthly.entrySet().stream()
                         .map(entry -> new SummaryResponse.MonthlyPoint(
                                 entry.getKey(),
@@ -116,6 +129,19 @@ public class TransactionService {
                         .map(entry -> new SummaryResponse.CategoryPoint(entry.getKey(), entry.getValue()))
                         .toList()
         );
+    }
+
+    private int calculationDays(int year, Integer month) {
+        if (month == null) {
+            return 0;
+        }
+        YearMonth selected = YearMonth.of(year, month);
+        YearMonth current = YearMonth.now();
+        return selected.equals(current) ? LocalDate.now().getDayOfMonth() : selected.lengthOfMonth();
+    }
+
+    private BigDecimal averagePerDay(BigDecimal amount, int days) {
+        return days == 0 ? BigDecimal.ZERO : amount.divide(BigDecimal.valueOf(days), 2, RoundingMode.HALF_UP);
     }
 
     private void applyRequest(Transaction transaction, TransactionRequest request) {

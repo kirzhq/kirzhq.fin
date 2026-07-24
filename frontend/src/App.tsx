@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
-  createCategory, createTransaction, deleteTransaction, exportVehicle, getCategories,
-  getSummary, getTransactions, getVehicleSummary, getVehicles, updateTransaction,
+  createCategory, createDebt, createTransaction, deleteDebt, deleteTransaction, exportVehicle, getCategories,
+  getDebts, getSummary, getTransactions, getVehicleSummary, getVehicles, payDebt, updateDebt, updateTransaction,
 } from './api';
-import type { Category, Summary, Transaction, TransactionType, Vehicle, VehicleSummary } from './types';
+import type { Category, Debt, Summary, Transaction, TransactionType, Vehicle, VehicleSummary } from './types';
 
-type View = 'overview' | 'vehicles' | 'categories';
+type View = 'overview' | 'vehicles' | 'debts' | 'categories';
 const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const shortMonths = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 const colors = ['#6c5ce7', '#00b894', '#fdcb6e', '#e17055', '#0984e3', '#e84393', '#00cec9', '#a29bfe'];
@@ -14,6 +14,8 @@ const emptyForm = {
   type: 'EXPENSE' as TransactionType, category: '', amount: '',
   transactionDate: new Date().toISOString().slice(0, 10), description: '', vehicleId: null as number | null,
 };
+const emptyDebtForm = { name: '', initialAmount: '', createdDate: new Date().toISOString().slice(0, 10), note: '' };
+const emptyPaymentForm = { amount: '', paymentDate: new Date().toISOString().slice(0, 10), comment: '' };
 
 export default function App() {
   const [view, setView] = useState<View>('overview');
@@ -24,6 +26,11 @@ export default function App() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [vehicleSummary, setVehicleSummary] = useState<VehicleSummary | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [debts, setDebts] = useState<Debt[]>([]);
+  const [debtForm, setDebtForm] = useState(emptyDebtForm);
+  const [editingDebtId, setEditingDebtId] = useState<number | null>(null);
+  const [payingDebtId, setPayingDebtId] = useState<number | null>(null);
+  const [paymentForm, setPaymentForm] = useState(emptyPaymentForm);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [categoryName, setCategoryName] = useState('');
@@ -68,6 +75,10 @@ export default function App() {
   }
 
   useEffect(() => { void loadData(); }, [year, month]);
+  useEffect(() => {
+    if (view !== 'debts') return;
+    getDebts().then(setDebts).catch((requestError) => setError(message(requestError)));
+  }, [view]);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('finance-theme', theme);
@@ -148,6 +159,56 @@ export default function App() {
     } catch (requestError) { setError(message(requestError)); }
   }
 
+  async function saveDebt(event: React.FormEvent) {
+    event.preventDefault();
+    const payload = {
+      name: debtForm.name.trim(),
+      initialAmount: Number(debtForm.initialAmount),
+      createdDate: debtForm.createdDate,
+      note: debtForm.note.trim(),
+    };
+    try {
+      if (editingDebtId) await updateDebt(editingDebtId, payload);
+      else await createDebt(payload);
+      setDebts(await getDebts());
+      setEditingDebtId(null);
+      setDebtForm(emptyDebtForm);
+    } catch (requestError) { setError(message(requestError)); }
+  }
+
+  function startDebtEdit(debt: Debt) {
+    setEditingDebtId(debt.id);
+    setDebtForm({
+      name: debt.name,
+      initialAmount: String(debt.initialAmount),
+      createdDate: debt.createdDate,
+      note: debt.note,
+    });
+  }
+
+  async function removeDebt(debt: Debt) {
+    if (!window.confirm(`Удалить долг «${debt.name}»? Операции погашения останутся в общем списке.`)) return;
+    try {
+      await deleteDebt(debt.id);
+      setDebts(await getDebts());
+    } catch (requestError) { setError(message(requestError)); }
+  }
+
+  async function submitDebtPayment(event: React.FormEvent, debt: Debt) {
+    event.preventDefault();
+    try {
+      await payDebt(debt.id, {
+        amount: Number(paymentForm.amount),
+        paymentDate: paymentForm.paymentDate,
+        comment: paymentForm.comment.trim(),
+      });
+      setPayingDebtId(null);
+      setPaymentForm(emptyPaymentForm);
+      setDebts(await getDebts());
+      await loadData();
+    } catch (requestError) { setError(message(requestError)); }
+  }
+
   const chartData = (summary?.monthlyPoints ?? []).map((point, index) => ({ ...point, monthLabel: month ? months[month - 1] : shortMonths[index] }));
   const yearOptions = Array.from({ length: new Date().getFullYear() + 5 - 2026 + 1 }, (_, index) => 2026 + index);
   const visibleMonths = months.map((name, index) => ({ name, number: index + 1 }))
@@ -170,6 +231,7 @@ export default function App() {
       <nav>
         <button className={view === 'overview' && month === null ? 'active' : ''} onClick={() => openView('overview', null)}>Обзор за год</button>
         <button className={view === 'vehicles' ? 'active' : ''} onClick={() => openView('vehicles', null)}>Автомобили</button>
+        <button className={view === 'debts' ? 'active' : ''} onClick={() => openView('debts', null)}>Долги</button>
         <button className={view === 'categories' ? 'active' : ''} onClick={() => openView('categories')}>Категории</button>
         <p>Месяцы</p>
         {visibleMonths.map((item) => <button key={item.name} className={view === 'overview' && month === item.number ? 'active' : ''} onClick={() => openView('overview', item.number)}>{item.name}</button>)}
@@ -188,6 +250,8 @@ export default function App() {
           <Metric title="Расход" value={summary?.expense} kind="expense" />
           <Metric title="Сальдо" value={summary?.balance} kind="balance" />
           <Metric title="Операций" value={transactions.length} plain />
+          {month && <Metric title="В среднем за сутки" value={summary?.averageDailyExpense} kind="daily" />}
+          {month && <Metric title="Еда в среднем за сутки" value={summary?.averageDailyFoodExpense} kind="food" />}
         </section>
         <section className="content-grid">
           <div className="dashboard-stack">
@@ -225,6 +289,26 @@ export default function App() {
         <TransactionTable items={vehicleTransactions} loading={loading} onEdit={editOperation} onDelete={removeOperation} />
       </>}
 
+      {view === 'debts' && <DebtView
+        debts={debts}
+        form={debtForm}
+        setForm={setDebtForm}
+        editingId={editingDebtId}
+        payingId={payingDebtId}
+        paymentForm={paymentForm}
+        setPaymentForm={setPaymentForm}
+        onSave={saveDebt}
+        onEdit={startDebtEdit}
+        onCancelEdit={() => { setEditingDebtId(null); setDebtForm(emptyDebtForm); }}
+        onDelete={removeDebt}
+        onStartPayment={(debt: Debt) => {
+          setPayingDebtId(debt.id);
+          setPaymentForm({ ...emptyPaymentForm, amount: String(debt.remainingAmount) });
+        }}
+        onCancelPayment={() => { setPayingDebtId(null); setPaymentForm(emptyPaymentForm); }}
+        onPayment={submitDebtPayment}
+      />}
+
       {view === 'categories' && <article className="card settings-card">
         <CardTitle title="Категории операций" subtitle="Используются во всех годах" />
         <div className="category-groups"><CategoryGroup title="Расходы" items={categories.filter((item) => item.type === 'EXPENSE')} /><CategoryGroup title="Доходы" items={categories.filter((item) => item.type === 'INCOME')} /></div>
@@ -260,10 +344,64 @@ function TransactionTable({ items, loading, onEdit, onDelete }: { items: Transac
 }
 
 function CategoryGroup({ title, items }: { title: string; items: Category[] }) { return <div><h3>{title}</h3><div className="category-pills">{items.map((item) => <span key={item.id} className={item.type === 'INCOME' ? 'income-pill' : ''}>{item.name}</span>)}</div></div>; }
+
+function DebtView({ debts, form, setForm, editingId, payingId, paymentForm, setPaymentForm, onSave, onEdit, onCancelEdit, onDelete, onStartPayment, onCancelPayment, onPayment }: any) {
+  const total = debts.reduce((sum: number, debt: Debt) => sum + debt.initialAmount, 0);
+  const paid = debts.reduce((sum: number, debt: Debt) => sum + debt.paidAmount, 0);
+  const remaining = debts.reduce((sum: number, debt: Debt) => sum + debt.remainingAmount, 0);
+
+  return <>
+    <section className="metrics debt-metrics">
+      <Metric title="Общая сумма долгов" value={total} kind="expense" />
+      <Metric title="Уже погашено" value={paid} kind="income" />
+      <Metric title="Осталось погасить" value={remaining} kind="balance" />
+      <Metric title="Активных долгов" value={debts.filter((debt: Debt) => debt.remainingAmount > 0).length} plain />
+    </section>
+
+    <section className="debt-layout">
+      <article className="card debt-editor">
+        <CardTitle title={editingId ? 'Редактировать долг' : 'Добавить долг'} subtitle="Сумма обязательства и описание" />
+        <form className="debt-form" onSubmit={onSave}>
+          <label>Название<input required maxLength={255} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Например, кредитная карта" /></label>
+          <div className="debt-form-row">
+            <label>Начальная сумма<input required type="number" min="0.01" step="0.01" value={form.initialAmount} onChange={(event) => setForm({ ...form, initialAmount: event.target.value })} placeholder="0 ₽" /></label>
+            <label>Дата<input required type="date" value={form.createdDate} onChange={(event) => setForm({ ...form, createdDate: event.target.value })} /></label>
+          </div>
+          <label>Комментарий<input maxLength={1000} value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} placeholder="Необязательно" /></label>
+          <div className="form-actions"><button className="primary">{editingId ? 'Сохранить' : 'Добавить долг'}</button>{editingId && <button type="button" className="secondary" onClick={onCancelEdit}>Отмена</button>}</div>
+        </form>
+      </article>
+
+      <div className="debt-list">
+        {debts.length === 0 && <article className="card debt-empty"><span>✓</span><h2>Долгов пока нет</h2><p>Добавьте обязательство слева, чтобы отслеживать остаток и погашения.</p></article>}
+        {debts.map((debt: Debt) => <article className={`card debt-card ${debt.remainingAmount === 0 ? 'closed' : ''}`} key={debt.id}>
+          <div className="debt-card-head">
+            <div><span className="debt-status">{debt.remainingAmount === 0 ? 'Погашен' : 'Активный долг'}</span><h2>{debt.name}</h2><p>{debt.note || `Создан ${formatDate(debt.createdDate)}`}</p></div>
+            <div className="debt-actions"><button onClick={() => onEdit(debt)} title="Редактировать">✎</button><button className="delete" onClick={() => onDelete(debt)} title="Удалить">×</button></div>
+          </div>
+          <div className="debt-values"><div><span>Осталось</span><strong>{formatMoney(debt.remainingAmount)}</strong></div><div><span>Погашено</span><b>{formatMoney(debt.paidAmount)} из {formatMoney(debt.initialAmount)}</b></div></div>
+          <div className="debt-progress"><i style={{ width: `${debt.progressPercent}%` }} /></div>
+          <div className="debt-progress-label"><span>{debt.progressPercent}%</span><span>{debt.remainingAmount === 0 ? 'Готово' : 'до полного погашения'}</span></div>
+
+          {debt.remainingAmount > 0 && payingId !== debt.id && <button className="primary debt-pay-button" onClick={() => onStartPayment(debt)}>Погасить часть долга</button>}
+          {payingId === debt.id && <form className="payment-form" onSubmit={(event) => onPayment(event, debt)}>
+            <label>Сумма<input autoFocus required type="number" min="0.01" max={debt.remainingAmount} step="0.01" value={paymentForm.amount} onChange={(event) => setPaymentForm({ ...paymentForm, amount: event.target.value })} /></label>
+            <label>Дата<input required type="date" value={paymentForm.paymentDate} onChange={(event) => setPaymentForm({ ...paymentForm, paymentDate: event.target.value })} /></label>
+            <label className="payment-comment">Комментарий<input value={paymentForm.comment} onChange={(event) => setPaymentForm({ ...paymentForm, comment: event.target.value })} placeholder="Необязательно" /></label>
+            <div className="form-actions"><button className="primary">Записать погашение</button><button type="button" className="secondary" onClick={onCancelPayment}>Отмена</button></div>
+          </form>}
+
+          {debt.payments.length > 0 && <details className="payment-history"><summary>История погашений · {debt.payments.length}</summary><div>{debt.payments.map((payment) => <p key={payment.id}><span>{formatDate(payment.paymentDate)}</span><b>{formatMoney(payment.amount)}</b></p>)}</div></details>}
+        </article>)}
+      </div>
+    </section>
+  </>;
+}
+
 function Metric({ title, value, kind, plain }: { title: string; value?: number; kind?: string; plain?: boolean }) { return <article className={`metric ${kind ?? ''}`}><span>{title}</span><strong>{plain ? value ?? 0 : formatMoney(value ?? 0)}</strong></article>; }
 function CardTitle({ title, subtitle }: { title: string; subtitle: string }) { return <div className="card-title"><div><h2>{title}</h2><p>{subtitle}</p></div></div>; }
-function title(view: View, month: number | null, year: number) { if (view === 'vehicles') return 'Автомобили'; if (view === 'categories') return 'Категории'; return month ? months[month - 1] : `Весь ${year} год`; }
-function subtitle(view: View, month: number | null) { if (view === 'vehicles') return 'Расходы на транспорт'; if (view === 'categories') return 'Настройки справочника'; return month ? 'Отчёт за месяц' : 'Финансовый обзор'; }
+function title(view: View, month: number | null, year: number) { if (view === 'vehicles') return 'Автомобили'; if (view === 'debts') return 'Долги'; if (view === 'categories') return 'Категории'; return month ? months[month - 1] : `Весь ${year} год`; }
+function subtitle(view: View, month: number | null) { if (view === 'vehicles') return 'Расходы на транспорт'; if (view === 'debts') return 'Контроль обязательств'; if (view === 'categories') return 'Настройки справочника'; return month ? 'Отчёт за месяц' : 'Финансовый обзор'; }
 function formatMoney(value: number) { return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 2 }).format(value); }
 function compactMoney(value: number) { return new Intl.NumberFormat('ru-RU', { notation: 'compact', maximumFractionDigits: 1 }).format(value); }
 function formatDate(value: string) { return new Intl.DateTimeFormat('ru-RU').format(new Date(`${value}T00:00:00`)); }

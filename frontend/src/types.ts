@@ -35,6 +35,10 @@ export type Summary = {
   income: number;
   expense: number;
   balance: number;
+  averageDailyExpense: number;
+  foodExpense: number;
+  averageDailyFoodExpense: number;
+  calculationDays: number;
   monthlyPoints: Array<{
     month: string;
     income: number;
@@ -43,5 +47,23 @@ export type Summary = {
   categoryPoints: Array<{
     category: string;
     amount: number;
+  }>;
+};
+
+export type Debt = {
+  id: number;
+  name: string;
+  initialAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  progressPercent: number;
+  createdDate: string;
+  note: string;
+  payments: Array<{
+    id: number;
+    transactionId: number;
+    amount: number;
+    paymentDate: string;
+    comment: string;
   }>;
 };

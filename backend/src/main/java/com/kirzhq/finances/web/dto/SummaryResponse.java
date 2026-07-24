@@ -7,6 +7,10 @@ public record SummaryResponse(
         BigDecimal income,
         BigDecimal expense,
         BigDecimal balance,
+        BigDecimal averageDailyExpense,
+        BigDecimal foodExpense,
+        BigDecimal averageDailyFoodExpense,
+        int calculationDays,
         List<MonthlyPoint> monthlyPoints,
         List<CategoryPoint> categoryPoints
 ) {

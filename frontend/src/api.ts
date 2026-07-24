@@ -1,4 +1,4 @@
-import type { Category, Summary, Transaction, TransactionType, Vehicle, VehicleSummary } from './types';
+import type { Category, Debt, Summary, Transaction, TransactionType, Vehicle, VehicleSummary } from './types';
 
 const API_BASE = '/api';
 
@@ -102,4 +102,30 @@ export async function exportVehicle(id: number, year: number) {
   anchor.download = `lada-vesta-${year}.xlsx`;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+export function getDebts() {
+  return request<Debt[]>('/debts');
+}
+
+export function createDebt(payload: { name: string; initialAmount: number; createdDate: string; note: string }) {
+  return request<Debt>('/debts', { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export function updateDebt(id: number, payload: { name: string; initialAmount: number; createdDate: string; note: string }) {
+  return request<Debt>(`/debts/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+}
+
+export async function deleteDebt(id: number) {
+  const token = csrfToken();
+  const response = await fetch(`${API_BASE}/debts/${id}`, {
+    method: 'DELETE',
+    headers: token ? { 'X-XSRF-TOKEN': decodeURIComponent(token) } : {},
+  });
+  ensureAuthenticated(response);
+  if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+}
+
+export function payDebt(id: number, payload: { amount: number; paymentDate: string; comment: string }) {
+  return request<Debt>(`/debts/${id}/payments`, { method: 'POST', body: JSON.stringify(payload) });
 }
