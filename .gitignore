@@ -1,0 +1,16 @@
+/.idea/
+/.vscode/
+/.DS_Store
+
+/backend/target/
+/backend/.mvn/
+/backend/mvnw
+/backend/mvnw.cmd
+/backend/data/
+
+/frontend/dist/
+/frontend/node_modules/
+/frontend/.vite/
+/frontend/*.tsbuildinfo
+
+*.log
