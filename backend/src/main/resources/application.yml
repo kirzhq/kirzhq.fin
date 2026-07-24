@@ -39,3 +39,4 @@ app:
   telegram:
     token: ${TELEGRAM_BOT_TOKEN:}
     allowed-chat-id: ${TELEGRAM_ALLOWED_CHAT_ID:}
+    api-base-url: ${TELEGRAM_API_BASE_URL:https://api.telegram.org}

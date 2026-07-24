@@ -26,18 +26,21 @@ public class TelegramBotService {
     private final RestClient http = RestClient.create();
     private final String token;
     private final String allowedChatId;
+    private final String apiBaseUrl;
     private long offset;
     private final Map<String, Session> sessions = new ConcurrentHashMap<>();
 
     public TelegramBotService(TransactionService transactions, VehicleService vehicles, CategoryService categories, ObjectMapper json,
                               @Value("${app.telegram.token:}") String token,
-                              @Value("${app.telegram.allowed-chat-id:}") String allowedChatId) {
+                              @Value("${app.telegram.allowed-chat-id:}") String allowedChatId,
+                              @Value("${app.telegram.api-base-url:https://api.telegram.org}") String apiBaseUrl) {
         this.transactions = transactions;
         this.vehicles = vehicles;
         this.categories = categories;
         this.json = json;
         this.token = token.trim();
         this.allowedChatId = allowedChatId.trim();
+        this.apiBaseUrl = apiBaseUrl.replaceAll("/+$", "");
     }
 
     @Scheduled(fixedDelay = 1500)
@@ -193,7 +196,7 @@ public class TelegramBotService {
     }
 
     private String api(String method) {
-        return "https://api.telegram.org/bot" + token + "/" + method;
+        return apiBaseUrl + "/bot" + token + "/" + method;
     }
 
     private String help() {

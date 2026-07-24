@@ -1,0 +1,8 @@
+:18080 {
+	reverse_proxy https://api.telegram.org {
+		header_up Host api.telegram.org
+		transport http {
+			tls_server_name api.telegram.org
+		}
+	}
+}
