@@ -8,7 +8,7 @@
                 uri /api/auth/check
             }
             rewrite * {vars.original_uri}
-            reverse_proxy backend:8080
+            reverse_proxy kirzhq-fin-backend-1:8080
         }
     }
 
@@ -19,7 +19,7 @@
                 uri /api/auth/check
             }
             rewrite * {vars.original_uri}
-            reverse_proxy frontend:80
+            reverse_proxy kirzhq-fin-frontend-1:80
         }
     }
 
