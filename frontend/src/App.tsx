@@ -367,28 +367,48 @@ function OperationForm({ form, setForm, categories, vehicles, editing, onType, o
 }
 
 function TransactionTable({ items, loading, onEdit, onDelete }: { items: Transaction[]; loading: boolean; onEdit: (item: Transaction) => void; onDelete: (item: Transaction) => void }) {
-  const [category, setCategory] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const categoryOptions = useMemo(() => [...new Set(items.map((item) => item.category))].sort((a, b) => a.localeCompare(b, 'ru')), [items]);
-  const filteredItems = category ? items.filter((item) => item.category === category) : items;
+  const filteredItems = selectedCategories.length
+    ? items.filter((item) => selectedCategories.includes(item.category))
+    : items;
 
   useEffect(() => {
-    if (category && !categoryOptions.includes(category)) setCategory('');
-  }, [category, categoryOptions]);
+    setSelectedCategories((current) => current.filter((category) => categoryOptions.includes(category)));
+  }, [categoryOptions]);
 
   const subtitle = loading
     ? 'Загрузка…'
-    : category ? `${filteredItems.length} из ${items.length} записей` : `${items.length} записей`;
+    : selectedCategories.length ? `${filteredItems.length} из ${items.length} записей` : `${items.length} записей`;
+
+  function toggleCategory(category: string) {
+    setSelectedCategories((current) => current.includes(category)
+      ? current.filter((item) => item !== category)
+      : [...current, category]);
+  }
 
   return <section className="card transactions">
     <div className="transactions-head">
       <CardTitle title="Операции" subtitle={subtitle} />
-      <label className="category-filter">
-        <span>Категория</span>
-        <select value={category} onChange={(event) => setCategory(event.target.value)}>
-          <option value="">Все категории</option>
-          {categoryOptions.map((name) => <option key={name} value={name}>{name}</option>)}
-        </select>
-      </label>
+      <details className="category-filter">
+        <summary>
+          <span>{selectedCategories.length ? `Категории: ${selectedCategories.length}` : 'Все категории'}</span>
+          <i aria-hidden="true" />
+        </summary>
+        <div className="category-filter-menu">
+          <div className="category-filter-menu-head">
+            <strong>Категории</strong>
+            {selectedCategories.length > 0 && <button type="button" onClick={() => setSelectedCategories([])}>Сбросить</button>}
+          </div>
+          <div className="category-filter-options">
+            {categoryOptions.map((category) => <label key={category}>
+              <input type="checkbox" checked={selectedCategories.includes(category)}
+                onChange={() => toggleCategory(category)} />
+              <span>{category}</span>
+            </label>)}
+          </div>
+        </div>
+      </details>
     </div>
     <div className="table-wrap"><table><thead><tr><th>Дата</th><th>Категория</th><th>Комментарий</th><th>Сумма</th><th /></tr></thead><tbody>{filteredItems.map((item) => <tr key={item.id}><td>{formatDate(item.transactionDate)}</td><td><b>{item.category}</b></td><td>{item.description || '—'}</td><td className={item.type === 'INCOME' ? 'money-in' : 'money-out'}>{item.type === 'INCOME' ? '+' : '−'} {formatMoney(item.amount)}</td><td className="row-actions"><button onClick={() => onEdit(item)} title="Редактировать">✎</button><button className="delete" onClick={() => onDelete(item)} title="Удалить">×</button></td></tr>)}</tbody></table></div>
   </section>;
