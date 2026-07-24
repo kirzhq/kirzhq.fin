@@ -34,7 +34,7 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); letter-spacing: -.04em; }
 .metric.income::before { background: #00b894; }.metric.expense::before { background: #e17055; }.metric.balance::before { background: #6c5ce7; }
 .metric span { display: block; margin-bottom: 8px; color: #888694; font-size: 12px; }
 .metric strong { font-size: clamp(17px, 2vw, 24px); letter-spacing: -.03em; }
-.content-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr); gap: 16px; margin-bottom: 16px; }
+.content-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr); gap: 16px; align-items: start; margin-bottom: 16px; }
 .content-grid.lower { grid-template-columns: 1fr 1fr; }
 .operation-editor { margin-bottom: 16px; }
 .card { padding: 22px; }
