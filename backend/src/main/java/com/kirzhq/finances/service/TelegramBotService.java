@@ -12,23 +12,29 @@ import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class TelegramBotService {
     private final TransactionService transactions;
     private final VehicleService vehicles;
+    private final CategoryService categories;
     private final ObjectMapper json;
     private final RestClient http = RestClient.create();
     private final String token;
     private final String allowedChatId;
     private long offset;
+    private final Map<String, Session> sessions = new ConcurrentHashMap<>();
 
-    public TelegramBotService(TransactionService transactions, VehicleService vehicles, ObjectMapper json,
+    public TelegramBotService(TransactionService transactions, VehicleService vehicles, CategoryService categories, ObjectMapper json,
                               @Value("${app.telegram.token:}") String token,
                               @Value("${app.telegram.allowed-chat-id:}") String allowedChatId) {
         this.transactions = transactions;
         this.vehicles = vehicles;
+        this.categories = categories;
         this.json = json;
         this.token = token.trim();
         this.allowedChatId = allowedChatId.trim();
@@ -59,15 +65,28 @@ public class TelegramBotService {
 
     private void handle(String chatId, String text) {
         try {
-            if (text.equals("/start") || text.equals("/help")) {
-                send(chatId, help());
-            } else if (text.equals("/list")) {
+            if (text.equals("❌ Отмена")) {
+                sessions.remove(chatId);
+                sendMenu(chatId, "Действие отменено.");
+            } else if (text.equals("/start") || text.equals("/help") || text.equals("ℹ️ Помощь")) {
+                sendMenu(chatId, "Выберите действие на клавиатуре.");
+            } else if (text.equals("/list") || text.equals("📋 Последние операции")) {
                 List<TransactionResponse> items = transactions.findAll(LocalDate.now().getYear(), null);
                 StringBuilder result = new StringBuilder("Последние операции:\n");
                 items.stream().limit(10).forEach(item -> result.append('#').append(item.id()).append(" · ")
                         .append(item.transactionDate()).append(" · ").append(item.category()).append(" · ")
                         .append(item.amount()).append(" ₽\n"));
-                send(chatId, result.toString());
+                sendMenu(chatId, result.toString());
+            } else if (text.equals("➕ Добавить операцию")) {
+                sessions.put(chatId, new Session(false));
+                askType(chatId);
+            } else if (text.equals("✏️ Редактировать")) {
+                Session session = new Session(true);
+                session.step = Step.ID;
+                sessions.put(chatId, session);
+                send(chatId, "Введите ID операции. Его можно посмотреть кнопкой «Последние операции».", cancelKeyboard());
+            } else if (sessions.containsKey(chatId)) {
+                advance(chatId, text);
             } else if (text.startsWith("/add ")) {
                 TransactionRequest request = parse(text.substring(5));
                 TransactionResponse created = transactions.create(request);
@@ -79,11 +98,69 @@ public class TelegramBotService {
                 TransactionResponse updated = transactions.update(id, parse(first[1]));
                 send(chatId, "Изменено: #" + updated.id() + " · " + updated.category() + " · " + updated.amount() + " ₽");
             } else {
-                send(chatId, help());
+                sendMenu(chatId, "Используйте кнопки внизу.");
             }
         } catch (Exception error) {
             send(chatId, "Не удалось выполнить команду: " + error.getMessage() + "\n\n" + help());
         }
+    }
+
+    private void advance(String chatId, String text) {
+        Session session = sessions.get(chatId);
+        switch (session.step) {
+            case ID -> {
+                session.id = Long.parseLong(text.replace("#", "").trim());
+                askType(chatId);
+            }
+            case TYPE -> {
+                session.type = switch (text) {
+                    case "Расход" -> TransactionType.EXPENSE;
+                    case "Доход" -> TransactionType.INCOME;
+                    default -> throw new IllegalArgumentException("Выберите тип кнопкой");
+                };
+                session.step = Step.CATEGORY;
+                List<List<Button>> rows = new ArrayList<>();
+                categories.findAll().stream().filter(item -> item.type() == session.type)
+                        .forEach(item -> rows.add(List.of(new Button(item.name()))));
+                rows.add(List.of(new Button("❌ Отмена")));
+                send(chatId, "Выберите категорию:", new Keyboard(rows, true, true));
+            }
+            case CATEGORY -> {
+                session.category = text;
+                session.step = Step.AMOUNT;
+                send(chatId, "Введите сумму, например 1250:", cancelKeyboard());
+            }
+            case AMOUNT -> {
+                session.amount = new BigDecimal(text.replace(',', '.').replace(" ", ""));
+                session.step = Step.DATE;
+                send(chatId, "Укажите дату:", new Keyboard(List.of(
+                        List.of(new Button("Сегодня")), List.of(new Button("❌ Отмена"))), true, true));
+            }
+            case DATE -> {
+                session.date = text.equals("Сегодня") ? LocalDate.now() : LocalDate.parse(text);
+                session.step = Step.COMMENT;
+                send(chatId, "Введите комментарий или нажмите «Без комментария»:",
+                        new Keyboard(List.of(List.of(new Button("Без комментария")), List.of(new Button("❌ Отмена"))), true, true));
+            }
+            case COMMENT -> {
+                String description = text.equals("Без комментария") ? "" : text;
+                Long vehicleId = "Машина".equalsIgnoreCase(session.category) ? vehicles.defaultVehicleId() : null;
+                TransactionRequest request = new TransactionRequest(session.type, session.category, session.amount,
+                        session.date, description, vehicleId);
+                TransactionResponse result = session.edit ? transactions.update(session.id, request) : transactions.create(request);
+                sessions.remove(chatId);
+                sendMenu(chatId, (session.edit ? "Изменено: #" : "Добавлено: #") + result.id()
+                        + " · " + result.category() + " · " + result.amount() + " ₽");
+            }
+        }
+    }
+
+    private void askType(String chatId) {
+        Session session = sessions.get(chatId);
+        session.step = Step.TYPE;
+        send(chatId, "Выберите тип операции:",
+                new Keyboard(List.of(List.of(new Button("Расход"), new Button("Доход")),
+                        List.of(new Button("❌ Отмена"))), true, true));
     }
 
     private TransactionRequest parse(String value) {
@@ -101,8 +178,16 @@ public class TelegramBotService {
     }
 
     private void send(String chatId, String text) {
+        send(chatId, text, menuKeyboard());
+    }
+
+    private void sendMenu(String chatId, String text) {
+        send(chatId, text, menuKeyboard());
+    }
+
+    private void send(String chatId, String text, Keyboard keyboard) {
         try {
-            http.post().uri(api("sendMessage")).body(new Message(chatId, text)).retrieve().toBodilessEntity();
+            http.post().uri(api("sendMessage")).body(new Message(chatId, text, keyboard)).retrieve().toBodilessEntity();
         } catch (Exception ignored) {
         }
     }
@@ -120,6 +205,31 @@ public class TelegramBotService {
                 """;
     }
 
-    private record Message(String chat_id, String text) {
+    private Keyboard menuKeyboard() {
+        return new Keyboard(List.of(
+                List.of(new Button("➕ Добавить операцию"), new Button("✏️ Редактировать")),
+                List.of(new Button("📋 Последние операции"), new Button("ℹ️ Помощь"))), true, false);
+    }
+
+    private Keyboard cancelKeyboard() {
+        return new Keyboard(List.of(List.of(new Button("❌ Отмена"))), true, true);
+    }
+
+    private enum Step { ID, TYPE, CATEGORY, AMOUNT, DATE, COMMENT }
+
+    private static final class Session {
+        private final boolean edit;
+        private Step step;
+        private Long id;
+        private TransactionType type;
+        private String category;
+        private BigDecimal amount;
+        private LocalDate date;
+        private Session(boolean edit) { this.edit = edit; }
+    }
+
+    private record Button(String text) {}
+    private record Keyboard(List<List<Button>> keyboard, boolean resize_keyboard, boolean one_time_keyboard) {}
+    private record Message(String chat_id, String text, Keyboard reply_markup) {
     }
 }
