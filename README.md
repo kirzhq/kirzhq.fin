@@ -1,38 +1,43 @@
 # kirzhq.fin
 
-Personal income and expense tracker built with Spring Boot, React and PostgreSQL.
+Персональное приложение для учёта доходов и расходов, построенное на Spring Boot,
+React и PostgreSQL.
 
-The interface is in Russian and includes yearly and monthly dashboards, charts,
-transaction history, the original categories from the source workbook, and
-creation of additional income or expense categories. July 2026 data is imported
-from `Финансовый вопрос.xlsx` through a versioned database migration.
+Интерфейс полностью выполнен на русском языке. В приложении доступны годовая и
+месячная сводки, графики, история операций, исходные категории из таблицы, а
+также создание дополнительных категорий доходов и расходов. Данные за июль
+2026 года импортируются из файла `Финансовый вопрос.xlsx` посредством
+версионируемой миграции базы данных.
 
-Operations can be edited and deleted. Categories are managed on a separate
-settings page. Vehicle expenses are linked to the Lada Vesta and shown in a dedicated
-section. The vehicle report can be exported to Excel for the selected year and
-shows average monthly fuel spending. Fuel operations are detected by `бензин`,
-`АЗС` or `топливо` in the operation comment; the average is calculated across
-months that contain vehicle expenses. A transaction date determines its year,
-so 2027 and later years use the same database and interface without annual
-schema copies.
+Операции можно добавлять, редактировать и удалять. Управление категориями
+вынесено в отдельный раздел. Расходы на Lada Vesta отображаются во вкладке
+автомобиля. Отчёт по автомобилю за выбранный год можно выгрузить в Excel.
+В нём также рассчитывается среднемесячный расход на бензин. Операция считается
+заправкой, если её комментарий содержит слова `бензин`, `АЗС` или `топливо`.
+Среднее значение рассчитывается по месяцам, в которых были расходы на
+автомобиль.
 
-The selected year applies to every section from the sidebar. The dashboard has
-light and dark themes with a saved browser preference, and its expense legend
-shows every category with both amount and percentage.
+Год операции определяется её датой, поэтому для ведения учёта в 2027 году и
+далее не требуется создавать новые таблицы или копии приложения. Выбранный в
+боковом меню год применяется ко всем разделам.
 
-## Production stack
+Приложение поддерживает светлую и тёмную темы и сохраняет выбранную тему в
+браузере. В легенде диаграммы расходов отображаются все категории, суммы и
+проценты.
 
-- Java 21 / Spring Boot / Spring Data JPA
+## Технологии
+
+- Java 21, Spring Boot и Spring Data JPA
 - PostgreSQL 16
-- Flyway database migrations
-- React / TypeScript / Vite
+- Flyway для миграций базы данных
+- React, TypeScript и Vite
 - Docker Compose
-- Caddy reverse proxy with automatic HTTPS
+- Caddy в качестве обратного прокси с автоматическим HTTPS
 
-## Deploy on a server
+## Развёртывание на сервере
 
-Requirements: Docker Engine with the Compose plugin, a Linux server with ports
-`80` and `443` open, and a domain whose `A`/`AAAA` record points to the server.
+Потребуются Linux-сервер, Docker Engine с плагином Compose и открытые порты
+`80` и `443`. Записи `A`/`AAAA` домена должны указывать на сервер.
 
 ```bash
 git clone https://github.com/kirzhq/kirzhq.fin.git
@@ -40,21 +45,21 @@ cd kirzhq.fin
 ./deploy.sh finance.example.com
 ```
 
-The script creates `.env` with a random PostgreSQL password, builds all images,
-starts the stack and prints its status. Caddy obtains and renews the TLS
-certificate automatically.
+Скрипт создаст файл `.env` со случайным паролем PostgreSQL, соберёт образы,
+запустит все контейнеры и выведет их состояние. Caddy автоматически получит
+и будет обновлять TLS-сертификат.
 
-To deploy locally:
+Для локального запуска:
 
 ```bash
 ./deploy.sh
 ```
 
-Then open <http://localhost>.
+После запуска приложение будет доступно по адресу <http://localhost>.
 
-## Configuration
+## Настройка
 
-The first deploy creates `.env`. Important values:
+При первом развёртывании создаётся файл `.env`. Основные параметры:
 
 ```dotenv
 POSTGRES_PASSWORD=a-long-random-password
@@ -64,13 +69,13 @@ SITE_ADDRESS=finance.example.com
 CORS_ALLOWED_ORIGINS=https://finance.example.com
 ```
 
-After changing `.env`, apply it with:
+После изменения `.env` пересоберите и перезапустите контейнеры:
 
 ```bash
 docker compose up -d --build
 ```
 
-Useful commands:
+Полезные команды:
 
 ```bash
 docker compose ps
@@ -79,36 +84,37 @@ docker compose pull
 docker compose up -d --build
 ```
 
-Database data and Caddy certificates are stored in named Docker volumes and
-survive container replacement. The PostgreSQL port is not exposed publicly.
+Данные PostgreSQL и сертификаты Caddy хранятся в именованных Docker-томах и
+сохраняются при пересоздании контейнеров. Порт PostgreSQL не публикуется во
+внешнюю сеть.
 
-## Database migrations
+## Миграции базы данных
 
-Flyway applies versioned SQL migrations from:
+Flyway применяет версионируемые SQL-миграции из каталога:
 
 ```text
 backend/src/main/resources/db/migration
 ```
 
-Hibernate runs with `ddl-auto: validate`, so schema changes must be made through
-new Flyway migrations.
+Hibernate работает в режиме `ddl-auto: validate`, поэтому изменения схемы
+следует оформлять в виде новых миграций Flyway.
 
-## Local development without the full stack
+## Локальная разработка без полного Docker-стека
 
-Start PostgreSQL:
+Запуск PostgreSQL:
 
 ```bash
 POSTGRES_PASSWORD=finance docker compose up -d db
 ```
 
-Run the backend:
+Запуск серверной части:
 
 ```bash
 cd backend
 DATABASE_PASSWORD=finance mvn spring-boot:run
 ```
 
-Run the frontend in another terminal:
+Запуск клиентской части в другом терминале:
 
 ```bash
 cd frontend
