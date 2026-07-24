@@ -47,12 +47,21 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); letter-spacing: -.04em; }
 .error { display: flex; justify-content: space-between; margin-bottom: 18px; padding: 13px 16px; color: #a23b3b; background: #fff0f0; border: 1px solid #ffd6d6; border-radius: 12px; }
 .error button { border: 0; background: none; color: inherit; }
 .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px; }
-.metric, .card { background: #fff; border: 1px solid #eceaf1; border-radius: 16px; box-shadow: 0 8px 25px rgba(36,35,52,.04); }
-.metric { padding: 20px; position: relative; overflow: hidden; }
-.metric::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #aaa; }
+.metric, .card { background: #fff; border: 1px solid #e8e6ee; border-radius: 16px; box-shadow: 0 7px 22px rgba(36,35,52,.035); }
+.metric {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(42px, auto) auto;
+  align-content: space-between;
+  min-width: 0;
+  min-height: 132px;
+  padding: 22px;
+  overflow: hidden;
+}
+.metric::before { content: ''; position: absolute; left: 18px; right: 18px; top: 0; height: 3px; border-radius: 0 0 4px 4px; background: #aaa; }
 .metric.income::before { background: #00b894; }.metric.expense::before { background: #e17055; }.metric.balance::before { background: #6c5ce7; }
-.metric span { display: block; margin-bottom: 8px; color: #888694; font-size: 14px; }
-.metric strong { font-size: clamp(20px, 2vw, 26px); letter-spacing: -.03em; }
+.metric span { display: block; max-width: 24ch; color: #7f7d8b; font-size: 14px; line-height: 1.45; }
+.metric strong { align-self: end; white-space: nowrap; font-size: clamp(20px, 1.65vw, 27px); font-variant-numeric: tabular-nums; letter-spacing: -.035em; line-height: 1.15; }
 .content-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr); gap: 16px; align-items: start; margin-bottom: 16px; }
 .content-grid.lower { grid-template-columns: 1fr 1fr; }
 .operation-editor { margin-bottom: 16px; }
@@ -110,7 +119,7 @@ td:last-child, th:last-child { text-align: right; }
 .vehicle-list { display: grid; gap: 10px; }
 .section-actions { display: flex; justify-content: flex-end; margin: -62px 0 24px; }
 .export-button { padding-inline: 18px; }
-.vehicle-metrics { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.vehicle-metrics { grid-template-columns: repeat(5, minmax(180px, 1fr)); }
 .vehicle-list > div { display: flex; align-items: center; gap: 12px; padding: 13px; border: 1px solid #eceaf1; border-radius: 12px; }
 .vehicle-list > div > span { display: grid; place-items: center; width: 42px; height: 42px; background: #f2efff; border-radius: 11px; }
 .vehicle-list strong, .vehicle-list small { display: block; }.vehicle-list small { margin-top: 3px; color: #92909e; }
@@ -125,6 +134,7 @@ html[data-theme="dark"] body { background: #171622; }
 html[data-theme="dark"] main { color: #f5f3fb; background: #1c1b28; }
 html[data-theme="dark"] .metric,
 html[data-theme="dark"] .card { background: #272536; border-color: #3b394a; box-shadow: 0 8px 25px rgba(0,0,0,.16); }
+html[data-theme="dark"] .metric { background: linear-gradient(145deg, #292738, #262435); border-color: #3d3a4c; box-shadow: 0 10px 28px rgba(0,0,0,.14); }
 html[data-theme="dark"] .metric span,
 html[data-theme="dark"] .kicker,
 html[data-theme="dark"] .card-title p,

@@ -203,7 +203,7 @@ export default function App() {
         <section className="metrics vehicle-metrics">
           <Metric title="Всего на автомобиль" value={vehicleSummary?.total ?? vehicleTotal} kind="expense" />
           <Metric title="Топливо" value={vehicleSummary?.fuel ?? fuelTotal} kind="balance" />
-          <Metric title="Среднее на бензин в месяц" value={vehicleSummary?.averageMonthlyFuel} kind="income" />
+          <Metric title="Бензин в среднем за месяц" value={vehicleSummary?.averageMonthlyFuel} kind="income" />
           <Metric title="Обслуживание и прочее" value={vehicleSummary?.other ?? vehicleTotal - fuelTotal} />
           <Metric title="Операций" value={vehicleSummary?.operationCount ?? vehicleTransactions.length} plain />
         </section>
