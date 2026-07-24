@@ -238,6 +238,9 @@ export default function App() {
 
   return <div className="app">
     <aside className="sidebar">
+      <a className="home-link" href="https://home.kirzhq.ru" aria-label="Вернуться на главную страницу">
+        <span>←</span> Мой дом
+      </a>
       <div className="brand"><span>₽</span><strong>Мои финансы</strong></div>
       <div className="sidebar-controls">
         <label>Финансовый год<select value={year} onChange={(event) => changeYear(Number(event.target.value))}>{yearOptions.map((value) => <option key={value}>{value}</option>)}</select></label>
