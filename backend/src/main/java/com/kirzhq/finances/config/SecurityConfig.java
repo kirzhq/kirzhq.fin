@@ -39,9 +39,13 @@ public class SecurityConfig {
 
         return http
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/login", "/error", "/favicon.ico").permitAll()
+                        .requestMatchers("/login", "/login.css", "/login-passkey.js", "/error", "/favicon.ico").permitAll()
                         .anyRequest().authenticated())
-                .formLogin(form -> form.defaultSuccessUrl("/", true))
+                .requestCache(cache -> cache.disable())
+                .formLogin(form -> form
+                        .loginPage("/login")
+                        .defaultSuccessUrl("/", true)
+                        .failureUrl("/login?error"))
                 .exceptionHandling(exceptions -> exceptions.defaultAuthenticationEntryPointFor(
                         new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
                         request -> request.getRequestURI().startsWith("/api/")))

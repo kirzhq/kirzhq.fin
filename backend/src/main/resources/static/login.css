@@ -1,0 +1,186 @@
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #f7f6ff;
+  background: #151420;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(108, 88, 235, .24), transparent 34rem),
+    radial-gradient(circle at 88% 88%, rgba(23, 190, 156, .12), transparent 30rem),
+    #151420;
+}
+
+.login-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 28px 18px;
+}
+
+.login-card {
+  width: min(100%, 460px);
+  padding: 42px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 30px;
+  background: rgba(38, 36, 53, .88);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .38);
+  backdrop-filter: blur(20px);
+}
+
+.brand {
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 28px;
+  border-radius: 20px;
+  background: linear-gradient(145deg, #7b68ee, #5b4bd8);
+  box-shadow: 0 14px 30px rgba(98, 78, 222, .34);
+  font-size: 34px;
+  font-weight: 650;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #9e96d8;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(34px, 8vw, 46px);
+  line-height: 1.05;
+  letter-spacing: -.045em;
+}
+
+.intro {
+  margin: 14px 0 32px;
+  color: #aaa7b9;
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+button, input { font: inherit; }
+
+.passkey-button {
+  width: 100%;
+  min-height: 82px;
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border: 1px solid rgba(145, 127, 255, .44);
+  border-radius: 20px;
+  color: white;
+  background: linear-gradient(135deg, #725ee9, #5d49d1);
+  box-shadow: 0 14px 30px rgba(77, 58, 185, .25);
+  text-align: left;
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+
+.passkey-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 36px rgba(77, 58, 185, .36);
+  filter: brightness(1.06);
+}
+
+.passkey-button:disabled { cursor: wait; opacity: .72; transform: none; }
+.passkey-button strong, .passkey-button small { display: block; }
+.passkey-button strong { font-size: 18px; }
+.passkey-button small { margin-top: 3px; color: rgba(255, 255, 255, .72); font-size: 13px; }
+
+.touch-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .12);
+}
+
+.touch-icon svg {
+  width: 27px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+}
+
+.arrow { font-size: 24px; }
+.status { min-height: 20px; margin: 12px 4px 0; color: #aaa7b9; font-size: 13px; }
+.status.error { color: #ff8e8e; }
+
+.notice {
+  margin: -12px 0 20px;
+  padding: 12px 14px;
+  border-radius: 13px;
+  font-size: 14px;
+}
+
+.notice-error { color: #ffc2c2; background: rgba(211, 73, 73, .15); }
+
+.password-panel {
+  margin-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, .08);
+}
+
+.password-panel summary {
+  padding: 19px 2px 6px;
+  color: #aaa7b9;
+  font-size: 14px;
+  text-align: center;
+  cursor: pointer;
+  list-style: none;
+}
+
+.password-panel summary::-webkit-details-marker { display: none; }
+.password-panel form { display: grid; gap: 14px; padding-top: 18px; }
+
+label {
+  display: grid;
+  gap: 7px;
+  color: #c8c5d3;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+input {
+  width: 100%;
+  height: 50px;
+  padding: 0 15px;
+  border: 1px solid #4b485d;
+  border-radius: 14px;
+  outline: none;
+  color: white;
+  background: #201e2d;
+}
+
+input:focus { border-color: #806af1; box-shadow: 0 0 0 3px rgba(128, 106, 241, .14); }
+
+.password-button {
+  height: 50px;
+  border: 0;
+  border-radius: 14px;
+  color: white;
+  background: #474359;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.privacy { margin: 25px 0 0; color: #777486; font-size: 12px; text-align: center; }
+
+@media (max-width: 520px) {
+  .login-card { padding: 30px 22px; border-radius: 24px; }
+}
