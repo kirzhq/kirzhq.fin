@@ -11,6 +11,8 @@ public record TransactionResponse(
         String category,
         BigDecimal amount,
         LocalDate transactionDate,
-        String description
+        String description,
+        Long vehicleId,
+        String vehicleName
 ) {
 }

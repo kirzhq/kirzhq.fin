@@ -13,6 +13,7 @@ public record TransactionRequest(
         @NotBlank String category,
         @NotNull @DecimalMin("0.01") BigDecimal amount,
         @NotNull LocalDate transactionDate,
-        @NotBlank String description
+        String description,
+        Long vehicleId
 ) {
 }

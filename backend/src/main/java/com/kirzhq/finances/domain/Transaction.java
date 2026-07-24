@@ -8,6 +8,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -35,6 +37,10 @@ public class Transaction {
 
     @Column(nullable = false)
     private String description;
+
+    @ManyToOne
+    @JoinColumn(name = "vehicle_id")
+    private Vehicle vehicle;
 
     public Long getId() {
         return id;
@@ -82,5 +88,13 @@ public class Transaction {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Vehicle getVehicle() {
+        return vehicle;
+    }
+
+    public void setVehicle(Vehicle vehicle) {
+        this.vehicle = vehicle;
     }
 }

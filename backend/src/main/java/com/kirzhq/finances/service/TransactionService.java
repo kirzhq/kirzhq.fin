@@ -23,10 +23,12 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final CategoryService categoryService;
+    private final VehicleService vehicleService;
 
-    public TransactionService(TransactionRepository transactionRepository, CategoryService categoryService) {
+    public TransactionService(TransactionRepository transactionRepository, CategoryService categoryService, VehicleService vehicleService) {
         this.transactionRepository = transactionRepository;
         this.categoryService = categoryService;
+        this.vehicleService = vehicleService;
     }
 
     public List<TransactionResponse> findAll(int year, Integer month) {
@@ -45,6 +47,23 @@ public class TransactionService {
         Transaction transaction = new Transaction();
         applyRequest(transaction, request);
         return toResponse(transactionRepository.save(transaction));
+    }
+
+    public TransactionResponse update(Long id, TransactionRequest request) {
+        if (!categoryService.exists(request.category(), request.type())) {
+            throw new IllegalArgumentException("Выбранная категория не существует");
+        }
+        Transaction transaction = transactionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Операция не найдена"));
+        applyRequest(transaction, request);
+        return toResponse(transactionRepository.save(transaction));
+    }
+
+    public void delete(Long id) {
+        if (!transactionRepository.existsById(id)) {
+            throw new IllegalArgumentException("Операция не найдена");
+        }
+        transactionRepository.deleteById(id);
     }
 
     public SummaryResponse summary(int year, Integer month) {
@@ -109,7 +128,10 @@ public class TransactionService {
         transaction.setCategory(request.category().trim());
         transaction.setAmount(request.amount());
         transaction.setTransactionDate(request.transactionDate());
-        transaction.setDescription(request.description().trim());
+        transaction.setDescription(request.description() == null ? "" : request.description().trim());
+        transaction.setVehicle("Машина".equalsIgnoreCase(request.category())
+                ? vehicleService.get(request.vehicleId())
+                : null);
     }
 
     private TransactionResponse toResponse(Transaction transaction) {
@@ -119,7 +141,9 @@ public class TransactionService {
                 transaction.getCategory(),
                 transaction.getAmount(),
                 transaction.getTransactionDate(),
-                transaction.getDescription()
+                transaction.getDescription(),
+                transaction.getVehicle() == null ? null : transaction.getVehicle().getId(),
+                transaction.getVehicle() == null ? null : transaction.getVehicle().getName()
         );
     }
 }
