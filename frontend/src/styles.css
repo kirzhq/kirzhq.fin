@@ -3,6 +3,7 @@
 :root { font-family: Manrope, system-ui, sans-serif; color: #242334; background: #f5f4f8; font-synthesis: none; }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; }
+body.modal-open { overflow: hidden; }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
 .app { min-height: 100vh; display: grid; grid-template-columns: 235px 1fr; }
@@ -37,6 +38,12 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); letter-spacing: -.04em; }
 .content-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr); gap: 16px; align-items: start; margin-bottom: 16px; }
 .content-grid.lower { grid-template-columns: 1fr 1fr; }
 .operation-editor { margin-bottom: 16px; }
+.modal-backdrop { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(20, 18, 31, .62); backdrop-filter: blur(4px); animation: modal-fade-in .16s ease-out; }
+.operation-modal { position: relative; width: min(680px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; box-shadow: 0 24px 80px rgba(18, 15, 34, .3); animation: modal-rise-in .2s ease-out; }
+.modal-close { position: absolute; z-index: 1; top: 14px; right: 14px; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 9px; background: #f1f0f5; color: #676575; font-size: 24px; line-height: 1; }
+.modal-close:hover { background: #e8e5f1; color: #242334; }
+@keyframes modal-fade-in { from { opacity: 0; } }
+@keyframes modal-rise-in { from { opacity: 0; transform: translateY(12px) scale(.985); } }
 .card { padding: 22px; }
 .card-title { display: flex; justify-content: space-between; margin-bottom: 16px; }
 .card-title h2 { margin: 0 0 4px; font-size: 17px; }
@@ -112,6 +119,8 @@ html[data-theme="dark"] .secondary,
 html[data-theme="dark"] .row-actions button { color: #f5f3fb; background: #302e43; border-color: #49465d; }
 html[data-theme="dark"] .segmented { background: #201f2d; }
 html[data-theme="dark"] .segmented button.selected { color: #a99fff; background: #3a374d; box-shadow: none; }
+html[data-theme="dark"] .modal-close { color: #c8c5d5; background: #3a374d; }
+html[data-theme="dark"] .modal-close:hover { color: white; background: #464258; }
 html[data-theme="dark"] th,
 html[data-theme="dark"] td,
 html[data-theme="dark"] .full-legend div { border-color: #3b394a; }

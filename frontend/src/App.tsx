@@ -67,6 +67,18 @@ export default function App() {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('finance-theme', theme);
   }, [theme]);
+  useEffect(() => {
+    if (!editingId) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') cancelEdit();
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    document.body.classList.add('modal-open');
+    return () => {
+      document.removeEventListener('keydown', closeOnEscape);
+      document.body.classList.remove('modal-open');
+    };
+  }, [editingId]);
 
   function openView(nextView: View, selectedMonth: number | null = month) {
     setView(nextView);
@@ -104,8 +116,6 @@ export default function App() {
       type: item.type, category: item.category, amount: String(item.amount),
       transactionDate: item.transactionDate, description: item.description, vehicleId: item.vehicleId,
     });
-    setView('operations');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function cancelEdit() {
@@ -182,8 +192,8 @@ export default function App() {
 
       {view === 'operations' && <>
         <article className="card operation-editor">
-          <CardTitle title={editingId ? 'Редактировать операцию' : 'Добавить операцию'} subtitle={editingId ? `Операция №${editingId}` : 'Одна форма для доходов и расходов'} />
-          <OperationForm form={form} setForm={setForm} categories={availableCategories} vehicles={vehicles} editing={Boolean(editingId)} onType={changeType} onSubmit={saveOperation} onCancel={cancelEdit} />
+          <CardTitle title="Добавить операцию" subtitle="Одна форма для доходов и расходов" />
+          <OperationForm form={form} setForm={setForm} categories={availableCategories} vehicles={vehicles} editing={false} onType={changeType} onSubmit={saveOperation} onCancel={cancelEdit} />
         </article>
         <TransactionTable items={transactions} loading={loading} onEdit={editOperation} onDelete={removeOperation} />
       </>}
@@ -212,6 +222,15 @@ export default function App() {
         <form className="category-form" onSubmit={addCategory}><input required value={categoryName} onChange={(event) => setCategoryName(event.target.value)} placeholder="Название новой категории" /><select value={categoryType} onChange={(event) => setCategoryType(event.target.value as TransactionType)}><option value="EXPENSE">Расход</option><option value="INCOME">Доход</option></select><button className="primary">Добавить</button></form>
       </article>}
     </main>
+    {editingId && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => {
+      if (event.target === event.currentTarget) cancelEdit();
+    }}>
+      <section className="card operation-modal" role="dialog" aria-modal="true" aria-labelledby="edit-operation-title">
+        <button type="button" className="modal-close" onClick={cancelEdit} aria-label="Закрыть">×</button>
+        <div className="card-title"><div><h2 id="edit-operation-title">Редактировать операцию</h2><p>Операция №{editingId}</p></div></div>
+        <OperationForm form={form} setForm={setForm} categories={availableCategories} vehicles={vehicles} editing onType={changeType} onSubmit={saveOperation} onCancel={cancelEdit} />
+      </section>
+    </div>}
   </div>;
 }
 
