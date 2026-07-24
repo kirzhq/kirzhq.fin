@@ -5,24 +5,49 @@
         reverse_proxy backend:8080
     }
 
+    handle {
+        forward_auth kirzhq-home-backend:8080 {
+            uri /api/auth/check
+        }
+        reverse_proxy frontend:80
+    }
+
+    header {
+        -Server
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+}
+
+home.kirzhq.ru {
+    encode zstd gzip
+
     handle /login* {
-        reverse_proxy backend:8080
+        reverse_proxy kirzhq-home-backend:8080
     }
 
     handle /logout {
-        reverse_proxy backend:8080
+        reverse_proxy kirzhq-home-backend:8080
     }
 
     handle /webauthn/* {
-        reverse_proxy backend:8080
+        reverse_proxy kirzhq-home-backend:8080
     }
 
     handle /default-ui.css {
-        reverse_proxy backend:8080
+        reverse_proxy kirzhq-home-backend:8080
+    }
+
+    handle /api/auth/* {
+        reverse_proxy kirzhq-home-backend:8080
     }
 
     handle {
-        reverse_proxy frontend:80
+        forward_auth kirzhq-home-backend:8080 {
+            uri /api/auth/check
+        }
+        reverse_proxy kirzhq-home-frontend:80
     }
 
     header {

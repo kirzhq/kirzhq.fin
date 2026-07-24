@@ -16,6 +16,10 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+  session:
+    jdbc:
+      initialize-schema: never
+    timeout: 30d
 
 server:
   port: ${SERVER_PORT:8080}
@@ -23,6 +27,8 @@ server:
   servlet:
     session:
       cookie:
+        name: KIRZHQ_SESSION
+        domain: ${SESSION_COOKIE_DOMAIN:localhost}
         http-only: true
         secure: ${SESSION_COOKIE_SECURE:false}
         same-site: lax
@@ -33,8 +39,3 @@ app:
   telegram:
     token: ${TELEGRAM_BOT_TOKEN:}
     allowed-chat-id: ${TELEGRAM_ALLOWED_CHAT_ID:}
-  auth:
-    username: ${AUTH_USERNAME:finance}
-    setup-password: ${AUTH_SETUP_PASSWORD:local-setup-only}
-    rp-id: ${AUTH_RP_ID:localhost}
-    origin: ${AUTH_ORIGIN:http://localhost}

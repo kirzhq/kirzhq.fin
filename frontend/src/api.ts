@@ -10,7 +10,7 @@ function csrfToken() {
 
 function ensureAuthenticated(response: Response) {
   if (response.status === 401 || (response.redirected && response.url.includes('/login'))) {
-    window.location.assign('/login');
+    window.location.assign(`https://home.kirzhq.ru/login?continue=${encodeURIComponent(window.location.href)}`);
     throw new Error('Требуется авторизация');
   }
 }
