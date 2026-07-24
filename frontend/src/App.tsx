@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
   createCategory, createTransaction, deleteTransaction, exportVehicle, getCategories,
@@ -31,6 +31,7 @@ export default function App() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => localStorage.getItem('finance-theme') === 'dark' ? 'dark' : 'light');
+  const referenceDataLoaded = useRef(false);
 
   const availableCategories = categories.filter((category) => category.type === form.type);
   const vehicleTransactions = useMemo(() => transactions.filter((item) => item.category === 'Машина'), [transactions]);
@@ -41,8 +42,12 @@ export default function App() {
     setLoading(true);
     try {
       const [items, totals, categoryItems, vehicleItems] = await Promise.all([
-        getTransactions(year, month), getSummary(year, month), getCategories(), getVehicles(),
+        getTransactions(year, month),
+        getSummary(year, month),
+        referenceDataLoaded.current ? Promise.resolve(categories) : getCategories(),
+        referenceDataLoaded.current ? Promise.resolve(vehicles) : getVehicles(),
       ]);
+      referenceDataLoaded.current = true;
       setTransactions(items);
       setSummary(totals);
       setCategories(categoryItems);
@@ -137,20 +142,27 @@ export default function App() {
   async function addCategory(event: React.FormEvent) {
     event.preventDefault();
     try {
-      await createCategory({ name: categoryName.trim(), type: categoryType });
+      const created = await createCategory({ name: categoryName.trim(), type: categoryType });
+      setCategories((current) => [...current, created].sort((left, right) => left.name.localeCompare(right.name, 'ru')));
       setCategoryName('');
-      await loadData();
     } catch (requestError) { setError(message(requestError)); }
   }
 
   const chartData = (summary?.monthlyPoints ?? []).map((point, index) => ({ ...point, monthLabel: month ? months[month - 1] : shortMonths[index] }));
-  const yearOptions = Array.from({ length: new Date().getFullYear() + 5 - 2024 + 1 }, (_, index) => 2024 + index);
+  const yearOptions = Array.from({ length: new Date().getFullYear() + 5 - 2026 + 1 }, (_, index) => 2026 + index);
+  const visibleMonths = months.map((name, index) => ({ name, number: index + 1 }))
+    .filter((item) => year > 2026 || item.number >= 7);
+
+  function changeYear(nextYear: number) {
+    setYear(nextYear);
+    if (nextYear === 2026 && month !== null && month < 7) setMonth(null);
+  }
 
   return <div className="app">
     <aside className="sidebar">
       <div className="brand"><span>₽</span><strong>Мои финансы</strong></div>
       <div className="sidebar-controls">
-        <label>Финансовый год<select value={year} onChange={(event) => setYear(Number(event.target.value))}>{yearOptions.map((value) => <option key={value}>{value}</option>)}</select></label>
+        <label>Финансовый год<select value={year} onChange={(event) => changeYear(Number(event.target.value))}>{yearOptions.map((value) => <option key={value}>{value}</option>)}</select></label>
         <button className="theme-toggle" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
           <span>{theme === 'light' ? '☾' : '☀'}</span>{theme === 'light' ? 'Тёмная тема' : 'Светлая тема'}
         </button>
@@ -161,7 +173,7 @@ export default function App() {
         <button className={view === 'vehicles' ? 'active' : ''} onClick={() => openView('vehicles', null)}>Автомобили</button>
         <button className={view === 'categories' ? 'active' : ''} onClick={() => openView('categories')}>Категории</button>
         <p>Месяцы</p>
-        {months.map((name, index) => <button key={name} className={view === 'overview' && month === index + 1 ? 'active' : ''} onClick={() => openView('overview', index + 1)}>{name}</button>)}
+        {visibleMonths.map((item) => <button key={item.name} className={view === 'overview' && month === item.number ? 'active' : ''} onClick={() => openView('overview', item.number)}>{item.name}</button>)}
       </nav>
     </aside>
 

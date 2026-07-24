@@ -20,6 +20,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Locale;
@@ -116,11 +117,10 @@ public class VehicleService {
 
     private List<Transaction> transactions(Long id, int year) {
         get(id);
-        return transactionRepository.findAll().stream()
-                .filter(transaction -> transaction.getVehicle() != null && transaction.getVehicle().getId().equals(id))
-                .filter(transaction -> transaction.getTransactionDate().getYear() == year)
-                .sorted(java.util.Comparator.comparing(Transaction::getTransactionDate))
-                .toList();
+        LocalDate from = LocalDate.of(year, 1, 1);
+        return transactionRepository
+                .findAllByVehicleIdAndTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateAscIdAsc(
+                        id, from, from.plusYears(1));
     }
 
     private boolean isFuel(Transaction transaction) {

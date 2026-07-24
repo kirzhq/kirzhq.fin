@@ -9,6 +9,7 @@ import com.kirzhq.finances.web.dto.TransactionResponse;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
@@ -32,11 +33,7 @@ public class TransactionService {
     }
 
     public List<TransactionResponse> findAll(int year, Integer month) {
-        return transactionRepository.findAll().stream()
-                .filter(transaction -> transaction.getTransactionDate().getYear() == year)
-                .filter(transaction -> month == null || transaction.getTransactionDate().getMonthValue() == month)
-                .sorted(Comparator.comparing(Transaction::getTransactionDate).reversed()
-                        .thenComparing(Transaction::getId, Comparator.reverseOrder()))
+        return transactionsForPeriod(year, month).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -68,10 +65,7 @@ public class TransactionService {
     }
 
     public SummaryResponse summary(int year, Integer month) {
-        List<Transaction> transactions = transactionRepository.findAll().stream()
-                .filter(transaction -> transaction.getTransactionDate().getYear() == year)
-                .filter(transaction -> month == null || transaction.getTransactionDate().getMonthValue() == month)
-                .toList();
+        List<Transaction> transactions = transactionsForPeriod(year, month);
 
         BigDecimal income = transactions.stream()
                 .filter(transaction -> transaction.getType() == TransactionType.INCOME)
@@ -133,6 +127,13 @@ public class TransactionService {
         transaction.setVehicle("Машина".equalsIgnoreCase(request.category())
                 ? vehicleService.get(request.vehicleId())
                 : null);
+    }
+
+    private List<Transaction> transactionsForPeriod(int year, Integer month) {
+        LocalDate from = month == null ? LocalDate.of(year, 1, 1) : LocalDate.of(year, month, 1);
+        LocalDate to = month == null ? from.plusYears(1) : from.plusMonths(1);
+        return transactionRepository
+                .findAllByTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateDescIdDesc(from, to);
     }
 
     private TransactionResponse toResponse(Transaction transaction) {
