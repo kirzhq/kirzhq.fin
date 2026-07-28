@@ -454,10 +454,10 @@ function DebtView({ debts, form, setForm, editingId, payingId, paymentForm, setP
         {debts.length === 0 && <article className="card debt-empty"><span>✓</span><h2>Долгов пока нет</h2><p>Добавьте обязательство слева, чтобы отслеживать остаток и погашения.</p></article>}
         {debts.map((debt: Debt) => <article className={`card debt-card ${debt.remainingAmount === 0 ? 'closed' : ''}`} key={debt.id}>
           <div className="debt-card-head">
-            <div><span className="debt-status">{debt.remainingAmount === 0 ? 'Погашен' : 'Активный долг'}</span><h2>{debt.name}</h2><p>{debt.note || `Создан ${formatDate(debt.createdDate)}`}</p>
+            <div><div className="debt-meta"><span className="debt-status">{debt.remainingAmount === 0 ? 'Погашен' : 'Активный долг'}</span>
               {debt.name.trim().toLocaleLowerCase('ru-RU') === 'яндекс сплит' && debt.remainingAmount > 0 &&
-                <div className="debt-overdue"><span>Просрочка</span><strong>{yandexSplitOverdueDays()} дней</strong></div>}
-            </div>
+                <span className="debt-overdue"><i />{yandexSplitOverdueDays()} дней просрочки</span>}
+            </div><h2>{debt.name}</h2><p>{debt.note || `Создан ${formatDate(debt.createdDate)}`}</p></div>
             <div className="debt-actions"><button onClick={() => onEdit(debt)} title="Редактировать">✎</button><button className="delete" onClick={() => onDelete(debt)} title="Удалить">×</button></div>
           </div>
           <div className="debt-values"><div><span>Осталось</span><strong>{formatMoney(debt.remainingAmount)}</strong></div><div><span>Погашено</span><b>{formatMoney(debt.paidAmount)} из {formatMoney(debt.initialAmount)}</b></div></div>
