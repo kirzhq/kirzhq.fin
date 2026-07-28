@@ -119,9 +119,13 @@ export default function App() {
       vehicleId: form.category === 'Машина' ? form.vehicleId : null,
     };
     try {
-      if (editingId) await updateTransaction(editingId, payload);
-      else await createTransaction(payload);
-      cancelEdit();
+      if (editingId) {
+        await updateTransaction(editingId, payload);
+        cancelEdit();
+      } else {
+        await createTransaction(payload);
+        setForm((current) => ({ ...current, amount: '', description: '' }));
+      }
       await loadData();
     } catch (requestError) {
       setError(message(requestError));
