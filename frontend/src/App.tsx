@@ -454,7 +454,10 @@ function DebtView({ debts, form, setForm, editingId, payingId, paymentForm, setP
         {debts.length === 0 && <article className="card debt-empty"><span>✓</span><h2>Долгов пока нет</h2><p>Добавьте обязательство слева, чтобы отслеживать остаток и погашения.</p></article>}
         {debts.map((debt: Debt) => <article className={`card debt-card ${debt.remainingAmount === 0 ? 'closed' : ''}`} key={debt.id}>
           <div className="debt-card-head">
-            <div><span className="debt-status">{debt.remainingAmount === 0 ? 'Погашен' : 'Активный долг'}</span><h2>{debt.name}</h2><p>{debt.note || `Создан ${formatDate(debt.createdDate)}`}</p></div>
+            <div><span className="debt-status">{debt.remainingAmount === 0 ? 'Погашен' : 'Активный долг'}</span><h2>{debt.name}</h2><p>{debt.note || `Создан ${formatDate(debt.createdDate)}`}</p>
+              {debt.name.trim().toLocaleLowerCase('ru-RU') === 'яндекс сплит' && debt.remainingAmount > 0 &&
+                <div className="debt-overdue"><span>Просрочка</span><strong>{yandexSplitOverdueDays()} дней</strong></div>}
+            </div>
             <div className="debt-actions"><button onClick={() => onEdit(debt)} title="Редактировать">✎</button><button className="delete" onClick={() => onDelete(debt)} title="Удалить">×</button></div>
           </div>
           <div className="debt-values"><div><span>Осталось</span><strong>{formatMoney(debt.remainingAmount)}</strong></div><div><span>Погашено</span><b>{formatMoney(debt.paidAmount)} из {formatMoney(debt.initialAmount)}</b></div></div>
@@ -483,6 +486,10 @@ function subtitle(view: View, month: number | null) { if (view === 'vehicles') r
 function formatMoney(value: number) { return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 2 }).format(value); }
 function compactMoney(value: number) { return new Intl.NumberFormat('ru-RU', { notation: 'compact', maximumFractionDigits: 1 }).format(value); }
 function formatDate(value: string) { return new Intl.DateTimeFormat('ru-RU').format(new Date(`${value}T00:00:00`)); }
+function yandexSplitOverdueDays() {
+  const today = new Date();
+  return Math.max(0, Math.floor((Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(2024, 8, 16)) / 86_400_000));
+}
 function message(error: unknown) { return error instanceof Error ? error.message : 'Произошла ошибка'; }
 function tooltipStyle(theme: 'light' | 'dark') {
   return {
