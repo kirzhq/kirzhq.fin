@@ -108,7 +108,7 @@ public class VehicleService {
                 Row row = sheet.createRow(rowIndex++);
                 row.createCell(0).setCellValue(transaction.getTransactionDate().toString());
                 row.createCell(1).setCellValue(transaction.getCategory());
-                row.createCell(2).setCellValue(isFuel(transaction) ? "Бензин" : "Прочее");
+                row.createCell(2).setCellValue(expenseTypeLabel(transaction));
                 row.createCell(3).setCellValue(transaction.getAmount().doubleValue());
                 row.getCell(3).setCellStyle(moneyStyle);
                 if (transaction.getOdometerKm() != null) row.createCell(4).setCellValue(transaction.getOdometerKm());
@@ -139,6 +139,12 @@ public class VehicleService {
     private boolean isFuel(Transaction transaction) {
         return transaction.getVehicleExpenseType() == VehicleExpenseType.FUEL
                 || (transaction.getVehicleExpenseType() == null && FUEL_PATTERN.matcher(transaction.getDescription()).find());
+    }
+
+    private String expenseTypeLabel(Transaction transaction) {
+        if (isFuel(transaction)) return "Бензин";
+        if (transaction.getVehicleExpenseType() == VehicleExpenseType.MAINTENANCE) return "Тех. обслуживание";
+        return "Прочее";
     }
 
     private MileageSummary mileageSummary(Long vehicleId) {

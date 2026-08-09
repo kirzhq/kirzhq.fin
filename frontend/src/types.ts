@@ -1,5 +1,5 @@
 export type TransactionType = 'INCOME' | 'EXPENSE';
-export type VehicleExpenseType = 'FUEL' | 'OTHER';
+export type VehicleExpenseType = 'FUEL' | 'MAINTENANCE' | 'OTHER';
 
 export type Transaction = {
   id: number;

@@ -117,7 +117,7 @@ input:focus, select:focus { border-color: #8071f2; box-shadow: 0 0 0 3px #8071f2
 .segmented button.selected { background: white; color: #5b4cd4; box-shadow: 0 2px 8px #2d2b3f12; font-weight: 700; }
 .vehicle-subtype { min-width: 0; margin: 0; padding: 0; border: 0; }
 .vehicle-subtype legend { margin-bottom: 6px; color: #777584; font-size: 13px; font-weight: 600; }
-.vehicle-subtype > div { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; border-radius: 9px; background: #f1f0f5; }
+.vehicle-subtype > div { display: grid; grid-template-columns: .8fr 1.45fr .8fr; gap: 4px; padding: 3px; border-radius: 9px; background: #f1f0f5; }
 .vehicle-subtype button { padding: 8px 10px; border: 0; border-radius: 7px; background: transparent; color: #777584; font: inherit; font-size: 13px; font-weight: 600; }
 .vehicle-subtype button.selected { color: #5b4cd4; background: #fff; box-shadow: 0 2px 8px #2d2b3f12; }
 .primary { border: 0; border-radius: 9px; padding: 11px 16px; background: #6c5ce7; color: white; font-weight: 700; }
