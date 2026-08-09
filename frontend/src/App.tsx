@@ -14,7 +14,7 @@ const colors = ['#6c5ce7', '#00b894', '#fdcb6e', '#e17055', '#0984e3', '#e84393'
 const emptyForm = {
   type: 'EXPENSE' as TransactionType, category: '', amount: '',
   transactionDate: new Date().toISOString().slice(0, 10), description: '', vehicleId: null as number | null,
-  vehicleExpenseType: 'OTHER' as VehicleExpenseType, odometerKm: '',
+  vehicleExpenseType: 'OTHER' as VehicleExpenseType, odometerKm: '', fuelLiters: '',
 };
 const emptyDebtForm = { name: '', initialAmount: '', createdDate: new Date().toISOString().slice(0, 10), note: '' };
 const emptyPaymentForm = { amount: '', paymentDate: new Date().toISOString().slice(0, 10), comment: '' };
@@ -122,6 +122,8 @@ export default function App() {
       vehicleExpenseType: form.category === 'Машина' ? form.vehicleExpenseType : null,
       odometerKm: form.category === 'Машина' && form.vehicleExpenseType === 'FUEL' && form.odometerKm
         ? Number(form.odometerKm) : null,
+      fuelLiters: form.category === 'Машина' && form.vehicleExpenseType === 'FUEL' && form.fuelLiters
+        ? Number(form.fuelLiters) : null,
     };
     try {
       if (editingId) {
@@ -129,7 +131,7 @@ export default function App() {
         cancelEdit();
       } else {
         await createTransaction(payload);
-        setForm((current) => ({ ...current, amount: '', description: '', odometerKm: '' }));
+        setForm((current) => ({ ...current, amount: '', description: '', odometerKm: '', fuelLiters: '' }));
       }
       await loadData();
     } catch (requestError) {
@@ -158,6 +160,7 @@ export default function App() {
       type: item.type, category: item.category, amount: String(item.amount),
       transactionDate: item.transactionDate, description: item.description, vehicleId: item.vehicleId,
       vehicleExpenseType: item.vehicleExpenseType ?? 'OTHER', odometerKm: item.odometerKm ? String(item.odometerKm) : '',
+      fuelLiters: item.fuelLiters ? String(item.fuelLiters) : '',
     });
   }
 
@@ -321,14 +324,17 @@ export default function App() {
           <Metric title="Операций" value={vehicleSummary?.operationCount ?? vehicleTransactions.length} plain />
           <Metric title="Пробег по журналу" value={vehicleSummary?.mileageKm ?? 0} plain suffix=" км" />
           {vehicleSummary?.mileageComplete
-            ? <Metric title="Стоимость бензина на 100 км" value={vehicleSummary.fuelCostPer100Km ?? 0} kind="fuel-rate" />
-            : <article className="metric fuel-rate unavailable"><span>Стоимость бензина на 100 км</span><strong>Нет данных</strong></article>}
+            ? <Metric title="Средний расход" value={vehicleSummary.fuelConsumptionPer100Km ?? 0} plain suffix=" л/100 км" kind="fuel-rate" />
+            : <article className="metric fuel-rate unavailable"><span>Средний расход топлива</span><strong>Нет данных</strong></article>}
+          {vehicleSummary?.latestFuelConsumptionPer100Km != null
+            ? <Metric title="Последний интервал" value={vehicleSummary.latestFuelConsumptionPer100Km} plain suffix=" л/100 км" kind="fuel-rate" />
+            : <article className="metric fuel-rate unavailable"><span>Последний интервал</span><strong>Нет данных</strong></article>}
         </section>
         <section className="content-grid lower">
           <article className="card"><CardTitle title="Мой автомобиль" subtitle="Lada Vesta" />
             <div className="vehicle-list">{vehicles.map((vehicle) => <div key={vehicle.id}><span>🚙</span><div><strong>{vehicle.name}</strong><small>{formatMoney(vehicleTransactions.filter((item) => item.vehicleId === vehicle.id).reduce((sum, item) => sum + item.amount, 0))} за {year} год</small></div></div>)}</div>
           </article>
-          <article className="card"><CardTitle title="Расходы на автомобиль" subtitle={`${year} год · ${vehicleSummary?.activeMonths ?? 0} мес. с расходами`} /><div className="car-breakdown"><div><span>Топливо</span><strong>{formatMoney(vehicleSummary?.fuel ?? fuelTotal)}</strong></div><div><span>Среднее топливо в месяц</span><strong>{formatMoney(vehicleSummary?.averageMonthlyFuel ?? 0)}</strong></div><div><span>Остальные расходы</span><strong>{formatMoney(vehicleSummary?.other ?? vehicleTotal - fuelTotal)}</strong></div>{vehicleSummary?.firstOdometerKm != null && <div><span>Одометр: первая → последняя отметка</span><strong>{formatNumber(vehicleSummary.firstOdometerKm)} → {formatNumber(vehicleSummary.latestOdometerKm ?? vehicleSummary.firstOdometerKm)} км</strong></div>}</div>
+          <article className="card"><CardTitle title="Расходы на автомобиль" subtitle={`${year} год · ${vehicleSummary?.activeMonths ?? 0} мес. с расходами`} /><div className="car-breakdown"><div><span>Топливо</span><strong>{formatMoney(vehicleSummary?.fuel ?? fuelTotal)}</strong></div><div><span>Среднее топливо в месяц</span><strong>{formatMoney(vehicleSummary?.averageMonthlyFuel ?? 0)}</strong></div><div><span>Остальные расходы</span><strong>{formatMoney(vehicleSummary?.other ?? vehicleTotal - fuelTotal)}</strong></div>{vehicleSummary?.fuelCostPer100Km != null && <div><span>Средняя стоимость 100 км</span><strong>{formatMoney(vehicleSummary.fuelCostPer100Km)}</strong></div>}{vehicleSummary?.latestFuelCostPer100Km != null && <div><span>Стоимость 100 км на последнем интервале</span><strong>{formatMoney(vehicleSummary.latestFuelCostPer100Km)}</strong></div>}{vehicleSummary?.firstOdometerKm != null && <div><span>Одометр: первая → последняя отметка</span><strong>{formatNumber(vehicleSummary.firstOdometerKm)} → {formatNumber(vehicleSummary.latestOdometerKm ?? vehicleSummary.firstOdometerKm)} км</strong></div>}</div>
             {vehicleSummary && !vehicleSummary.mileageComplete && <MileageNotice summary={vehicleSummary} />}
           </article>
         </section>
@@ -376,11 +382,11 @@ export default function App() {
 function OperationForm({ form, setForm, categories, vehicles, editing, onType, onSubmit, onCancel }: any) {
   return <form className="transaction-form" onSubmit={onSubmit}>
     <div className="segmented"><button type="button" className={form.type === 'EXPENSE' ? 'selected' : ''} onClick={() => onType('EXPENSE')}>Расход</button><button type="button" className={form.type === 'INCOME' ? 'selected' : ''} onClick={() => onType('INCOME')}>Доход</button></div>
-    <label>Категория<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value, vehicleExpenseType: 'OTHER', odometerKm: '' })}>{categories.map((category: Category) => <option key={category.id}>{category.name}</option>)}</select></label>
+    <label>Категория<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value, vehicleExpenseType: 'OTHER', odometerKm: '', fuelLiters: '' })}>{categories.map((category: Category) => <option key={category.id}>{category.name}</option>)}</select></label>
     <label>Сумма<input required type="number" min="0.01" step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} placeholder="0 ₽" /></label>
     {form.category === 'Машина' && <>
-      <fieldset className="vehicle-subtype"><legend>Тип расхода</legend><div><button type="button" className={form.vehicleExpenseType === 'OTHER' ? 'selected' : ''} onClick={() => setForm({ ...form, vehicleExpenseType: 'OTHER', odometerKm: '' })}>Прочее</button><button type="button" className={form.vehicleExpenseType === 'MAINTENANCE' ? 'selected' : ''} onClick={() => setForm({ ...form, vehicleExpenseType: 'MAINTENANCE', odometerKm: '' })}>Тех. обслуживание</button><button type="button" className={form.vehicleExpenseType === 'FUEL' ? 'selected' : ''} onClick={() => setForm({ ...form, vehicleExpenseType: 'FUEL' })}>Бензин</button></div></fieldset>
-      {form.vehicleExpenseType === 'FUEL' && <label>Пробег на одометре, км<input type="number" min="1" step="1" value={form.odometerKm} onChange={(event) => setForm({ ...form, odometerKm: event.target.value })} placeholder="Например, 48 250" /><small>Можно пропустить, но точный расчёт ₽/100 км станет недоступен.</small></label>}
+      <fieldset className="vehicle-subtype"><legend>Тип расхода</legend><div><button type="button" className={form.vehicleExpenseType === 'OTHER' ? 'selected' : ''} onClick={() => setForm({ ...form, vehicleExpenseType: 'OTHER', odometerKm: '', fuelLiters: '' })}>Прочее</button><button type="button" className={form.vehicleExpenseType === 'MAINTENANCE' ? 'selected' : ''} onClick={() => setForm({ ...form, vehicleExpenseType: 'MAINTENANCE', odometerKm: '', fuelLiters: '' })}>Тех. обслуживание</button><button type="button" className={form.vehicleExpenseType === 'FUEL' ? 'selected' : ''} onClick={() => setForm({ ...form, vehicleExpenseType: 'FUEL' })}>Бензин</button></div></fieldset>
+      {form.vehicleExpenseType === 'FUEL' && <><label>Пробег на одометре, км<input type="number" min="1" step="1" value={form.odometerKm} onChange={(event) => setForm({ ...form, odometerKm: event.target.value })} placeholder="Например, 48 250" /></label><label>Заправлено, литров<input type="number" min="0.001" step="0.001" value={form.fuelLiters} onChange={(event) => setForm({ ...form, fuelLiters: event.target.value })} placeholder="Например, 42.5" /><small>Для точного расчёта заполняйте оба поля при каждой заправке.</small></label></>}
       <label>Автомобиль<select required value={form.vehicleId ?? ''} onChange={(event) => setForm({ ...form, vehicleId: Number(event.target.value) })}>{vehicles.map((vehicle: Vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.name}</option>)}</select></label>
     </>}
     <label>Дата<input required type="date" value={form.transactionDate} onChange={(event) => setForm({ ...form, transactionDate: event.target.value })} /></label>
@@ -433,7 +439,7 @@ function TransactionTable({ items, loading, onEdit, onDelete }: { items: Transac
         </div>
       </details>
     </div>
-    <div className="table-wrap"><table><thead><tr><th>Дата</th><th>Категория</th><th>Комментарий</th><th>Сумма</th><th /></tr></thead><tbody>{filteredItems.map((item) => <tr key={item.id}><td>{formatDate(item.transactionDate)}</td><td><b>{item.category}{item.vehicleExpenseType ? ` · ${vehicleExpenseTypeLabel(item.vehicleExpenseType)}` : ''}</b>{item.odometerKm != null && <small className="odometer-note">{formatNumber(item.odometerKm)} км</small>}</td><td>{item.description || '—'}</td><td className={item.type === 'INCOME' ? 'money-in' : 'money-out'}>{item.type === 'INCOME' ? '+' : '−'} {formatMoney(item.amount)}</td><td className="row-actions"><button onClick={() => onEdit(item)} title="Редактировать">✎</button><button className="delete" onClick={() => onDelete(item)} title="Удалить">×</button></td></tr>)}</tbody></table></div>
+    <div className="table-wrap"><table><thead><tr><th>Дата</th><th>Категория</th><th>Комментарий</th><th>Сумма</th><th /></tr></thead><tbody>{filteredItems.map((item) => <tr key={item.id}><td>{formatDate(item.transactionDate)}</td><td><b>{item.category}{item.vehicleExpenseType ? ` · ${vehicleExpenseTypeLabel(item.vehicleExpenseType)}` : ''}</b>{(item.odometerKm != null || item.fuelLiters != null) && <small className="odometer-note">{item.odometerKm != null ? `${formatNumber(item.odometerKm)} км` : ''}{item.odometerKm != null && item.fuelLiters != null ? ' · ' : ''}{item.fuelLiters != null ? `${formatFuelLiters(item.fuelLiters)} л` : ''}</small>}</td><td>{item.description || '—'}</td><td className={item.type === 'INCOME' ? 'money-in' : 'money-out'}>{item.type === 'INCOME' ? '+' : '−'} {formatMoney(item.amount)}</td><td className="row-actions"><button onClick={() => onEdit(item)} title="Редактировать">✎</button><button className="delete" onClick={() => onDelete(item)} title="Удалить">×</button></td></tr>)}</tbody></table></div>
   </section>;
 }
 
@@ -501,7 +507,7 @@ function MileageNotice({ summary }: { summary: VehicleSummary }) {
   return <div className="mileage-notice"><strong>Расчёт ₽/100 км пока недоступен</strong><span>{summary.firstOdometerKm == null
     ? 'Укажите пробег минимум в двух операциях «Бензин».'
     : onlyOneReading ? 'Нужна ещё одна операция «Бензин» с новым показанием одометра.'
-      : 'После первой отметки есть заправка без километража — средний расход невозможно рассчитать корректно.'}</span></div>;
+      : 'После первой отметки есть заправка без пробега или объёма топлива — средний расход невозможно рассчитать корректно.'}</span></div>;
 }
 function CardTitle({ title, subtitle }: { title: string; subtitle: string }) { return <div className="card-title"><div><h2>{title}</h2><p>{subtitle}</p></div></div>; }
 function title(view: View, month: number | null, year: number) { if (view === 'vehicles') return 'Автомобиль'; if (view === 'debts') return 'Долги'; if (view === 'categories') return 'Категории'; return month ? months[month - 1] : `Весь ${year} год`; }
@@ -510,6 +516,7 @@ function formatMoney(value: number) { return new Intl.NumberFormat('ru-RU', { st
 function compactMoney(value: number) { return new Intl.NumberFormat('ru-RU', { notation: 'compact', maximumFractionDigits: 1 }).format(value); }
 function formatDate(value: string) { return new Intl.DateTimeFormat('ru-RU').format(new Date(`${value}T00:00:00`)); }
 function formatNumber(value: number) { return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(value); }
+function formatFuelLiters(value: number) { return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 3 }).format(value); }
 function vehicleExpenseTypeLabel(value: VehicleExpenseType) {
   if (value === 'FUEL') return 'Бензин';
   if (value === 'MAINTENANCE') return 'Тех. обслуживание';

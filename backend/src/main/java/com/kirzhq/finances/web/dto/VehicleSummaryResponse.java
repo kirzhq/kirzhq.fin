@@ -12,7 +12,10 @@ public record VehicleSummaryResponse(
         Long firstOdometerKm,
         Long latestOdometerKm,
         Long mileageKm,
+        BigDecimal fuelConsumptionPer100Km,
         BigDecimal fuelCostPer100Km,
+        BigDecimal latestFuelConsumptionPer100Km,
+        BigDecimal latestFuelCostPer100Km,
         boolean mileageComplete
 ) {
 }

@@ -12,6 +12,7 @@ export type Transaction = {
   vehicleName: string | null;
   vehicleExpenseType: VehicleExpenseType | null;
   odometerKm: number | null;
+  fuelLiters: number | null;
 };
 
 export type Category = {
@@ -35,7 +36,10 @@ export type VehicleSummary = {
   firstOdometerKm: number | null;
   latestOdometerKm: number | null;
   mileageKm: number | null;
+  fuelConsumptionPer100Km: number | null;
   fuelCostPer100Km: number | null;
+  latestFuelConsumptionPer100Km: number | null;
+  latestFuelCostPer100Km: number | null;
   mileageComplete: boolean;
 };
 

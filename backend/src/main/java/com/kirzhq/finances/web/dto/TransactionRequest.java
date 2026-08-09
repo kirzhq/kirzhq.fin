@@ -17,6 +17,7 @@ public record TransactionRequest(
         String description,
         Long vehicleId,
         VehicleExpenseType vehicleExpenseType,
-        Long odometerKm
+        Long odometerKm,
+        BigDecimal fuelLiters
 ) {
 }

@@ -36,13 +36,37 @@ class VehicleServiceTest {
 
         try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(exported))) {
             var sheet = workbook.getSheetAt(0);
-            assertThat(sheet.getRow(11).getCell(2).getStringCellValue()).isEqualTo("Подкатегория");
+            assertThat(sheet.getRow(14).getCell(2).getStringCellValue()).isEqualTo("Подкатегория");
             assertThat(List.of(
-                    sheet.getRow(12).getCell(2).getStringCellValue(),
-                    sheet.getRow(13).getCell(2).getStringCellValue(),
-                    sheet.getRow(14).getCell(2).getStringCellValue()))
+                    sheet.getRow(15).getCell(2).getStringCellValue(),
+                    sheet.getRow(16).getCell(2).getStringCellValue(),
+                    sheet.getRow(17).getCell(2).getStringCellValue()))
                     .containsExactly("Бензин", "Тех. обслуживание", "Прочее");
+            assertThat(sheet.getRow(15).getCell(5).getNumericCellValue()).isEqualTo(40.0);
         }
+    }
+
+    @Test
+    void summaryCalculatesWholeJournalAndLatestFuelInterval() {
+        Vehicle vehicle = new Vehicle();
+        vehicle.setName("Lada Vesta");
+        Transaction first = transaction(VehicleExpenseType.FUEL, "2000", 48_000L);
+        first.setFuelLiters(new BigDecimal("40"));
+        Transaction latest = transaction(VehicleExpenseType.FUEL, "2500", 48_500L);
+        latest.setFuelLiters(new BigDecimal("35"));
+        List<Transaction> transactions = List.of(first, latest);
+        VehicleRepository vehicleRepository = proxy(VehicleRepository.class, (method, args) ->
+                method.getName().equals("findById") ? Optional.of(vehicle) : null);
+        TransactionRepository transactionRepository = proxy(TransactionRepository.class, (method, args) ->
+                method.getName().startsWith("findAllByVehicleId") ? transactions : null);
+
+        var summary = new VehicleService(vehicleRepository, transactionRepository).summary(1L, 2026);
+
+        assertThat(summary.mileageKm()).isEqualTo(500);
+        assertThat(summary.fuelConsumptionPer100Km()).isEqualByComparingTo("7.00");
+        assertThat(summary.latestFuelConsumptionPer100Km()).isEqualByComparingTo("7.00");
+        assertThat(summary.fuelCostPer100Km()).isEqualByComparingTo("500.00");
+        assertThat(summary.latestFuelCostPer100Km()).isEqualByComparingTo("500.00");
     }
 
     private Transaction transaction(VehicleExpenseType expenseType, String amount, Long odometerKm) {
@@ -53,6 +77,7 @@ class VehicleServiceTest {
         transaction.setDescription("");
         transaction.setVehicleExpenseType(expenseType);
         transaction.setOdometerKm(odometerKm);
+        if (expenseType == VehicleExpenseType.FUEL) transaction.setFuelLiters(new BigDecimal("40"));
         return transaction;
     }
 

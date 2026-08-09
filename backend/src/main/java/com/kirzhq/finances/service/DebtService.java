@@ -74,7 +74,7 @@ public class DebtService {
                 ? "Погашение долга: " + debt.getName()
                 : "Погашение долга: " + debt.getName() + " — " + request.comment().trim();
         var created = transactionService.create(new TransactionRequest(
-                TransactionType.EXPENSE, "Долги", request.amount(), request.paymentDate(), comment, null, null, null));
+                TransactionType.EXPENSE, "Долги", request.amount(), request.paymentDate(), comment, null, null, null, null));
         Transaction transaction = transactions.findById(created.id())
                 .orElseThrow(() -> new IllegalStateException("Операция погашения не создана"));
         DebtPayment payment = new DebtPayment();

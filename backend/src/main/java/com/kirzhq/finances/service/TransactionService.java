@@ -156,6 +156,12 @@ public class TransactionService {
         if (request.odometerKm() != null && vehicleExpenseType != VehicleExpenseType.FUEL) {
             throw new IllegalArgumentException("Пробег можно указать только для расхода на бензин");
         }
+        if (request.fuelLiters() != null && request.fuelLiters().signum() <= 0) {
+            throw new IllegalArgumentException("Объём топлива должен быть больше нуля");
+        }
+        if (request.fuelLiters() != null && vehicleExpenseType != VehicleExpenseType.FUEL) {
+            throw new IllegalArgumentException("Объём топлива можно указать только для расхода на бензин");
+        }
         transaction.setType(request.type());
         transaction.setCategory(request.category().trim());
         transaction.setAmount(request.amount());
@@ -164,6 +170,7 @@ public class TransactionService {
         transaction.setVehicle(vehicleExpense ? vehicleService.get(request.vehicleId()) : null);
         transaction.setVehicleExpenseType(vehicleExpenseType);
         transaction.setOdometerKm(vehicleExpenseType == VehicleExpenseType.FUEL ? request.odometerKm() : null);
+        transaction.setFuelLiters(vehicleExpenseType == VehicleExpenseType.FUEL ? request.fuelLiters() : null);
     }
 
     private List<Transaction> transactionsForPeriod(int year, Integer month) {
@@ -184,7 +191,8 @@ public class TransactionService {
                 transaction.getVehicle() == null ? null : transaction.getVehicle().getId(),
                 transaction.getVehicle() == null ? null : transaction.getVehicle().getName(),
                 transaction.getVehicleExpenseType(),
-                transaction.getOdometerKm()
+                transaction.getOdometerKm(),
+                transaction.getFuelLiters()
         );
     }
 }

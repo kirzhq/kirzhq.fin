@@ -49,6 +49,9 @@ public class Transaction {
     @Column(name = "odometer_km")
     private Long odometerKm;
 
+    @Column(name = "fuel_liters", precision = 10, scale = 3)
+    private BigDecimal fuelLiters;
+
     public Long getId() {
         return id;
     }
@@ -119,5 +122,13 @@ public class Transaction {
 
     public void setOdometerKm(Long odometerKm) {
         this.odometerKm = odometerKm;
+    }
+
+    public BigDecimal getFuelLiters() {
+        return fuelLiters;
+    }
+
+    public void setFuelLiters(BigDecimal fuelLiters) {
+        this.fuelLiters = fuelLiters;
     }
 }

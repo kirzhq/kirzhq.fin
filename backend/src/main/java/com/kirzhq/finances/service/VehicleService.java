@@ -66,7 +66,8 @@ public class VehicleService {
         return new VehicleSummaryResponse(
                 total, fuel, total.subtract(fuel), average, activeMonths, transactions.size(),
                 mileage.firstOdometerKm(), mileage.latestOdometerKm(), mileage.mileageKm(),
-                mileage.fuelCostPer100Km(), mileage.complete());
+                mileage.fuelConsumptionPer100Km(), mileage.fuelCostPer100Km(),
+                mileage.latestFuelConsumptionPer100Km(), mileage.latestFuelCostPer100Km(), mileage.complete());
     }
 
     public byte[] export(Long id, int year) {
@@ -94,16 +95,21 @@ public class VehicleService {
             writeSummary(sheet, 8, "Пробег по журналу, км", BigDecimal.valueOf(summary.mileageKm() == null ? 0 : summary.mileageKm()), null);
             if (summary.mileageComplete() && summary.fuelCostPer100Km() != null) {
                 writeSummary(sheet, 9, "Стоимость бензина на 100 км", summary.fuelCostPer100Km(), moneyStyle);
+                writeSummary(sheet, 10, "Расход топлива на 100 км, л", summary.fuelConsumptionPer100Km(), null);
+            }
+            if (summary.latestFuelConsumptionPer100Km() != null) {
+                writeSummary(sheet, 11, "Расход на последнем интервале, л/100 км", summary.latestFuelConsumptionPer100Km(), null);
+                writeSummary(sheet, 12, "Стоимость последнего интервала на 100 км", summary.latestFuelCostPer100Km(), moneyStyle);
             }
 
-            Row header = sheet.createRow(11);
-            String[] headings = {"Дата", "Категория", "Подкатегория", "Сумма", "Пробег, км", "Комментарий", "Автомобиль"};
+            Row header = sheet.createRow(14);
+            String[] headings = {"Дата", "Категория", "Подкатегория", "Сумма", "Пробег, км", "Топливо, л", "Комментарий", "Автомобиль"};
             for (int index = 0; index < headings.length; index++) {
                 header.createCell(index).setCellValue(headings[index]);
                 header.getCell(index).setCellStyle(headerStyle);
             }
 
-            int rowIndex = 12;
+            int rowIndex = 15;
             for (Transaction transaction : transactions) {
                 Row row = sheet.createRow(rowIndex++);
                 row.createCell(0).setCellValue(transaction.getTransactionDate().toString());
@@ -112,15 +118,16 @@ public class VehicleService {
                 row.createCell(3).setCellValue(transaction.getAmount().doubleValue());
                 row.getCell(3).setCellStyle(moneyStyle);
                 if (transaction.getOdometerKm() != null) row.createCell(4).setCellValue(transaction.getOdometerKm());
-                row.createCell(5).setCellValue(transaction.getDescription());
-                row.createCell(6).setCellValue(vehicle.getName());
+                if (transaction.getFuelLiters() != null) row.createCell(5).setCellValue(transaction.getFuelLiters().doubleValue());
+                row.createCell(6).setCellValue(transaction.getDescription());
+                row.createCell(7).setCellValue(vehicle.getName());
             }
 
-            int[] widths = {14, 18, 16, 16, 16, 52, 20};
+            int[] widths = {14, 18, 16, 16, 16, 14, 52, 20};
             for (int index = 0; index < widths.length; index++) {
                 sheet.setColumnWidth(index, widths[index] * 256);
             }
-            sheet.createFreezePane(0, 12);
+            sheet.createFreezePane(0, 15);
             workbook.write(output);
             return output.toByteArray();
         } catch (IOException exception) {
@@ -157,16 +164,22 @@ public class VehicleService {
                 break;
             }
         }
-        if (firstIndex < 0) return new MileageSummary(null, null, null, null, false);
+        if (firstIndex < 0) return new MileageSummary(null, null, null, null, null, null, null, false);
 
         long first = fuelTransactions.get(firstIndex).getOdometerKm();
         long latest = first;
         long previous = first;
         boolean complete = true;
-        BigDecimal trackedFuel = BigDecimal.ZERO;
-        for (int index = firstIndex; index < fuelTransactions.size(); index++) {
+        BigDecimal trackedFuelCost = BigDecimal.ZERO;
+        BigDecimal trackedFuelLiters = BigDecimal.ZERO;
+        for (int index = firstIndex + 1; index < fuelTransactions.size(); index++) {
             Transaction transaction = fuelTransactions.get(index);
-            trackedFuel = trackedFuel.add(transaction.getAmount());
+            trackedFuelCost = trackedFuelCost.add(transaction.getAmount());
+            if (transaction.getFuelLiters() == null) {
+                complete = false;
+            } else {
+                trackedFuelLiters = trackedFuelLiters.add(transaction.getFuelLiters());
+            }
             if (transaction.getOdometerKm() == null) {
                 complete = false;
                 continue;
@@ -177,15 +190,35 @@ public class VehicleService {
             latest = current;
         }
         long mileage = Math.max(0, latest - first);
-        complete = complete && mileage > 0;
-        BigDecimal costPer100Km = complete
-                ? trackedFuel.multiply(BigDecimal.valueOf(100)).divide(BigDecimal.valueOf(mileage), 2, RoundingMode.HALF_UP)
+        complete = complete && mileage > 0 && trackedFuelLiters.signum() > 0;
+        BigDecimal consumptionPer100Km = complete
+                ? trackedFuelLiters.multiply(BigDecimal.valueOf(100)).divide(BigDecimal.valueOf(mileage), 2, RoundingMode.HALF_UP)
                 : null;
-        return new MileageSummary(first, latest, mileage, costPer100Km, complete);
+        BigDecimal costPer100Km = complete
+                ? trackedFuelCost.multiply(BigDecimal.valueOf(100)).divide(BigDecimal.valueOf(mileage), 2, RoundingMode.HALF_UP)
+                : null;
+        BigDecimal latestConsumptionPer100Km = null;
+        BigDecimal latestCostPer100Km = null;
+        if (fuelTransactions.size() >= 2) {
+            Transaction previousTransaction = fuelTransactions.get(fuelTransactions.size() - 2);
+            Transaction latestTransaction = fuelTransactions.get(fuelTransactions.size() - 1);
+            if (previousTransaction.getOdometerKm() != null && latestTransaction.getOdometerKm() != null
+                    && latestTransaction.getFuelLiters() != null
+                    && latestTransaction.getOdometerKm() > previousTransaction.getOdometerKm()) {
+                long latestMileage = latestTransaction.getOdometerKm() - previousTransaction.getOdometerKm();
+                latestConsumptionPer100Km = latestTransaction.getFuelLiters().multiply(BigDecimal.valueOf(100))
+                        .divide(BigDecimal.valueOf(latestMileage), 2, RoundingMode.HALF_UP);
+                latestCostPer100Km = latestTransaction.getAmount().multiply(BigDecimal.valueOf(100))
+                        .divide(BigDecimal.valueOf(latestMileage), 2, RoundingMode.HALF_UP);
+            }
+        }
+        return new MileageSummary(first, latest, mileage, consumptionPer100Km, costPer100Km,
+                latestConsumptionPer100Km, latestCostPer100Km, complete);
     }
 
     private record MileageSummary(Long firstOdometerKm, Long latestOdometerKm, Long mileageKm,
-            BigDecimal fuelCostPer100Km, boolean complete) {}
+            BigDecimal fuelConsumptionPer100Km, BigDecimal fuelCostPer100Km,
+            BigDecimal latestFuelConsumptionPer100Km, BigDecimal latestFuelCostPer100Km, boolean complete) {}
 
     private BigDecimal sum(List<Transaction> transactions) {
         return transactions.stream().map(Transaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
