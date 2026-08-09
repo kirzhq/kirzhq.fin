@@ -8,6 +8,11 @@ public record VehicleSummaryResponse(
         BigDecimal other,
         BigDecimal averageMonthlyFuel,
         int activeMonths,
-        int operationCount
+        int operationCount,
+        Long firstOdometerKm,
+        Long latestOdometerKm,
+        Long mileageKm,
+        BigDecimal fuelCostPer100Km,
+        boolean mileageComplete
 ) {
 }

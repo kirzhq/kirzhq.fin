@@ -1,6 +1,7 @@
 package com.kirzhq.finances.web.dto;
 
 import com.kirzhq.finances.domain.TransactionType;
+import com.kirzhq.finances.domain.VehicleExpenseType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -13,6 +14,8 @@ public record TransactionResponse(
         LocalDate transactionDate,
         String description,
         Long vehicleId,
-        String vehicleName
+        String vehicleName,
+        VehicleExpenseType vehicleExpenseType,
+        Long odometerKm
 ) {
 }

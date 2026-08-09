@@ -13,4 +13,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     List<Transaction> findAllByVehicleIdAndTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateAscIdAsc(
             Long vehicleId, LocalDate from, LocalDate to);
+
+    List<Transaction> findAllByVehicleIdOrderByTransactionDateAscIdAsc(Long vehicleId);
 }

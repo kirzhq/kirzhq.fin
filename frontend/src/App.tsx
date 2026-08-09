@@ -5,7 +5,7 @@ import {
   getDebts, getSummary, getTransactions, getVehicleSummary, getVehicles, importBackup, exportBackup,
   payDebt, updateDebt, updateTransaction,
 } from './api';
-import type { Category, Debt, Summary, Transaction, TransactionType, Vehicle, VehicleSummary } from './types';
+import type { Category, Debt, Summary, Transaction, TransactionType, Vehicle, VehicleExpenseType, VehicleSummary } from './types';
 
 type View = 'overview' | 'vehicles' | 'debts' | 'categories';
 const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
@@ -14,6 +14,7 @@ const colors = ['#6c5ce7', '#00b894', '#fdcb6e', '#e17055', '#0984e3', '#e84393'
 const emptyForm = {
   type: 'EXPENSE' as TransactionType, category: '', amount: '',
   transactionDate: new Date().toISOString().slice(0, 10), description: '', vehicleId: null as number | null,
+  vehicleExpenseType: 'OTHER' as VehicleExpenseType, odometerKm: '',
 };
 const emptyDebtForm = { name: '', initialAmount: '', createdDate: new Date().toISOString().slice(0, 10), note: '' };
 const emptyPaymentForm = { amount: '', paymentDate: new Date().toISOString().slice(0, 10), comment: '' };
@@ -45,7 +46,8 @@ export default function App() {
   const availableCategories = categories.filter((category) => category.type === form.type);
   const vehicleTransactions = useMemo(() => transactions.filter((item) => item.category === 'Машина'), [transactions]);
   const vehicleTotal = vehicleTransactions.reduce((total, item) => total + item.amount, 0);
-  const fuelTotal = vehicleTransactions.filter((item) => /бенз|азс|топлив/i.test(item.description)).reduce((total, item) => total + item.amount, 0);
+  const fuelTotal = vehicleTransactions.filter((item) => item.vehicleExpenseType === 'FUEL'
+    || (!item.vehicleExpenseType && /бенз|азс|топлив/i.test(item.description))).reduce((total, item) => total + item.amount, 0);
 
   async function loadData() {
     setLoading(true);
@@ -117,6 +119,9 @@ export default function App() {
       type: form.type, category: form.category, amount: Number(form.amount),
       transactionDate: form.transactionDate, description: form.description,
       vehicleId: form.category === 'Машина' ? form.vehicleId : null,
+      vehicleExpenseType: form.category === 'Машина' ? form.vehicleExpenseType : null,
+      odometerKm: form.category === 'Машина' && form.vehicleExpenseType === 'FUEL' && form.odometerKm
+        ? Number(form.odometerKm) : null,
     };
     try {
       if (editingId) {
@@ -124,7 +129,7 @@ export default function App() {
         cancelEdit();
       } else {
         await createTransaction(payload);
-        setForm((current) => ({ ...current, amount: '', description: '' }));
+        setForm((current) => ({ ...current, amount: '', description: '', odometerKm: '' }));
       }
       await loadData();
     } catch (requestError) {
@@ -152,6 +157,7 @@ export default function App() {
     setForm({
       type: item.type, category: item.category, amount: String(item.amount),
       transactionDate: item.transactionDate, description: item.description, vehicleId: item.vehicleId,
+      vehicleExpenseType: item.vehicleExpenseType ?? 'OTHER', odometerKm: item.odometerKm ? String(item.odometerKm) : '',
     });
   }
 
@@ -313,12 +319,18 @@ export default function App() {
           <Metric title="Бензин в среднем за месяц" value={vehicleSummary?.averageMonthlyFuel} kind="income" />
           <Metric title="Обслуживание и прочее" value={vehicleSummary?.other ?? vehicleTotal - fuelTotal} />
           <Metric title="Операций" value={vehicleSummary?.operationCount ?? vehicleTransactions.length} plain />
+          <Metric title="Пробег по журналу" value={vehicleSummary?.mileageKm ?? 0} plain suffix=" км" />
+          {vehicleSummary?.mileageComplete
+            ? <Metric title="Стоимость бензина на 100 км" value={vehicleSummary.fuelCostPer100Km ?? 0} kind="fuel-rate" />
+            : <article className="metric fuel-rate unavailable"><span>Стоимость бензина на 100 км</span><strong>Нет данных</strong></article>}
         </section>
         <section className="content-grid lower">
           <article className="card"><CardTitle title="Мой автомобиль" subtitle="Lada Vesta" />
             <div className="vehicle-list">{vehicles.map((vehicle) => <div key={vehicle.id}><span>🚙</span><div><strong>{vehicle.name}</strong><small>{formatMoney(vehicleTransactions.filter((item) => item.vehicleId === vehicle.id).reduce((sum, item) => sum + item.amount, 0))} за {year} год</small></div></div>)}</div>
           </article>
-          <article className="card"><CardTitle title="Расходы на автомобиль" subtitle={`${year} год · ${vehicleSummary?.activeMonths ?? 0} мес. с расходами`} /><div className="car-breakdown"><div><span>Топливо</span><strong>{formatMoney(vehicleSummary?.fuel ?? fuelTotal)}</strong></div><div><span>Среднее топливо в месяц</span><strong>{formatMoney(vehicleSummary?.averageMonthlyFuel ?? 0)}</strong></div><div><span>Остальные расходы</span><strong>{formatMoney(vehicleSummary?.other ?? vehicleTotal - fuelTotal)}</strong></div></div></article>
+          <article className="card"><CardTitle title="Расходы на автомобиль" subtitle={`${year} год · ${vehicleSummary?.activeMonths ?? 0} мес. с расходами`} /><div className="car-breakdown"><div><span>Топливо</span><strong>{formatMoney(vehicleSummary?.fuel ?? fuelTotal)}</strong></div><div><span>Среднее топливо в месяц</span><strong>{formatMoney(vehicleSummary?.averageMonthlyFuel ?? 0)}</strong></div><div><span>Остальные расходы</span><strong>{formatMoney(vehicleSummary?.other ?? vehicleTotal - fuelTotal)}</strong></div>{vehicleSummary?.firstOdometerKm != null && <div><span>Одометр: первая → последняя отметка</span><strong>{formatNumber(vehicleSummary.firstOdometerKm)} → {formatNumber(vehicleSummary.latestOdometerKm ?? vehicleSummary.firstOdometerKm)} км</strong></div>}</div>
+            {vehicleSummary && !vehicleSummary.mileageComplete && <MileageNotice summary={vehicleSummary} />}
+          </article>
         </section>
         <TransactionTable items={vehicleTransactions} loading={loading} onEdit={editOperation} onDelete={removeOperation} />
       </>}
@@ -364,9 +376,13 @@ export default function App() {
 function OperationForm({ form, setForm, categories, vehicles, editing, onType, onSubmit, onCancel }: any) {
   return <form className="transaction-form" onSubmit={onSubmit}>
     <div className="segmented"><button type="button" className={form.type === 'EXPENSE' ? 'selected' : ''} onClick={() => onType('EXPENSE')}>Расход</button><button type="button" className={form.type === 'INCOME' ? 'selected' : ''} onClick={() => onType('INCOME')}>Доход</button></div>
-    <label>Категория<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })}>{categories.map((category: Category) => <option key={category.id}>{category.name}</option>)}</select></label>
+    <label>Категория<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value, vehicleExpenseType: 'OTHER', odometerKm: '' })}>{categories.map((category: Category) => <option key={category.id}>{category.name}</option>)}</select></label>
     <label>Сумма<input required type="number" min="0.01" step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} placeholder="0 ₽" /></label>
-    {form.category === 'Машина' && <label>Автомобиль<select required value={form.vehicleId ?? ''} onChange={(event) => setForm({ ...form, vehicleId: Number(event.target.value) })}>{vehicles.map((vehicle: Vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.name}</option>)}</select></label>}
+    {form.category === 'Машина' && <>
+      <fieldset className="vehicle-subtype"><legend>Тип расхода</legend><div><button type="button" className={form.vehicleExpenseType === 'OTHER' ? 'selected' : ''} onClick={() => setForm({ ...form, vehicleExpenseType: 'OTHER', odometerKm: '' })}>Прочее</button><button type="button" className={form.vehicleExpenseType === 'FUEL' ? 'selected' : ''} onClick={() => setForm({ ...form, vehicleExpenseType: 'FUEL' })}>Бензин</button></div></fieldset>
+      {form.vehicleExpenseType === 'FUEL' && <label>Пробег на одометре, км<input type="number" min="1" step="1" value={form.odometerKm} onChange={(event) => setForm({ ...form, odometerKm: event.target.value })} placeholder="Например, 48 250" /><small>Можно пропустить, но точный расчёт ₽/100 км станет недоступен.</small></label>}
+      <label>Автомобиль<select required value={form.vehicleId ?? ''} onChange={(event) => setForm({ ...form, vehicleId: Number(event.target.value) })}>{vehicles.map((vehicle: Vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.name}</option>)}</select></label>
+    </>}
     <label>Дата<input required type="date" value={form.transactionDate} onChange={(event) => setForm({ ...form, transactionDate: event.target.value })} /></label>
     <label className="comment-field">Комментарий<input value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Необязательно" /></label>
     <div className="form-actions"><button className="primary">{editing ? 'Сохранить изменения' : 'Сохранить операцию'}</button>{editing && <button type="button" className="secondary" onClick={onCancel}>Отмена</button>}</div>
@@ -417,7 +433,7 @@ function TransactionTable({ items, loading, onEdit, onDelete }: { items: Transac
         </div>
       </details>
     </div>
-    <div className="table-wrap"><table><thead><tr><th>Дата</th><th>Категория</th><th>Комментарий</th><th>Сумма</th><th /></tr></thead><tbody>{filteredItems.map((item) => <tr key={item.id}><td>{formatDate(item.transactionDate)}</td><td><b>{item.category}</b></td><td>{item.description || '—'}</td><td className={item.type === 'INCOME' ? 'money-in' : 'money-out'}>{item.type === 'INCOME' ? '+' : '−'} {formatMoney(item.amount)}</td><td className="row-actions"><button onClick={() => onEdit(item)} title="Редактировать">✎</button><button className="delete" onClick={() => onDelete(item)} title="Удалить">×</button></td></tr>)}</tbody></table></div>
+    <div className="table-wrap"><table><thead><tr><th>Дата</th><th>Категория</th><th>Комментарий</th><th>Сумма</th><th /></tr></thead><tbody>{filteredItems.map((item) => <tr key={item.id}><td>{formatDate(item.transactionDate)}</td><td><b>{item.category}{item.vehicleExpenseType === 'FUEL' ? ' · Бензин' : ''}</b>{item.odometerKm != null && <small className="odometer-note">{formatNumber(item.odometerKm)} км</small>}</td><td>{item.description || '—'}</td><td className={item.type === 'INCOME' ? 'money-in' : 'money-out'}>{item.type === 'INCOME' ? '+' : '−'} {formatMoney(item.amount)}</td><td className="row-actions"><button onClick={() => onEdit(item)} title="Редактировать">✎</button><button className="delete" onClick={() => onDelete(item)} title="Удалить">×</button></td></tr>)}</tbody></table></div>
   </section>;
 }
 
@@ -479,13 +495,21 @@ function DebtView({ debts, form, setForm, editingId, payingId, paymentForm, setP
   </>;
 }
 
-function Metric({ title, value, kind, plain }: { title: string; value?: number; kind?: string; plain?: boolean }) { return <article className={`metric ${kind ?? ''}`}><span>{title}</span><strong>{plain ? value ?? 0 : formatMoney(value ?? 0)}</strong></article>; }
+function Metric({ title, value, kind, plain, suffix = '' }: { title: string; value?: number; kind?: string; plain?: boolean; suffix?: string }) { return <article className={`metric ${kind ?? ''}`}><span>{title}</span><strong>{plain ? `${formatNumber(value ?? 0)}${suffix}` : formatMoney(value ?? 0)}</strong></article>; }
+function MileageNotice({ summary }: { summary: VehicleSummary }) {
+  const onlyOneReading = summary.firstOdometerKm != null && summary.firstOdometerKm === summary.latestOdometerKm;
+  return <div className="mileage-notice"><strong>Расчёт ₽/100 км пока недоступен</strong><span>{summary.firstOdometerKm == null
+    ? 'Укажите пробег минимум в двух операциях «Бензин».'
+    : onlyOneReading ? 'Нужна ещё одна операция «Бензин» с новым показанием одометра.'
+      : 'После первой отметки есть заправка без километража — средний расход невозможно рассчитать корректно.'}</span></div>;
+}
 function CardTitle({ title, subtitle }: { title: string; subtitle: string }) { return <div className="card-title"><div><h2>{title}</h2><p>{subtitle}</p></div></div>; }
 function title(view: View, month: number | null, year: number) { if (view === 'vehicles') return 'Автомобиль'; if (view === 'debts') return 'Долги'; if (view === 'categories') return 'Категории'; return month ? months[month - 1] : `Весь ${year} год`; }
 function subtitle(view: View, month: number | null) { if (view === 'vehicles') return 'Расходы на транспорт'; if (view === 'debts') return 'Контроль обязательств'; if (view === 'categories') return 'Настройки справочника'; return month ? 'Отчёт за месяц' : 'Финансовый обзор'; }
 function formatMoney(value: number) { return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 2 }).format(value); }
 function compactMoney(value: number) { return new Intl.NumberFormat('ru-RU', { notation: 'compact', maximumFractionDigits: 1 }).format(value); }
 function formatDate(value: string) { return new Intl.DateTimeFormat('ru-RU').format(new Date(`${value}T00:00:00`)); }
+function formatNumber(value: number) { return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(value); }
 function yandexSplitOverdueDays() {
   const today = new Date();
   return Math.max(0, Math.floor((Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(2024, 8, 16)) / 86_400_000));

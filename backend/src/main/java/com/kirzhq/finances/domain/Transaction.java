@@ -42,6 +42,13 @@ public class Transaction {
     @JoinColumn(name = "vehicle_id")
     private Vehicle vehicle;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "vehicle_expense_type")
+    private VehicleExpenseType vehicleExpenseType;
+
+    @Column(name = "odometer_km")
+    private Long odometerKm;
+
     public Long getId() {
         return id;
     }
@@ -96,5 +103,21 @@ public class Transaction {
 
     public void setVehicle(Vehicle vehicle) {
         this.vehicle = vehicle;
+    }
+
+    public VehicleExpenseType getVehicleExpenseType() {
+        return vehicleExpenseType;
+    }
+
+    public void setVehicleExpenseType(VehicleExpenseType vehicleExpenseType) {
+        this.vehicleExpenseType = vehicleExpenseType;
+    }
+
+    public Long getOdometerKm() {
+        return odometerKm;
+    }
+
+    public void setOdometerKm(Long odometerKm) {
+        this.odometerKm = odometerKm;
     }
 }

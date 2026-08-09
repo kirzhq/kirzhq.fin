@@ -1,4 +1,5 @@
 export type TransactionType = 'INCOME' | 'EXPENSE';
+export type VehicleExpenseType = 'FUEL' | 'OTHER';
 
 export type Transaction = {
   id: number;
@@ -9,6 +10,8 @@ export type Transaction = {
   description: string;
   vehicleId: number | null;
   vehicleName: string | null;
+  vehicleExpenseType: VehicleExpenseType | null;
+  odometerKm: number | null;
 };
 
 export type Category = {
@@ -29,6 +32,11 @@ export type VehicleSummary = {
   averageMonthlyFuel: number;
   activeMonths: number;
   operationCount: number;
+  firstOdometerKm: number | null;
+  latestOdometerKm: number | null;
+  mileageKm: number | null;
+  fuelCostPer100Km: number | null;
+  mileageComplete: boolean;
 };
 
 export type Summary = {

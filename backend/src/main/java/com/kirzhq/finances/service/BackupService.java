@@ -1,6 +1,7 @@
 package com.kirzhq.finances.service;
 
 import com.kirzhq.finances.domain.TransactionType;
+import com.kirzhq.finances.domain.VehicleExpenseType;
 import com.kirzhq.finances.web.dto.BackupData;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -23,20 +24,24 @@ public class BackupService {
     @Transactional(readOnly = true)
     public BackupData exportData() {
         return new BackupData(
-                1, Instant.now(),
+                2, Instant.now(),
                 jdbc.query("SELECT id, name, type FROM categories ORDER BY id",
                         (rs, row) -> new BackupData.CategoryItem(rs.getLong("id"), rs.getString("name"),
                                 TransactionType.valueOf(rs.getString("type")))),
                 jdbc.query("SELECT id, name FROM vehicles ORDER BY id",
                         (rs, row) -> new BackupData.VehicleItem(rs.getLong("id"), rs.getString("name"))),
                 jdbc.query("""
-                        SELECT id, type, category, amount, transaction_date, description, vehicle_id
+                        SELECT id, type, category, amount, transaction_date, description, vehicle_id,
+                               vehicle_expense_type, odometer_km
                         FROM transactions ORDER BY id
                         """, (rs, row) -> new BackupData.TransactionItem(
                                 rs.getLong("id"), TransactionType.valueOf(rs.getString("type")),
                                 rs.getString("category"), rs.getBigDecimal("amount"),
                                 rs.getDate("transaction_date").toLocalDate(), rs.getString("description"),
-                                rs.getObject("vehicle_id", Long.class))),
+                                rs.getObject("vehicle_id", Long.class),
+                                rs.getString("vehicle_expense_type") == null ? null
+                                        : VehicleExpenseType.valueOf(rs.getString("vehicle_expense_type")),
+                                rs.getObject("odometer_km", Long.class))),
                 jdbc.query("SELECT id, name, initial_amount, created_date, note FROM debts ORDER BY id",
                         (rs, row) -> new BackupData.DebtItem(
                                 rs.getLong("id"), rs.getString("name"), rs.getBigDecimal("initial_amount"),
@@ -70,7 +75,7 @@ public class BackupService {
     }
 
     private void validate(BackupData backup) {
-        if (backup == null || backup.version() != 1
+        if (backup == null || (backup.version() != 1 && backup.version() != 2)
                 || backup.categories() == null || backup.vehicles() == null
                 || backup.transactions() == null || backup.debts() == null
                 || backup.debtPayments() == null) {
@@ -101,8 +106,9 @@ public class BackupService {
         if (items.isEmpty()) return;
         jdbc.batchUpdate("""
                 INSERT INTO transactions
-                    (id, type, category, amount, transaction_date, description, vehicle_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (id, type, category, amount, transaction_date, description, vehicle_id,
+                     vehicle_expense_type, odometer_km)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, items, items.size(), (statement, item) -> {
                     statement.setLong(1, item.id());
                     statement.setString(2, item.type().name());
@@ -111,6 +117,14 @@ public class BackupService {
                     statement.setDate(5, Date.valueOf(item.transactionDate()));
                     statement.setString(6, item.description());
                     nullableLong(statement, 7, item.vehicleId());
+                    if (item.vehicleId() == null) {
+                        statement.setNull(8, Types.VARCHAR);
+                    } else {
+                        statement.setString(8, (item.vehicleExpenseType() == null
+                                ? VehicleExpenseType.OTHER : item.vehicleExpenseType()).name());
+                    }
+                    nullableLong(statement, 9, item.vehicleExpenseType() == VehicleExpenseType.FUEL
+                            ? item.odometerKm() : null);
                 });
     }
 

@@ -77,8 +77,10 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); letter-spacing: -.04em; }
 .metric::before { content: ''; position: absolute; left: 18px; right: 18px; top: 0; height: 3px; border-radius: 0 0 4px 4px; background: #aaa; }
 .metric.income::before { background: #00b894; }.metric.expense::before { background: #e17055; }.metric.balance::before { background: #6c5ce7; }
 .metric.daily::before { background: #0984e3; }.metric.food::before { background: #fdcb6e; }
+.metric.fuel-rate::before { background: #00a884; }
 .metric span { display: block; max-width: 24ch; color: #7f7d8b; font-size: 14px; line-height: 1.45; }
 .metric strong { align-self: end; white-space: nowrap; font-size: clamp(20px, 1.65vw, 27px); font-variant-numeric: tabular-nums; letter-spacing: -.035em; line-height: 1.15; }
+.metric.unavailable strong { color: #9997a5; font-size: 18px; letter-spacing: -.01em; }
 .content-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr); gap: 16px; align-items: stretch; margin-bottom: 16px; }
 .content-grid.lower { grid-template-columns: 1fr 1fr; }
 .dashboard-stack { display: grid; gap: 16px; align-content: start; min-width: 0; }
@@ -107,11 +109,17 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); letter-spacing: -.04em; }
 .donut-total { fill: #242334; font-size: 17px; font-weight: 800; }
 .transaction-form { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
 .transaction-form label { display: grid; gap: 6px; color: #777584; font-size: 13px; font-weight: 600; }
+.transaction-form label small { color: #9997a5; font-size: 11px; font-weight: 500; line-height: 1.35; }
 input, select { width: 100%; padding: 11px 12px; border: 1px solid #dedce6; border-radius: 9px; outline: none; background: white; color: #353344; }
 input:focus, select:focus { border-color: #8071f2; box-shadow: 0 0 0 3px #8071f21c; }
 .segmented { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; padding: 3px; border-radius: 10px; background: #f1f0f5; }
 .segmented button { border: 0; padding: 9px; border-radius: 8px; background: transparent; color: #777584; }
 .segmented button.selected { background: white; color: #5b4cd4; box-shadow: 0 2px 8px #2d2b3f12; font-weight: 700; }
+.vehicle-subtype { min-width: 0; margin: 0; padding: 0; border: 0; }
+.vehicle-subtype legend { margin-bottom: 6px; color: #777584; font-size: 13px; font-weight: 600; }
+.vehicle-subtype > div { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; border-radius: 9px; background: #f1f0f5; }
+.vehicle-subtype button { padding: 8px 10px; border: 0; border-radius: 7px; background: transparent; color: #777584; font: inherit; font-size: 13px; font-weight: 600; }
+.vehicle-subtype button.selected { color: #5b4cd4; background: #fff; box-shadow: 0 2px 8px #2d2b3f12; }
 .primary { border: 0; border-radius: 9px; padding: 11px 16px; background: #6c5ce7; color: white; font-weight: 700; }
 .transaction-form .primary { align-self: end; }
 .comment-field { grid-column: 1 / -1; }
@@ -166,6 +174,7 @@ table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th, td { padding: 13px 10px; border-bottom: 1px solid #efedf3; text-align: left; white-space: nowrap; }
 th { color: #9997a5; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
 td:last-child, th:last-child { text-align: right; }
+.odometer-note { display: block; margin-top: 3px; color: #92909e; font-size: 11px; font-variant-numeric: tabular-nums; }
 .row-actions { display: flex; justify-content: flex-end; gap: 5px; }
 .row-actions button { width: 28px; height: 28px; border: 1px solid #dedce6; border-radius: 7px; background: white; color: #6c5ce7; }
 .row-actions button.delete { color: #c84d4d; }
@@ -186,6 +195,9 @@ td:last-child, th:last-child { text-align: right; }
 .car-breakdown { display: grid; gap: 12px; }
 .car-breakdown div { display: flex; justify-content: space-between; padding: 16px; border-radius: 12px; background: #f7f6fa; }
 .car-breakdown span { color: #777584; }
+.mileage-notice { display: grid; gap: 4px; margin-top: 12px; padding: 13px 15px; border: 1px solid #f0d8a7; border-radius: 12px; color: #725414; background: #fff9ea; }
+.mileage-notice strong { font-size: 13px; }
+.mileage-notice span { font-size: 12px; line-height: 1.45; }
 .debt-layout { display: grid; grid-template-columns: minmax(280px, .72fr) minmax(0, 1.5fr); gap: 16px; align-items: start; }
 .debt-editor { position: sticky; top: 20px; }
 .debt-form, .payment-form { display: grid; gap: 13px; }
@@ -254,6 +266,11 @@ html[data-theme="dark"] .debt-actions button.delete { color: #ff8e8e; }
 html[data-theme="dark"] .debt-overdue { color: #ff927d; background: rgba(255,112,86,.1); }
 html[data-theme="dark"] .segmented { background: #201f2d; }
 html[data-theme="dark"] .segmented button.selected { color: #a99fff; background: #3a374d; box-shadow: none; }
+html[data-theme="dark"] .vehicle-subtype legend { color: #aaa7b8; }
+html[data-theme="dark"] .vehicle-subtype > div { background: #201f2d; }
+html[data-theme="dark"] .vehicle-subtype button { color: #aaa7b8; }
+html[data-theme="dark"] .vehicle-subtype button.selected { color: #a99fff; background: #3a374d; box-shadow: none; }
+html[data-theme="dark"] .mileage-notice { color: #f1cf83; background: rgba(240, 183, 66, .08); border-color: rgba(240, 183, 66, .25); }
 html[data-theme="dark"] .modal-close { color: #c8c5d5; background: #3a374d; }
 html[data-theme="dark"] .modal-close:hover { color: white; background: #464258; }
 html[data-theme="dark"] th,

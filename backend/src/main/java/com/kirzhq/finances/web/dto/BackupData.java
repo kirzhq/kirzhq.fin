@@ -1,6 +1,7 @@
 package com.kirzhq.finances.web.dto;
 
 import com.kirzhq.finances.domain.TransactionType;
+import com.kirzhq.finances.domain.VehicleExpenseType;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -19,7 +20,8 @@ public record BackupData(
     public record CategoryItem(Long id, String name, TransactionType type) {}
     public record VehicleItem(Long id, String name) {}
     public record TransactionItem(Long id, TransactionType type, String category, BigDecimal amount,
-            LocalDate transactionDate, String description, Long vehicleId) {}
+            LocalDate transactionDate, String description, Long vehicleId,
+            VehicleExpenseType vehicleExpenseType, Long odometerKm) {}
     public record DebtItem(Long id, String name, BigDecimal initialAmount, LocalDate createdDate, String note) {}
     public record DebtPaymentItem(Long id, Long debtId, Long transactionId) {}
 }

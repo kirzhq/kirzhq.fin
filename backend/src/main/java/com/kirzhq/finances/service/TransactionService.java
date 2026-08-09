@@ -2,6 +2,7 @@ package com.kirzhq.finances.service;
 
 import com.kirzhq.finances.domain.Transaction;
 import com.kirzhq.finances.domain.TransactionType;
+import com.kirzhq.finances.domain.VehicleExpenseType;
 import com.kirzhq.finances.repository.TransactionRepository;
 import com.kirzhq.finances.web.dto.SummaryResponse;
 import com.kirzhq.finances.web.dto.TransactionRequest;
@@ -145,14 +146,24 @@ public class TransactionService {
     }
 
     private void applyRequest(Transaction transaction, TransactionRequest request) {
+        boolean vehicleExpense = "Машина".equalsIgnoreCase(request.category());
+        VehicleExpenseType vehicleExpenseType = vehicleExpense
+                ? (request.vehicleExpenseType() == null ? VehicleExpenseType.OTHER : request.vehicleExpenseType())
+                : null;
+        if (request.odometerKm() != null && request.odometerKm() <= 0) {
+            throw new IllegalArgumentException("Пробег должен быть больше нуля");
+        }
+        if (request.odometerKm() != null && vehicleExpenseType != VehicleExpenseType.FUEL) {
+            throw new IllegalArgumentException("Пробег можно указать только для расхода на бензин");
+        }
         transaction.setType(request.type());
         transaction.setCategory(request.category().trim());
         transaction.setAmount(request.amount());
         transaction.setTransactionDate(request.transactionDate());
         transaction.setDescription(request.description() == null ? "" : request.description().trim());
-        transaction.setVehicle("Машина".equalsIgnoreCase(request.category())
-                ? vehicleService.get(request.vehicleId())
-                : null);
+        transaction.setVehicle(vehicleExpense ? vehicleService.get(request.vehicleId()) : null);
+        transaction.setVehicleExpenseType(vehicleExpenseType);
+        transaction.setOdometerKm(vehicleExpenseType == VehicleExpenseType.FUEL ? request.odometerKm() : null);
     }
 
     private List<Transaction> transactionsForPeriod(int year, Integer month) {
@@ -171,7 +182,9 @@ public class TransactionService {
                 transaction.getTransactionDate(),
                 transaction.getDescription(),
                 transaction.getVehicle() == null ? null : transaction.getVehicle().getId(),
-                transaction.getVehicle() == null ? null : transaction.getVehicle().getName()
+                transaction.getVehicle() == null ? null : transaction.getVehicle().getName(),
+                transaction.getVehicleExpenseType(),
+                transaction.getOdometerKm()
         );
     }
 }
