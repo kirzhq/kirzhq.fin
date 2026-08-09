@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
   createCategory, createDebt, createTransaction, deleteDebt, deleteTransaction, exportVehicle, getCategories,
@@ -43,11 +43,11 @@ export default function App() {
   const referenceDataLoaded = useRef(false);
   const backupInput = useRef<HTMLInputElement>(null);
 
-  const availableCategories = categories.filter((category) => category.type === form.type);
+  const availableCategories = useMemo(() => categories.filter((category) => category.type === form.type), [categories, form.type]);
   const vehicleTransactions = useMemo(() => transactions.filter((item) => item.category === 'Машина'), [transactions]);
-  const vehicleTotal = vehicleTransactions.reduce((total, item) => total + item.amount, 0);
-  const fuelTotal = vehicleTransactions.filter((item) => item.vehicleExpenseType === 'FUEL'
-    || (!item.vehicleExpenseType && /бенз|азс|топлив/i.test(item.description))).reduce((total, item) => total + item.amount, 0);
+  const vehicleTotal = useMemo(() => vehicleTransactions.reduce((total, item) => total + item.amount, 0), [vehicleTransactions]);
+  const fuelTotal = useMemo(() => vehicleTransactions.filter((item) => item.vehicleExpenseType === 'FUEL'
+    || (!item.vehicleExpenseType && /бенз|азс|топлив/i.test(item.description))).reduce((total, item) => total + item.amount, 0), [vehicleTransactions]);
 
   async function loadData() {
     setLoading(true);
@@ -239,7 +239,10 @@ export default function App() {
     } catch (requestError) { setError(message(requestError)); }
   }
 
-  const chartData = (summary?.monthlyPoints ?? []).map((point, index) => ({ ...point, monthLabel: month ? months[month - 1] : shortMonths[index] }));
+  const chartData = useMemo(() => (summary?.monthlyPoints ?? []).map((point, index) => ({
+    ...point,
+    monthLabel: month ? months[month - 1] : shortMonths[index],
+  })), [summary?.monthlyPoints, month]);
   const yearOptions = Array.from({ length: new Date().getFullYear() + 5 - 2026 + 1 }, (_, index) => 2026 + index);
   const visibleMonths = months.map((name, index) => ({ name, number: index + 1 }))
     .filter((item) => year > 2026 || item.number >= 7);
@@ -299,7 +302,7 @@ export default function App() {
         <section className="content-grid">
           <div className="dashboard-stack">
             <article className="card chart-card"><CardTitle title={month ? 'Доходы и расходы' : 'Динамика по месяцам'} subtitle={month ? months[month - 1] : `${year} год`} />
-              <ResponsiveContainer width="100%" height={320}><BarChart data={chartData}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#3b394d' : '#e9e8f0'} /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip formatter={(value, name) => [formatMoney(Number(value)), name]} contentStyle={tooltipStyle(theme)} /><Legend /><Bar dataKey="income" name="Доход" fill="#00b894" radius={[5, 5, 0, 0]} /><Bar dataKey="expense" name="Расход" fill="#6c5ce7" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer>
+              <MonthlyChart data={chartData} theme={theme} />
             </article>
             <article className="card operation-editor dashboard-operation">
               <CardTitle title="Добавить операцию" subtitle="Доход или расход" />
@@ -307,7 +310,7 @@ export default function App() {
             </article>
           </div>
           <article className="card category-chart-card"><CardTitle title="Расходы по категориям" subtitle={month ? months[month - 1] : `${year} год`} />
-            <ResponsiveContainer width="100%" height={270}><PieChart><Pie data={summary?.categoryPoints ?? []} dataKey="amount" nameKey="category" innerRadius={72} outerRadius={108} paddingAngle={1} cornerRadius={4} stroke="none">{(summary?.categoryPoints ?? []).map((entry, index) => <Cell key={entry.category} fill={colors[index % colors.length]} />)}<Label value="Расходы" position="center" dy={-12} className="donut-caption" /><Label value={compactMoney(summary?.expense ?? 0)} position="center" dy={13} className="donut-total" /></Pie><Tooltip formatter={(value, _name, item) => [`${formatMoney(Number(value))} · ${summary?.expense ? ((Number(value) / summary.expense) * 100).toFixed(1) : '0'}%`, item.payload?.category ?? 'Категория']} contentStyle={tooltipStyle(theme)} /></PieChart></ResponsiveContainer>
+            <CategoryChart points={summary?.categoryPoints ?? []} expense={summary?.expense ?? 0} theme={theme} />
             <div className="legend-list full-legend">{(summary?.categoryPoints ?? []).map((point, index) => <div key={point.category}><i style={{ background: colors[index % colors.length] }} /><span>{point.category}</span><strong>{summary?.expense ? ((point.amount / summary.expense) * 100).toFixed(1) : '0'}%</strong><small>{formatMoney(point.amount)}</small></div>)}</div>
           </article>
         </section>
@@ -501,6 +504,21 @@ function DebtView({ debts, form, setForm, editingId, payingId, paymentForm, setP
   </>;
 }
 
+const MonthlyChart = memo(function MonthlyChart({ data, theme }: {
+  data: Array<{ monthLabel: string; income: number; expense: number }>;
+  theme: 'light' | 'dark';
+}) {
+  return <ResponsiveContainer width="100%" height={320}><BarChart data={data}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#3b394d' : '#e9e8f0'} /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip formatter={(value, name) => [formatMoney(Number(value)), name]} contentStyle={tooltipStyle(theme)} /><Legend /><Bar dataKey="income" name="Доход" fill="#00b894" radius={[5, 5, 0, 0]} /><Bar dataKey="expense" name="Расход" fill="#6c5ce7" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer>;
+});
+
+const CategoryChart = memo(function CategoryChart({ points, expense, theme }: {
+  points: Summary['categoryPoints'];
+  expense: number;
+  theme: 'light' | 'dark';
+}) {
+  return <ResponsiveContainer width="100%" height={270}><PieChart><Pie data={points} dataKey="amount" nameKey="category" innerRadius={72} outerRadius={108} paddingAngle={1} cornerRadius={4} stroke="none">{points.map((entry, index) => <Cell key={entry.category} fill={colors[index % colors.length]} />)}<Label value="Расходы" position="center" dy={-12} className="donut-caption" /><Label value={compactMoney(expense)} position="center" dy={13} className="donut-total" /></Pie><Tooltip formatter={(value, _name, item) => [`${formatMoney(Number(value))} · ${expense ? ((Number(value) / expense) * 100).toFixed(1) : '0'}%`, item.payload?.category ?? 'Категория']} contentStyle={tooltipStyle(theme)} /></PieChart></ResponsiveContainer>;
+});
+
 function Metric({ title, value, kind, plain, suffix = '' }: { title: string; value?: number; kind?: string; plain?: boolean; suffix?: string }) { return <article className={`metric ${kind ?? ''}`}><span>{title}</span><strong>{plain ? `${formatNumber(value ?? 0)}${suffix}` : formatMoney(value ?? 0)}</strong></article>; }
 function MileageNotice({ summary }: { summary: VehicleSummary }) {
   const onlyOneReading = summary.firstOdometerKm != null && summary.firstOdometerKm === summary.latestOdometerKm;
@@ -512,11 +530,16 @@ function MileageNotice({ summary }: { summary: VehicleSummary }) {
 function CardTitle({ title, subtitle }: { title: string; subtitle: string }) { return <div className="card-title"><div><h2>{title}</h2><p>{subtitle}</p></div></div>; }
 function title(view: View, month: number | null, year: number) { if (view === 'vehicles') return 'Автомобиль'; if (view === 'debts') return 'Долги'; if (view === 'categories') return 'Категории'; return month ? months[month - 1] : `Весь ${year} год`; }
 function subtitle(view: View, month: number | null) { if (view === 'vehicles') return 'Расходы на транспорт'; if (view === 'debts') return 'Контроль обязательств'; if (view === 'categories') return 'Настройки справочника'; return month ? 'Отчёт за месяц' : 'Финансовый обзор'; }
-function formatMoney(value: number) { return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 2 }).format(value); }
-function compactMoney(value: number) { return new Intl.NumberFormat('ru-RU', { notation: 'compact', maximumFractionDigits: 1 }).format(value); }
-function formatDate(value: string) { return new Intl.DateTimeFormat('ru-RU').format(new Date(`${value}T00:00:00`)); }
-function formatNumber(value: number) { return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(value); }
-function formatFuelLiters(value: number) { return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 3 }).format(value); }
+const moneyFormatter = new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 2 });
+const compactMoneyFormatter = new Intl.NumberFormat('ru-RU', { notation: 'compact', maximumFractionDigits: 1 });
+const dateFormatter = new Intl.DateTimeFormat('ru-RU');
+const numberFormatter = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
+const fuelLitersFormatter = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 3 });
+function formatMoney(value: number) { return moneyFormatter.format(value); }
+function compactMoney(value: number) { return compactMoneyFormatter.format(value); }
+function formatDate(value: string) { return dateFormatter.format(new Date(`${value}T00:00:00`)); }
+function formatNumber(value: number) { return numberFormatter.format(value); }
+function formatFuelLiters(value: number) { return fuelLitersFormatter.format(value); }
 function vehicleExpenseTypeLabel(value: VehicleExpenseType) {
   if (value === 'FUEL') return 'Бензин';
   if (value === 'MAINTENANCE') return 'Тех. обслуживание';

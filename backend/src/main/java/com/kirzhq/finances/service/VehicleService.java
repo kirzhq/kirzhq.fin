@@ -52,7 +52,13 @@ public class VehicleService {
     }
 
     public VehicleSummaryResponse summary(Long id, int year) {
+        get(id);
         List<Transaction> transactions = transactions(id, year);
+        List<Transaction> allTransactions = transactionRepository.findAllByVehicleIdOrderByTransactionDateAscIdAsc(id);
+        return buildSummary(transactions, allTransactions);
+    }
+
+    private VehicleSummaryResponse buildSummary(List<Transaction> transactions, List<Transaction> allTransactions) {
         BigDecimal total = sum(transactions);
         BigDecimal fuel = sum(transactions.stream().filter(this::isFuel).toList());
         int activeMonths = (int) transactions.stream()
@@ -62,7 +68,7 @@ public class VehicleService {
         BigDecimal average = activeMonths == 0
                 ? BigDecimal.ZERO
                 : fuel.divide(BigDecimal.valueOf(activeMonths), 2, RoundingMode.HALF_UP);
-        MileageSummary mileage = mileageSummary(id);
+        MileageSummary mileage = mileageSummary(allTransactions);
         return new VehicleSummaryResponse(
                 total, fuel, total.subtract(fuel), average, activeMonths, transactions.size(),
                 mileage.firstOdometerKm(), mileage.latestOdometerKm(), mileage.mileageKm(),
@@ -73,7 +79,8 @@ public class VehicleService {
     public byte[] export(Long id, int year) {
         Vehicle vehicle = get(id);
         List<Transaction> transactions = transactions(id, year);
-        VehicleSummaryResponse summary = summary(id, year);
+        List<Transaction> allTransactions = transactionRepository.findAllByVehicleIdOrderByTransactionDateAscIdAsc(id);
+        VehicleSummaryResponse summary = buildSummary(transactions, allTransactions);
 
         try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Расходы " + year);
@@ -136,7 +143,6 @@ public class VehicleService {
     }
 
     private List<Transaction> transactions(Long id, int year) {
-        get(id);
         LocalDate from = LocalDate.of(year, 1, 1);
         return transactionRepository
                 .findAllByVehicleIdAndTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateAscIdAsc(
@@ -154,9 +160,8 @@ public class VehicleService {
         return "Прочее";
     }
 
-    private MileageSummary mileageSummary(Long vehicleId) {
-        List<Transaction> fuelTransactions = transactionRepository.findAllByVehicleIdOrderByTransactionDateAscIdAsc(vehicleId)
-                .stream().filter(this::isFuel).toList();
+    private MileageSummary mileageSummary(List<Transaction> allTransactions) {
+        List<Transaction> fuelTransactions = allTransactions.stream().filter(this::isFuel).toList();
         int firstIndex = -1;
         for (int index = 0; index < fuelTransactions.size(); index++) {
             if (fuelTransactions.get(index).getOdometerKm() != null) {

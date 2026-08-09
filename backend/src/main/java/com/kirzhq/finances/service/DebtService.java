@@ -18,6 +18,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class DebtService {
@@ -37,7 +39,15 @@ public class DebtService {
 
     @Transactional(readOnly = true)
     public List<DebtResponse> findAll() {
-        return debts.findAllByOrderByCreatedDateDescIdDesc().stream().map(this::toResponse).toList();
+        List<Debt> debtList = debts.findAllByOrderByCreatedDateDescIdDesc();
+        if (debtList.isEmpty()) return List.of();
+        Map<Long, List<DebtPayment>> paymentsByDebt = payments
+                .findAllByDebtIdIn(debtList.stream().map(Debt::getId).toList())
+                .stream()
+                .collect(Collectors.groupingBy(payment -> payment.getDebt().getId()));
+        return debtList.stream()
+                .map(debt -> toResponse(debt, paymentsByDebt.getOrDefault(debt.getId(), List.of())))
+                .toList();
     }
 
     @Transactional
@@ -103,7 +113,11 @@ public class DebtService {
     }
 
     private DebtResponse toResponse(Debt debt) {
-        List<DebtPayment> debtPayments = payments.findAllByDebtId(debt.getId()).stream()
+        return toResponse(debt, payments.findAllByDebtId(debt.getId()));
+    }
+
+    private DebtResponse toResponse(Debt debt, List<DebtPayment> paymentsForDebt) {
+        List<DebtPayment> debtPayments = paymentsForDebt.stream()
                 .sorted(Comparator.comparing((DebtPayment payment) -> payment.getTransaction().getTransactionDate())
                         .thenComparing(payment -> payment.getTransaction().getId()).reversed())
                 .toList();
