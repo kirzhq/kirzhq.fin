@@ -391,3 +391,9 @@ html[data-theme="dark"] .period-switcher button.current:not(.active) { color: #c
   .debt-form-row, .debt-values, .payment-form, .savings-insights { grid-template-columns: 1fr; }.payment-comment, .payment-form .form-actions, .savings-entry-type { grid-column: auto; }
   .segmented { grid-column: auto; }.category-form, .inline-form { grid-template-columns: 1fr; }.comment-field, .form-actions { grid-column: auto; }
 }
+
+@media (display-mode: standalone) {
+  body { min-height: 100dvh; }
+  .sidebar { padding-top: max(14px, env(safe-area-inset-top)); }
+  .quick-add { bottom: calc(18px + env(safe-area-inset-bottom)); }
+}
