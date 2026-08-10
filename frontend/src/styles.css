@@ -121,7 +121,8 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); letter-spacing: -.04em; }
 .donut-caption { fill: #9997a5; font-size: 13px; }
 .donut-total { fill: #242334; font-size: 17px; font-weight: 800; }
 .transaction-form { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
-.transaction-form label { display: grid; gap: 6px; color: #777584; font-size: 13px; font-weight: 600; }
+.transaction-form label { display: grid; min-width: 0; gap: 6px; color: #777584; font-size: 13px; font-weight: 600; }
+.transaction-form input[type="date"] { display: block; min-width: 0; max-width: 100%; }
 .transaction-form label small { color: #9997a5; font-size: 11px; font-weight: 500; line-height: 1.35; }
 input, select { width: 100%; padding: 11px 12px; border: 1px solid #dedce6; border-radius: 9px; outline: none; background: white; color: #353344; }
 input:focus, select:focus { border-color: #8071f2; box-shadow: 0 0 0 3px #8071f21c; }
@@ -376,8 +377,9 @@ html[data-theme="dark"] .period-switcher button.current:not(.active) { color: #c
   .topbar h1 { font-size: 29px; }
   .kicker { font-size: 11px; }
   .backup-actions { gap: 6px; }
-  .backup-actions button { min-height: 38px; padding: 0 9px; font-size: 0; }
-  .backup-actions .backup-icon { width: 20px; height: 20px; }
+  .backup-actions button { width: 46px; min-height: 42px; padding: 0; justify-content: center; font-size: 0; }
+  .backup-actions .backup-icon { width: 22px; height: 22px; flex-basis: 22px; }
+  .backup-actions .backup-icon svg { width: 22px; height: 22px; }
   .period-switcher { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin: 0 0 14px; padding: 4px; overflow: visible; }
   .period-switcher button { min-width: 0; padding: 8px 3px; font-size: 10px; }
   .metrics, .metrics.monthly-metrics, .vehicle-metrics { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
@@ -387,7 +389,7 @@ html[data-theme="dark"] .period-switcher button.current:not(.active) { color: #c
   .metric strong { font-size: clamp(18px, 5.4vw, 23px); }
   .card { padding: 16px; border-radius: 14px; }
   .content-grid, .dashboard-stack { gap: 12px; }
-  .transaction-form { grid-template-columns: 1fr; }.efficiency-summary { grid-template-columns: 1fr; }
+  .transaction-form { grid-template-columns: minmax(0, 1fr); }.transaction-form input[type="date"] { width: 100%; -webkit-appearance: none; appearance: none; }.operation-modal { width: 100%; overflow-x: hidden; }.efficiency-summary { grid-template-columns: 1fr; }
   .quick-add { right: 14px; bottom: calc(18px + env(safe-area-inset-bottom)); width: 50px; height: 50px; min-height: 50px; padding: 0; justify-content: center; border-radius: 15px; }.quick-add b { display: none; }
   .transactions-head { display: block; }.category-filter { width: 100%; margin-bottom: 16px; }.category-filter-menu { left: 0; right: auto; width: min(100%, 320px); }
   .debt-form-row, .debt-values, .payment-form, .savings-insights { grid-template-columns: 1fr; }.payment-comment, .payment-form .form-actions, .savings-entry-type { grid-column: auto; }
