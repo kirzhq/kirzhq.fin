@@ -24,7 +24,7 @@ public class BackupService {
     @Transactional(readOnly = true)
     public BackupData exportData() {
         return new BackupData(
-                3, Instant.now(),
+                4, Instant.now(),
                 jdbc.query("SELECT id, name, type FROM categories ORDER BY id",
                         (rs, row) -> new BackupData.CategoryItem(rs.getLong("id"), rs.getString("name"),
                                 TransactionType.valueOf(rs.getString("type")))),
@@ -48,13 +48,22 @@ public class BackupService {
                                 rs.getDate("created_date").toLocalDate(), rs.getString("note"))),
                 jdbc.query("SELECT id, debt_id, transaction_id FROM debt_payments ORDER BY id",
                         (rs, row) -> new BackupData.DebtPaymentItem(
-                                rs.getLong("id"), rs.getLong("debt_id"), rs.getLong("transaction_id")))
+                                rs.getLong("id"), rs.getLong("debt_id"), rs.getLong("transaction_id"))),
+                jdbc.query("SELECT id, name, target_amount, target_date, created_date, note, color FROM savings_goals ORDER BY id",
+                        (rs, row) -> new BackupData.SavingsGoalItem(rs.getLong("id"), rs.getString("name"),
+                                rs.getBigDecimal("target_amount"), rs.getDate("target_date") == null ? null : rs.getDate("target_date").toLocalDate(),
+                                rs.getDate("created_date").toLocalDate(), rs.getString("note"), rs.getString("color"))),
+                jdbc.query("SELECT id, goal_id, amount, entry_date, comment FROM savings_entries ORDER BY id",
+                        (rs, row) -> new BackupData.SavingsEntryItem(rs.getLong("id"), rs.getLong("goal_id"),
+                                rs.getBigDecimal("amount"), rs.getDate("entry_date").toLocalDate(), rs.getString("comment")))
         );
     }
 
     @Transactional
     public void importData(BackupData backup) {
         validate(backup);
+        jdbc.update("DELETE FROM savings_entries");
+        jdbc.update("DELETE FROM savings_goals");
         jdbc.update("DELETE FROM debt_payments");
         jdbc.update("DELETE FROM debts");
         jdbc.update("DELETE FROM transactions");
@@ -66,16 +75,20 @@ public class BackupService {
         batchTransactions(backup.transactions());
         batchDebts(backup.debts());
         batchDebtPayments(backup.debtPayments());
+        batchSavingsGoals(backup.savingsGoals() == null ? List.of() : backup.savingsGoals());
+        batchSavingsEntries(backup.savingsEntries() == null ? List.of() : backup.savingsEntries());
 
         resetSequence("categories");
         resetSequence("vehicles");
         resetSequence("transactions");
         resetSequence("debts");
         resetSequence("debt_payments");
+        resetSequence("savings_goals");
+        resetSequence("savings_entries");
     }
 
     private void validate(BackupData backup) {
-        if (backup == null || (backup.version() < 1 || backup.version() > 3)
+        if (backup == null || (backup.version() < 1 || backup.version() > 4)
                 || backup.categories() == null || backup.vehicles() == null
                 || backup.transactions() == null || backup.debts() == null
                 || backup.debtPayments() == null) {
@@ -152,6 +165,28 @@ public class BackupService {
                     statement.setLong(1, item.id());
                     statement.setLong(2, item.debtId());
                     statement.setLong(3, item.transactionId());
+                });
+    }
+
+    private void batchSavingsGoals(List<BackupData.SavingsGoalItem> items) {
+        if (items.isEmpty()) return;
+        jdbc.batchUpdate("INSERT INTO savings_goals (id, name, target_amount, target_date, created_date, note, color) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                items, items.size(), (statement, item) -> {
+                    statement.setLong(1, item.id()); statement.setString(2, item.name());
+                    statement.setBigDecimal(3, item.targetAmount());
+                    if (item.targetDate() == null) statement.setNull(4, Types.DATE); else statement.setDate(4, Date.valueOf(item.targetDate()));
+                    statement.setDate(5, Date.valueOf(item.createdDate())); statement.setString(6, item.note());
+                    statement.setString(7, item.color());
+                });
+    }
+
+    private void batchSavingsEntries(List<BackupData.SavingsEntryItem> items) {
+        if (items.isEmpty()) return;
+        jdbc.batchUpdate("INSERT INTO savings_entries (id, goal_id, amount, entry_date, comment) VALUES (?, ?, ?, ?, ?)",
+                items, items.size(), (statement, item) -> {
+                    statement.setLong(1, item.id()); statement.setLong(2, item.goalId());
+                    statement.setBigDecimal(3, item.amount()); statement.setDate(4, Date.valueOf(item.entryDate()));
+                    statement.setString(5, item.comment());
                 });
     }
 

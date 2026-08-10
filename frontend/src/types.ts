@@ -79,3 +79,20 @@ export type Debt = {
     comment: string;
   }>;
 };
+
+export type SavingsGoal = {
+  id: number;
+  name: string;
+  targetAmount: number;
+  savedAmount: number;
+  remainingAmount: number;
+  progressPercent: number;
+  targetDate: string | null;
+  createdDate: string;
+  note: string;
+  color: string;
+  averageMonthly: number;
+  projectedDate: string | null;
+  recommendedMonthly: number;
+  entries: Array<{ id: number; amount: number; entryDate: string; comment: string }>;
+};

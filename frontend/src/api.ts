@@ -1,4 +1,4 @@
-import type { Category, Debt, Summary, Transaction, TransactionType, Vehicle, VehicleSummary } from './types';
+import type { Category, Debt, SavingsGoal, Summary, Transaction, TransactionType, Vehicle, VehicleSummary } from './types';
 
 const API_BASE = '/api';
 
@@ -129,6 +129,29 @@ export async function deleteDebt(id: number) {
 export function payDebt(id: number, payload: { amount: number; paymentDate: string; comment: string }) {
   return request<Debt>(`/debts/${id}/payments`, { method: 'POST', body: JSON.stringify(payload) });
 }
+
+export function getSavings() { return request<SavingsGoal[]>('/savings'); }
+export function createSavingsGoal(payload: SavingsGoalPayload) {
+  return request<SavingsGoal>('/savings', { method: 'POST', body: JSON.stringify(payload) });
+}
+export function updateSavingsGoal(id: number, payload: SavingsGoalPayload) {
+  return request<SavingsGoal>(`/savings/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+}
+export async function deleteSavingsGoal(id: number) {
+  const token = csrfToken();
+  const response = await fetch(`${API_BASE}/savings/${id}`, { method: 'DELETE', headers: token ? { 'X-XSRF-TOKEN': decodeURIComponent(token) } : {} });
+  ensureAuthenticated(response); if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+}
+export function addSavingsEntry(id: number, payload: { amount: number; entryDate: string; comment: string; withdrawal: boolean }) {
+  return request<SavingsGoal>(`/savings/${id}/entries`, { method: 'POST', body: JSON.stringify(payload) });
+}
+export async function deleteSavingsEntry(goalId: number, entryId: number) {
+  const token = csrfToken();
+  const response = await fetch(`${API_BASE}/savings/${goalId}/entries/${entryId}`, { method: 'DELETE', headers: token ? { 'X-XSRF-TOKEN': decodeURIComponent(token) } : {} });
+  ensureAuthenticated(response); if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+}
+
+type SavingsGoalPayload = { name: string; targetAmount: number; targetDate: string | null; createdDate: string; note: string; color: string };
 
 export async function exportBackup() {
   const response = await fetch(`${API_BASE}/backup/export`);

@@ -4,10 +4,11 @@ import {
   createCategory, createDebt, createTransaction, deleteDebt, deleteTransaction, exportVehicle, getCategories,
   getDebts, getSummary, getTransactions, getVehicleSummary, getVehicles, importBackup, exportBackup,
   payDebt, updateDebt, updateTransaction,
+  addSavingsEntry, createSavingsGoal, deleteSavingsEntry, deleteSavingsGoal, getSavings, updateSavingsGoal,
 } from './api';
-import type { Category, Debt, Summary, Transaction, TransactionType, Vehicle, VehicleExpenseType, VehicleSummary } from './types';
+import type { Category, Debt, SavingsGoal, Summary, Transaction, TransactionType, Vehicle, VehicleExpenseType, VehicleSummary } from './types';
 
-type View = 'overview' | 'vehicles' | 'debts' | 'categories';
+type View = 'overview' | 'vehicles' | 'debts' | 'savings' | 'categories';
 const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const shortMonths = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 const colors = ['#6c5ce7', '#00b894', '#fdcb6e', '#e17055', '#0984e3', '#e84393', '#00cec9', '#a29bfe'];
@@ -29,6 +30,7 @@ export default function App() {
   const [vehicleSummary, setVehicleSummary] = useState<VehicleSummary | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [debts, setDebts] = useState<Debt[]>([]);
+  const [savings, setSavings] = useState<SavingsGoal[]>([]);
   const [debtForm, setDebtForm] = useState(emptyDebtForm);
   const [editingDebtId, setEditingDebtId] = useState<number | null>(null);
   const [payingDebtId, setPayingDebtId] = useState<number | null>(null);
@@ -82,6 +84,10 @@ export default function App() {
   useEffect(() => {
     if (view !== 'debts') return;
     getDebts().then(setDebts).catch((requestError) => setError(message(requestError)));
+  }, [view]);
+  useEffect(() => {
+    if (view !== 'savings') return;
+    getSavings().then(setSavings).catch((requestError) => setError(message(requestError)));
   }, [view]);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -268,6 +274,7 @@ export default function App() {
         <button className={view === 'overview' && month === null ? 'active' : ''} onClick={() => openView('overview', null)}>Главная</button>
         <button className={view === 'vehicles' ? 'active' : ''} onClick={() => openView('vehicles', null)}>Автомобиль</button>
         <button className={view === 'debts' ? 'active' : ''} onClick={() => openView('debts', null)}>Долги</button>
+        <button className={view === 'savings' ? 'active' : ''} onClick={() => openView('savings', null)}>Накопления</button>
         <button className={view === 'categories' ? 'active' : ''} onClick={() => openView('categories')}>Категории</button>
         <p>Месяцы</p>
         {visibleMonths.map((item) => <button key={item.name} className={view === 'overview' && month === item.number ? 'active' : ''} onClick={() => openView('overview', item.number)}>{item.name}</button>)}
@@ -363,6 +370,8 @@ export default function App() {
         onCancelPayment={() => { setPayingDebtId(null); setPaymentForm(emptyPaymentForm); }}
         onPayment={submitDebtPayment}
       />}
+
+      {view === 'savings' && <SavingsView goals={savings} setGoals={setSavings} setError={setError} />}
 
       {view === 'categories' && <article className="card settings-card">
         <CardTitle title="Категории операций" subtitle="Используются во всех годах" />
@@ -504,6 +513,96 @@ function DebtView({ debts, form, setForm, editingId, payingId, paymentForm, setP
   </>;
 }
 
+const savingsColors = ['#6c5ce7', '#00b894', '#0984e3', '#e84393', '#e17055', '#fdcb6e'];
+const freshSavingsForm = () => ({ name: '', targetAmount: '', targetDate: '', createdDate: new Date().toISOString().slice(0, 10), note: '', color: savingsColors[0] });
+const freshSavingsEntry = () => ({ amount: '', entryDate: new Date().toISOString().slice(0, 10), comment: '', withdrawal: false });
+
+function SavingsView({ goals, setGoals, setError }: { goals: SavingsGoal[]; setGoals: React.Dispatch<React.SetStateAction<SavingsGoal[]>>; setError: (value: string) => void }) {
+  const [form, setForm] = useState(freshSavingsForm);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [activeGoalId, setActiveGoalId] = useState<number | null>(null);
+  const [entry, setEntry] = useState(freshSavingsEntry);
+  const saved = goals.reduce((sum, goal) => sum + goal.savedAmount, 0);
+  const target = goals.reduce((sum, goal) => sum + goal.targetAmount, 0);
+  const monthly = goals.reduce((sum, goal) => sum + goal.averageMonthly, 0);
+
+  async function refresh() { setGoals(await getSavings()); }
+  async function saveGoal(event: React.FormEvent) {
+    event.preventDefault();
+    const payload = { ...form, targetAmount: Number(form.targetAmount), targetDate: form.targetDate || null };
+    try {
+      if (editingId) await updateSavingsGoal(editingId, payload); else await createSavingsGoal(payload);
+      await refresh(); setEditingId(null); setForm(freshSavingsForm()); setError('');
+    } catch (requestError) { setError(message(requestError)); }
+  }
+  function editGoal(goal: SavingsGoal) {
+    setEditingId(goal.id);
+    setForm({ name: goal.name, targetAmount: String(goal.targetAmount), targetDate: goal.targetDate ?? '', createdDate: goal.createdDate, note: goal.note, color: goal.color });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  async function removeGoal(goal: SavingsGoal) {
+    if (!window.confirm(`Удалить цель «${goal.name}» вместе с историей?`)) return;
+    try { await deleteSavingsGoal(goal.id); await refresh(); } catch (requestError) { setError(message(requestError)); }
+  }
+  async function submitEntry(event: React.FormEvent, goal: SavingsGoal) {
+    event.preventDefault();
+    try {
+      await addSavingsEntry(goal.id, { ...entry, amount: Number(entry.amount) });
+      await refresh(); setActiveGoalId(null); setEntry(freshSavingsEntry());
+    } catch (requestError) { setError(message(requestError)); }
+  }
+  async function removeEntry(goalId: number, entryId: number) {
+    if (!window.confirm('Удалить эту запись из истории накоплений?')) return;
+    try { await deleteSavingsEntry(goalId, entryId); await refresh(); } catch (requestError) { setError(message(requestError)); }
+  }
+
+  return <>
+    <section className="metrics savings-metrics">
+      <Metric title="Накоплено" value={saved} kind="income" />
+      <Metric title="Общая цель" value={target} kind="balance" />
+      <Metric title="Осталось" value={Math.max(0, target - saved)} kind="expense" />
+      <Metric title="Средний темп в месяц" value={monthly} kind="daily" />
+    </section>
+    <section className="savings-layout">
+      <article className="card savings-editor">
+        <CardTitle title={editingId ? 'Редактировать цель' : 'Новая цель'} subtitle="На что и сколько откладываем" />
+        <form className="debt-form" onSubmit={saveGoal}>
+          <label>Название<input required maxLength={255} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Например, финансовая подушка" /></label>
+          <div className="debt-form-row">
+            <label>Нужно накопить<input required type="number" min="0.01" step="0.01" value={form.targetAmount} onChange={(event) => setForm({ ...form, targetAmount: event.target.value })} placeholder="0 ₽" /></label>
+            <label>Желаемая дата<input type="date" value={form.targetDate} onChange={(event) => setForm({ ...form, targetDate: event.target.value })} /></label>
+          </div>
+          <label>Комментарий<input maxLength={1000} value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} placeholder="Зачем эта цель важна" /></label>
+          <fieldset className="goal-colors"><legend>Цвет цели</legend><div>{savingsColors.map((color) => <button key={color} type="button" className={form.color === color ? 'selected' : ''} style={{ background: color }} onClick={() => setForm({ ...form, color })} aria-label={`Выбрать цвет ${color}`} />)}</div></fieldset>
+          <div className="form-actions"><button className="primary">{editingId ? 'Сохранить изменения' : 'Создать цель'}</button>{editingId && <button className="secondary" type="button" onClick={() => { setEditingId(null); setForm(freshSavingsForm()); }}>Отмена</button>}</div>
+        </form>
+        <p className="savings-hint">Пополнения не попадут в расходы: накопления остаются вашими деньгами.</p>
+      </article>
+      <div className="savings-list">
+        {goals.length === 0 && <article className="card debt-empty"><span>◎</span><h2>Пока нет целей</h2><p>Создайте первую — например, финансовую подушку.</p></article>}
+        {goals.map((goal) => <article className={`card savings-card ${goal.progressPercent >= 100 ? 'complete' : ''}`} key={goal.id} style={{ '--goal-color': goal.color } as React.CSSProperties}>
+          <div className="debt-card-head"><div><span className="debt-status">{goal.progressPercent >= 100 ? 'Цель достигнута' : 'Активная цель'}</span><h2>{goal.name}</h2><p>{goal.note || (goal.targetDate ? `Цель к ${formatDate(goal.targetDate)}` : 'Без установленного срока')}</p></div><div className="debt-actions"><button onClick={() => editGoal(goal)} title="Редактировать">✎</button><button className="delete" onClick={() => void removeGoal(goal)} title="Удалить">×</button></div></div>
+          <div className="savings-amount"><strong>{formatMoney(goal.savedAmount)}</strong><span>из {formatMoney(goal.targetAmount)}</span></div>
+          <div className="debt-progress"><i style={{ width: `${Math.min(100, goal.progressPercent)}%`, background: goal.color }} /></div>
+          <div className="debt-progress-label"><span>{goal.progressPercent}%</span><span>осталось {formatMoney(goal.remainingAmount)}</span></div>
+          <div className="savings-insights">
+            <div><span>Темп</span><strong>{goal.averageMonthly > 0 ? `${formatMoney(goal.averageMonthly)}/мес.` : 'Пока считаем'}</strong></div>
+            <div><span>{goal.targetDate ? 'Нужно откладывать' : 'Прогноз'}</span><strong>{goal.targetDate && goal.remainingAmount > 0 ? `${formatMoney(goal.recommendedMonthly)}/мес.` : goal.projectedDate ? formatDate(goal.projectedDate) : 'Нет данных'}</strong></div>
+          </div>
+          {activeGoalId === goal.id ? <form className="payment-form savings-entry-form" onSubmit={(event) => void submitEntry(event, goal)}>
+            <div className="segmented savings-entry-type"><button type="button" className={!entry.withdrawal ? 'selected' : ''} onClick={() => setEntry({ ...entry, withdrawal: false })}>Пополнить</button><button type="button" className={entry.withdrawal ? 'selected' : ''} onClick={() => setEntry({ ...entry, withdrawal: true })}>Снять</button></div>
+            <label>Сумма<input autoFocus required type="number" min="0.01" step="0.01" value={entry.amount} onChange={(event) => setEntry({ ...entry, amount: event.target.value })} /></label>
+            <label>Дата<input required type="date" value={entry.entryDate} onChange={(event) => setEntry({ ...entry, entryDate: event.target.value })} /></label>
+            <label className="payment-comment">Комментарий<input value={entry.comment} onChange={(event) => setEntry({ ...entry, comment: event.target.value })} placeholder="Необязательно" /></label>
+            <div className="form-actions"><button className="primary">{entry.withdrawal ? 'Снять из цели' : 'Добавить в цель'}</button><button type="button" className="secondary" onClick={() => setActiveGoalId(null)}>Отмена</button></div>
+          </form> : <button className="primary debt-pay-button" onClick={() => { setActiveGoalId(goal.id); setEntry(freshSavingsEntry()); }}>＋ Изменить сумму</button>}
+          {goal.entries.length > 0 && <details className="payment-history"><summary>История · {goal.entries.length}</summary><div>{goal.entries.map((item) => <p key={item.id}><span>{formatDate(item.entryDate)}{item.comment ? ` · ${item.comment}` : ''}</span><b className={item.amount >= 0 ? 'money-in' : 'money-out'}>{item.amount >= 0 ? '+' : '−'} {formatMoney(Math.abs(item.amount))}</b><button className="entry-delete" onClick={() => void removeEntry(goal.id, item.id)} title="Удалить">×</button></p>)}</div></details>}
+        </article>)}
+      </div>
+    </section>
+  </>;
+}
+
 const MonthlyChart = memo(function MonthlyChart({ data, theme }: {
   data: Array<{ monthLabel: string; income: number; expense: number }>;
   theme: 'light' | 'dark';
@@ -528,8 +627,8 @@ function MileageNotice({ summary }: { summary: VehicleSummary }) {
       : 'После первой отметки есть заправка без пробега или объёма топлива — средний расход невозможно рассчитать корректно.'}</span></div>;
 }
 function CardTitle({ title, subtitle }: { title: string; subtitle: string }) { return <div className="card-title"><div><h2>{title}</h2><p>{subtitle}</p></div></div>; }
-function title(view: View, month: number | null, year: number) { if (view === 'vehicles') return 'Автомобиль'; if (view === 'debts') return 'Долги'; if (view === 'categories') return 'Категории'; return month ? months[month - 1] : `Весь ${year} год`; }
-function subtitle(view: View, month: number | null) { if (view === 'vehicles') return 'Расходы на транспорт'; if (view === 'debts') return 'Контроль обязательств'; if (view === 'categories') return 'Настройки справочника'; return month ? 'Отчёт за месяц' : 'Финансовый обзор'; }
+function title(view: View, month: number | null, year: number) { if (view === 'vehicles') return 'Автомобиль'; if (view === 'debts') return 'Долги'; if (view === 'savings') return 'Накопления'; if (view === 'categories') return 'Категории'; return month ? months[month - 1] : `Весь ${year} год`; }
+function subtitle(view: View, month: number | null) { if (view === 'vehicles') return 'Расходы на транспорт'; if (view === 'debts') return 'Контроль обязательств'; if (view === 'savings') return 'Цели и финансовая подушка'; if (view === 'categories') return 'Настройки справочника'; return month ? 'Отчёт за месяц' : 'Финансовый обзор'; }
 const moneyFormatter = new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 2 });
 const compactMoneyFormatter = new Intl.NumberFormat('ru-RU', { notation: 'compact', maximumFractionDigits: 1 });
 const dateFormatter = new Intl.DateTimeFormat('ru-RU');
