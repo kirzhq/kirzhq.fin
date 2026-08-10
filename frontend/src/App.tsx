@@ -293,10 +293,10 @@ export default function App() {
         <div><p className="kicker">{subtitle(view, month)}</p><h1>{title(view, month, year)}</h1></div>
         {view === 'overview' && month === null && <div className="backup-actions">
           <button type="button" onClick={() => exportBackup().catch((requestError) => setError(message(requestError)))}>
-            <span className="backup-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v11m0 0 4-4m-4 4-4-4" /><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" /></svg></span>Экспорт
+            <span className="backup-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 3h4v8h3.5L12 16.5 6.5 11H10V3ZM5 18h14v3H5v-3Z" /></svg></span>Экспорт
           </button>
           <button type="button" onClick={() => backupInput.current?.click()}>
-            <span className="backup-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 15V4m0 0 4 4m-4-4-4 4" /><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" /></svg></span>Импорт
+            <span className="backup-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 16.5v-8H6.5L12 3l5.5 5.5H14v8h-4ZM5 18h14v3H5v-3Z" /></svg></span>Импорт
           </button>
           <input ref={backupInput} type="file" accept=".json,application/json" hidden
             onChange={(event) => void restoreBackup(event.target.files?.[0])} />

@@ -64,7 +64,7 @@ main { min-width: 0; padding: 36px clamp(20px, 4vw, 58px) 60px; }
 }
 .backup-actions button:hover { border-color: #8071f2; background: #f4f1ff; transform: translateY(-1px); }
 .backup-actions .backup-icon { display: grid; place-items: center; width: 20px; height: 20px; flex: 0 0 20px; color: #6c5ce7; }
-.backup-actions .backup-icon svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.backup-actions .backup-icon svg { width: 19px; height: 19px; fill: currentColor; }
 .kicker { margin: 0 0 4px; color: #888694; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
 h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); letter-spacing: -.04em; }
 .topbar select { padding: 10px 36px 10px 14px; border: 1px solid #dedce6; border-radius: 10px; background: white; color: #474557; }
