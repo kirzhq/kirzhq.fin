@@ -306,7 +306,10 @@ export default function App() {
 
       {(view === 'overview' || view === 'transactions') && <div className="period-switcher">
         <button className={month === null ? 'active' : ''} onClick={() => setMonth(null)}>Весь год</button>
-        {visibleMonths.map((item) => <button key={item.name} className={month === item.number ? 'active' : ''} onClick={() => setMonth(item.number)}>{item.name}</button>)}
+        {visibleMonths.map((item) => {
+          const isCurrent = year === new Date().getFullYear() && item.number === new Date().getMonth() + 1;
+          return <button key={item.name} className={`${month === item.number ? 'active' : ''}${isCurrent ? ' current' : ''}`} onClick={() => setMonth(item.number)}>{item.name}</button>;
+        })}
       </div>}
 
       {view === 'overview' && <>
