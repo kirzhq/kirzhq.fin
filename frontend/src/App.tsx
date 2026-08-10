@@ -8,7 +8,7 @@ import {
 } from './api';
 import type { Category, Debt, SavingsGoal, Summary, Transaction, TransactionType, Vehicle, VehicleExpenseType, VehicleSummary } from './types';
 
-type View = 'overview' | 'vehicles' | 'debts' | 'savings' | 'categories';
+type View = 'overview' | 'transactions' | 'vehicles' | 'debts' | 'savings' | 'categories';
 const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const shortMonths = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 const colors = ['#6c5ce7', '#00b894', '#fdcb6e', '#e17055', '#0984e3', '#e84393', '#00cec9', '#a29bfe'];
@@ -37,6 +37,7 @@ export default function App() {
   const [paymentForm, setPaymentForm] = useState(emptyPaymentForm);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [creatingOperation, setCreatingOperation] = useState(false);
   const [categoryName, setCategoryName] = useState('');
   const [categoryType, setCategoryType] = useState<TransactionType>('EXPENSE');
   const [error, setError] = useState('');
@@ -94,9 +95,9 @@ export default function App() {
     localStorage.setItem('finance-theme', theme);
   }, [theme]);
   useEffect(() => {
-    if (!editingId) return;
+    if (!editingId && !creatingOperation) return;
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') cancelEdit();
+      if (event.key === 'Escape') closeOperationModal();
     };
     document.addEventListener('keydown', closeOnEscape);
     document.body.classList.add('modal-open');
@@ -104,11 +105,16 @@ export default function App() {
       document.removeEventListener('keydown', closeOnEscape);
       document.body.classList.remove('modal-open');
     };
-  }, [editingId]);
+  }, [editingId, creatingOperation]);
 
   function openView(nextView: View, selectedMonth: number | null = month) {
     setView(nextView);
     setMonth(selectedMonth);
+    cancelEdit();
+  }
+
+  function closeOperationModal() {
+    setCreatingOperation(false);
     cancelEdit();
   }
 
@@ -138,6 +144,7 @@ export default function App() {
       } else {
         await createTransaction(payload);
         setForm((current) => ({ ...current, amount: '', description: '', odometerKm: '', fuelLiters: '' }));
+        setCreatingOperation(false);
       }
       await loadData();
     } catch (requestError) {
@@ -263,21 +270,21 @@ export default function App() {
       <a className="home-link" href="https://home.kirzhq.ru" aria-label="Вернуться на главную страницу">
         <span>←</span> Мой дом
       </a>
-      <div className="brand"><span>₽</span><strong>Мои финансы</strong></div>
+      <div className="brand"><span>₽</span><strong>Мои финансы</strong><button className="theme-icon" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label={theme === 'light' ? 'Включить тёмную тему' : 'Включить светлую тему'} title={theme === 'light' ? 'Тёмная тема' : 'Светлая тема'}>
+        {theme === 'light'
+          ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.3A8.5 8.5 0 0 1 8.7 4a8.5 8.5 0 1 0 11.3 11.3Z" /></svg>
+          : <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>}
+      </button></div>
       <div className="sidebar-controls">
         <label>Финансовый год<select value={year} onChange={(event) => changeYear(Number(event.target.value))}>{yearOptions.map((value) => <option key={value}>{value}</option>)}</select></label>
-        <button className="theme-toggle" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
-          <span>{theme === 'light' ? '☾' : '☀'}</span>{theme === 'light' ? 'Тёмная тема' : 'Светлая тема'}
-        </button>
       </div>
       <nav>
         <button className={view === 'overview' && month === null ? 'active' : ''} onClick={() => openView('overview', null)}>Главная</button>
+        <button className={view === 'transactions' ? 'active' : ''} onClick={() => openView('transactions')}>Операции</button>
         <button className={view === 'vehicles' ? 'active' : ''} onClick={() => openView('vehicles', null)}>Автомобиль</button>
         <button className={view === 'debts' ? 'active' : ''} onClick={() => openView('debts', null)}>Долги</button>
         <button className={view === 'savings' ? 'active' : ''} onClick={() => openView('savings', null)}>Накопления</button>
         <button className={view === 'categories' ? 'active' : ''} onClick={() => openView('categories')}>Категории</button>
-        <p>Месяцы</p>
-        {visibleMonths.map((item) => <button key={item.name} className={view === 'overview' && month === item.number ? 'active' : ''} onClick={() => openView('overview', item.number)}>{item.name}</button>)}
       </nav>
     </aside>
 
@@ -297,8 +304,13 @@ export default function App() {
       </header>
       {error && <div className="error">{error}<button onClick={() => setError('')}>×</button></div>}
 
+      {(view === 'overview' || view === 'transactions') && <div className="period-switcher">
+        <button className={month === null ? 'active' : ''} onClick={() => setMonth(null)}>Весь год</button>
+        {visibleMonths.map((item) => <button key={item.name} className={month === item.number ? 'active' : ''} onClick={() => setMonth(item.number)}>{item.name}</button>)}
+      </div>}
+
       {view === 'overview' && <>
-        <section className="metrics">
+        <section className={`metrics ${month ? 'monthly-metrics' : ''}`}>
           <Metric title="Доход" value={summary?.income} kind="income" />
           <Metric title="Расход" value={summary?.expense} kind="expense" />
           <Metric title="Сальдо" value={summary?.balance} kind="balance" />
@@ -311,40 +323,33 @@ export default function App() {
             <article className="card chart-card"><CardTitle title={month ? 'Доходы и расходы' : 'Динамика по месяцам'} subtitle={month ? months[month - 1] : `${year} год`} />
               <MonthlyChart data={chartData} theme={theme} />
             </article>
-            <article className="card operation-editor dashboard-operation">
-              <CardTitle title="Добавить операцию" subtitle="Доход или расход" />
-              <OperationForm form={form} setForm={setForm} categories={availableCategories} vehicles={vehicles} editing={false} onType={changeType} onSubmit={saveOperation} onCancel={cancelEdit} />
-            </article>
+            <div className="recent-heading"><div><h2>Последние операции</h2><p>Быстрый обзор последних записей</p></div><button onClick={() => openView('transactions')}>Все операции →</button></div>
+            <TransactionTable items={transactions.slice(0, 8)} loading={loading} onEdit={editOperation} onDelete={removeOperation} />
           </div>
           <article className="card category-chart-card"><CardTitle title="Расходы по категориям" subtitle={month ? months[month - 1] : `${year} год`} />
             <CategoryChart points={summary?.categoryPoints ?? []} expense={summary?.expense ?? 0} theme={theme} />
             <div className="legend-list full-legend">{(summary?.categoryPoints ?? []).map((point, index) => <div key={point.category}><i style={{ background: colors[index % colors.length] }} /><span>{point.category}</span><strong>{summary?.expense ? ((point.amount / summary.expense) * 100).toFixed(1) : '0'}%</strong><small>{formatMoney(point.amount)}</small></div>)}</div>
           </article>
         </section>
-        <TransactionTable items={transactions} loading={loading} onEdit={editOperation} onDelete={removeOperation} />
       </>}
+
+      {view === 'transactions' && <TransactionTable items={transactions} loading={loading} onEdit={editOperation} onDelete={removeOperation} />}
 
       {view === 'vehicles' && <>
         <div className="section-actions"><button className="primary export-button" onClick={() => vehicles[0] && exportVehicle(vehicles[0].id, year).catch((requestError) => setError(message(requestError)))}>Скачать Excel за {year} год</button></div>
         <section className="metrics vehicle-metrics">
           <Metric title="Всего на автомобиль" value={vehicleSummary?.total ?? vehicleTotal} kind="expense" />
-          <Metric title="Топливо" value={vehicleSummary?.fuel ?? fuelTotal} kind="balance" />
-          <Metric title="Бензин в среднем за месяц" value={vehicleSummary?.averageMonthlyFuel} kind="income" />
+          <Metric title="Бензин" value={vehicleSummary?.fuel ?? fuelTotal} kind="balance" />
+          <Metric title="Средние расходы на бензин в месяц" value={vehicleSummary?.averageMonthlyFuel} kind="income" />
           <Metric title="Обслуживание и прочее" value={vehicleSummary?.other ?? vehicleTotal - fuelTotal} />
-          <Metric title="Операций" value={vehicleSummary?.operationCount ?? vehicleTransactions.length} plain />
-          <Metric title="Пробег по журналу" value={vehicleSummary?.mileageKm ?? 0} plain suffix=" км" />
-          {vehicleSummary?.mileageComplete
-            ? <Metric title="Средний расход" value={vehicleSummary.fuelConsumptionPer100Km ?? 0} plain suffix=" л/100 км" kind="fuel-rate" />
-            : <article className="metric fuel-rate unavailable"><span>Средний расход топлива</span><strong>Нет данных</strong></article>}
-          {vehicleSummary?.latestFuelConsumptionPer100Km != null
-            ? <Metric title="Последний интервал" value={vehicleSummary.latestFuelConsumptionPer100Km} plain suffix=" л/100 км" kind="fuel-rate" />
-            : <article className="metric fuel-rate unavailable"><span>Последний интервал</span><strong>Нет данных</strong></article>}
         </section>
-        <section className="content-grid lower">
-          <article className="card"><CardTitle title="Мой автомобиль" subtitle="Lada Vesta" />
-            <div className="vehicle-list">{vehicles.map((vehicle) => <div key={vehicle.id}><span>🚙</span><div><strong>{vehicle.name}</strong><small>{formatMoney(vehicleTransactions.filter((item) => item.vehicleId === vehicle.id).reduce((sum, item) => sum + item.amount, 0))} за {year} год</small></div></div>)}</div>
-          </article>
-          <article className="card"><CardTitle title="Расходы на автомобиль" subtitle={`${year} год · ${vehicleSummary?.activeMonths ?? 0} мес. с расходами`} /><div className="car-breakdown"><div><span>Топливо</span><strong>{formatMoney(vehicleSummary?.fuel ?? fuelTotal)}</strong></div><div><span>Среднее топливо в месяц</span><strong>{formatMoney(vehicleSummary?.averageMonthlyFuel ?? 0)}</strong></div><div><span>Остальные расходы</span><strong>{formatMoney(vehicleSummary?.other ?? vehicleTotal - fuelTotal)}</strong></div>{vehicleSummary?.fuelCostPer100Km != null && <div><span>Средняя стоимость 100 км</span><strong>{formatMoney(vehicleSummary.fuelCostPer100Km)}</strong></div>}{vehicleSummary?.latestFuelCostPer100Km != null && <div><span>Стоимость 100 км на последнем интервале</span><strong>{formatMoney(vehicleSummary.latestFuelCostPer100Km)}</strong></div>}{vehicleSummary?.firstOdometerKm != null && <div><span>Одометр: первая → последняя отметка</span><strong>{formatNumber(vehicleSummary.firstOdometerKm)} → {formatNumber(vehicleSummary.latestOdometerKm ?? vehicleSummary.firstOdometerKm)} км</strong></div>}</div>
+        <section className="vehicle-details">
+          <article className="card vehicle-efficiency"><CardTitle title="Пробег и расход" subtitle={`${year} год · данные по заправкам`} />
+            <div className="efficiency-summary">
+              <div className="efficiency-mileage"><span>Пробег за период</span><strong>{formatNumber(vehicleSummary?.mileageKm ?? 0)} км</strong></div>
+              <div className="efficiency-rate"><span>Средний расход</span>{vehicleSummary?.fuelConsumptionPer100Km != null && vehicleSummary?.fuelCostPer100Km != null ? <><strong>{formatFuelLiters(vehicleSummary.fuelConsumptionPer100Km)} л/100 км</strong><small>{formatMoney(vehicleSummary.fuelCostPer100Km)} за 100 км</small></> : <strong>Нет данных</strong>}</div>
+              <div className="efficiency-rate"><span>Последняя заправка</span>{vehicleSummary?.latestFuelConsumptionPer100Km != null && vehicleSummary?.latestFuelCostPer100Km != null ? <><strong>{formatFuelLiters(vehicleSummary.latestFuelConsumptionPer100Km)} л/100 км</strong><small>{formatMoney(vehicleSummary.latestFuelCostPer100Km)} за 100 км</small></> : <strong>Нет данных</strong>}</div>
+            </div>
             {vehicleSummary && !vehicleSummary.mileageComplete && <MileageNotice summary={vehicleSummary} />}
           </article>
         </section>
@@ -379,6 +384,7 @@ export default function App() {
         <form className="category-form" onSubmit={addCategory}><input required value={categoryName} onChange={(event) => setCategoryName(event.target.value)} placeholder="Название новой категории" /><select value={categoryType} onChange={(event) => setCategoryType(event.target.value as TransactionType)}><option value="EXPENSE">Расход</option><option value="INCOME">Доход</option></select><button className="primary">Добавить</button></form>
       </article>}
     </main>
+    <button className="quick-add" onClick={() => { cancelEdit(); setCreatingOperation(true); }} aria-label="Добавить операцию"><span>＋</span><b>Операция</b></button>
     {editingId && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => {
       if (event.target === event.currentTarget) cancelEdit();
     }}>
@@ -386,6 +392,13 @@ export default function App() {
         <button type="button" className="modal-close" onClick={cancelEdit} aria-label="Закрыть">×</button>
         <div className="card-title"><div><h2 id="edit-operation-title">Редактировать операцию</h2><p>Операция №{editingId}</p></div></div>
         <OperationForm form={form} setForm={setForm} categories={availableCategories} vehicles={vehicles} editing onType={changeType} onSubmit={saveOperation} onCancel={cancelEdit} />
+      </section>
+    </div>}
+    {creatingOperation && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeOperationModal(); }}>
+      <section className="card operation-modal" role="dialog" aria-modal="true" aria-labelledby="create-operation-title">
+        <button type="button" className="modal-close" onClick={closeOperationModal} aria-label="Закрыть">×</button>
+        <div className="card-title"><div><h2 id="create-operation-title">Новая операция</h2><p>Дата и выбранный тип сохраняются между записями</p></div></div>
+        <OperationForm form={form} setForm={setForm} categories={availableCategories} vehicles={vehicles} editing={false} onType={changeType} onSubmit={saveOperation} onCancel={closeOperationModal} />
       </section>
     </div>}
   </div>;
@@ -627,8 +640,8 @@ function MileageNotice({ summary }: { summary: VehicleSummary }) {
       : 'После первой отметки есть заправка без пробега или объёма топлива — средний расход невозможно рассчитать корректно.'}</span></div>;
 }
 function CardTitle({ title, subtitle }: { title: string; subtitle: string }) { return <div className="card-title"><div><h2>{title}</h2><p>{subtitle}</p></div></div>; }
-function title(view: View, month: number | null, year: number) { if (view === 'vehicles') return 'Автомобиль'; if (view === 'debts') return 'Долги'; if (view === 'savings') return 'Накопления'; if (view === 'categories') return 'Категории'; return month ? months[month - 1] : `Весь ${year} год`; }
-function subtitle(view: View, month: number | null) { if (view === 'vehicles') return 'Расходы на транспорт'; if (view === 'debts') return 'Контроль обязательств'; if (view === 'savings') return 'Цели и финансовая подушка'; if (view === 'categories') return 'Настройки справочника'; return month ? 'Отчёт за месяц' : 'Финансовый обзор'; }
+function title(view: View, month: number | null, year: number) { if (view === 'transactions') return 'Операции'; if (view === 'vehicles') return 'Автомобиль'; if (view === 'debts') return 'Долги'; if (view === 'savings') return 'Накопления'; if (view === 'categories') return 'Категории'; return month ? months[month - 1] : `Весь ${year} год`; }
+function subtitle(view: View, month: number | null) { if (view === 'transactions') return 'Полный журнал'; if (view === 'vehicles') return 'Расходы на транспорт'; if (view === 'debts') return 'Контроль обязательств'; if (view === 'savings') return 'Цели и финансовая подушка'; if (view === 'categories') return 'Настройки справочника'; return month ? 'Отчёт за месяц' : 'Финансовый обзор'; }
 const moneyFormatter = new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 2 });
 const compactMoneyFormatter = new Intl.NumberFormat('ru-RU', { notation: 'compact', maximumFractionDigits: 1 });
 const dateFormatter = new Intl.DateTimeFormat('ru-RU');
