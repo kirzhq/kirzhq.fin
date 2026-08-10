@@ -18,6 +18,7 @@ button { cursor: pointer; }
 .brand { display: flex; align-items: center; gap: 11px; padding: 0 10px 26px; font-size: 19px; }
 .brand strong { min-width: 0; flex: 1; }
 .brand span { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: #6c5ce7; font-size: 23px; }
+.mobile-year-select { display: none; }
 .theme-icon { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; padding: 0; border: 1px solid #49475c; border-radius: 10px; color: #d7d5df; background: transparent; transition: color .18s, background .18s, border-color .18s; }
 .theme-icon:hover { color: #fff; border-color: #656177; background: #38364f; }
 .theme-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -62,7 +63,8 @@ main { min-width: 0; padding: 36px clamp(20px, 4vw, 58px) 60px; }
   transition: border-color .2s, background .2s, transform .2s;
 }
 .backup-actions button:hover { border-color: #8071f2; background: #f4f1ff; transform: translateY(-1px); }
-.backup-actions span { color: #6c5ce7; font-size: 20px; line-height: 1; }
+.backup-actions .backup-icon { display: grid; place-items: center; width: 20px; height: 20px; flex: 0 0 20px; color: #6c5ce7; }
+.backup-actions .backup-icon svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .kicker { margin: 0 0 4px; color: #888694; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
 h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); letter-spacing: -.04em; }
 .topbar select { padding: 10px 36px 10px 14px; border: 1px solid #dedce6; border-radius: 10px; background: white; color: #474557; }
@@ -359,11 +361,11 @@ html[data-theme="dark"] .period-switcher button.current:not(.active) { color: #c
   .home-link { margin: 0 0 10px; padding: 4px 2px; font-size: 12px; }
   .home-link span { font-size: 16px; }
   .brand { gap: 9px; padding: 0 2px 13px; font-size: 19px; }
+  .brand strong { white-space: nowrap; }
   .brand span { width: 36px; height: 36px; border-radius: 10px; font-size: 21px; }
+  .mobile-year-select { appearance: none; display: block; width: 78px; min-height: 34px; padding: 6px 25px 6px 9px; border-color: #49475c; border-radius: 9px; color: #f2f0f8; background-color: #302e43; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='m3 6 5 5 5-5' stroke='%23E5E2EF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 7px center; background-size: 13px; font-size: 13px; font-weight: 700; }
   .theme-icon { width: 34px; height: 34px; flex-basis: 34px; border-radius: 9px; }
-  .sidebar-controls { display: block; padding: 0 2px 11px; margin: 0 0 9px; }
-  .sidebar-controls label { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-size: 10px; }
-  .sidebar-controls select { width: 112px; min-height: 38px; padding: 8px 35px 8px 11px; border-radius: 9px; font-size: 14px; background-position: right 10px center; }
+  .sidebar-controls { display: none; }
   .section-actions { margin: 0 0 16px; justify-content: stretch; }.section-actions button { width: 100%; }
   nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; overflow: visible; }
   nav p { display: none; }
@@ -375,7 +377,7 @@ html[data-theme="dark"] .period-switcher button.current:not(.active) { color: #c
   .kicker { font-size: 11px; }
   .backup-actions { gap: 6px; }
   .backup-actions button { min-height: 38px; padding: 0 9px; font-size: 0; }
-  .backup-actions button span { font-size: 19px; }
+  .backup-actions .backup-icon { width: 20px; height: 20px; }
   .period-switcher { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin: 0 0 14px; padding: 4px; overflow: visible; }
   .period-switcher button { min-width: 0; padding: 8px 3px; font-size: 10px; }
   .metrics, .metrics.monthly-metrics, .vehicle-metrics { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
@@ -395,5 +397,6 @@ html[data-theme="dark"] .period-switcher button.current:not(.active) { color: #c
 @media (display-mode: standalone) {
   body { min-height: 100dvh; }
   .sidebar { padding-top: max(14px, env(safe-area-inset-top)); }
+  .home-link { display: none; }
   .quick-add { bottom: calc(18px + env(safe-area-inset-bottom)); }
 }

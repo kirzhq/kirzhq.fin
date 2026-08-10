@@ -270,7 +270,7 @@ export default function App() {
       <a className="home-link" href="https://home.kirzhq.ru" aria-label="Вернуться на главную страницу">
         <span>←</span> Мой дом
       </a>
-      <div className="brand"><span>₽</span><strong>Мои финансы</strong><button className="theme-icon" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label={theme === 'light' ? 'Включить тёмную тему' : 'Включить светлую тему'} title={theme === 'light' ? 'Тёмная тема' : 'Светлая тема'}>
+      <div className="brand"><span>₽</span><strong>Мои финансы</strong><select className="mobile-year-select" value={year} onChange={(event) => changeYear(Number(event.target.value))} aria-label="Финансовый год">{yearOptions.map((value) => <option key={value}>{value}</option>)}</select><button className="theme-icon" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label={theme === 'light' ? 'Включить тёмную тему' : 'Включить светлую тему'} title={theme === 'light' ? 'Тёмная тема' : 'Светлая тема'}>
         {theme === 'light'
           ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.3A8.5 8.5 0 0 1 8.7 4a8.5 8.5 0 1 0 11.3 11.3Z" /></svg>
           : <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>}
@@ -293,10 +293,10 @@ export default function App() {
         <div><p className="kicker">{subtitle(view, month)}</p><h1>{title(view, month, year)}</h1></div>
         {view === 'overview' && month === null && <div className="backup-actions">
           <button type="button" onClick={() => exportBackup().catch((requestError) => setError(message(requestError)))}>
-            <span>↓</span> Экспорт
+            <span className="backup-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14" /></svg></span>Экспорт
           </button>
           <button type="button" onClick={() => backupInput.current?.click()}>
-            <span>↑</span> Импорт
+            <span className="backup-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0 4 4m-4-4-4 4M5 20h14" /></svg></span>Импорт
           </button>
           <input ref={backupInput} type="file" accept=".json,application/json" hidden
             onChange={(event) => void restoreBackup(event.target.files?.[0])} />
