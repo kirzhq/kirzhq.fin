@@ -6,6 +6,10 @@
         reverse_proxy kirzhq-fin-frontend-1:80
     }
 
+    handle /api/shortcut/* {
+        reverse_proxy kirzhq-fin-backend-1:8080
+    }
+
     handle /api/* {
         route {
             vars original_uri {uri}

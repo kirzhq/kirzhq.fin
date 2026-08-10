@@ -38,6 +38,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("https://home.kirzhq.ru/login")))
                 .logout(logout -> logout.disable())
                 .csrf(configurer -> configurer
+                        .ignoringRequestMatchers("/api/shortcut/**")
                         .csrfTokenRepository(csrf)
                         .csrfTokenRequestHandler(requestHandler))
                 .addFilterAfter(new CsrfCookieFilter(), org.springframework.security.web.authentication.AnonymousAuthenticationFilter.class)
