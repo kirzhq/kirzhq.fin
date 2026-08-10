@@ -1,6 +1,11 @@
 {$SITE_ADDRESS:http://localhost} {
     encode zstd gzip
 
+    @pwa_assets path /manifest.webmanifest /service-worker.js /apple-touch-icon.png /pwa-icon-192.png /pwa-icon-512.png /pwa-icon.svg /finance-favicon.svg
+    handle @pwa_assets {
+        reverse_proxy kirzhq-fin-frontend-1:80
+    }
+
     handle /api/* {
         route {
             vars original_uri {uri}
