@@ -99,7 +99,7 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); letter-spacing: -.04em; }
 .dashboard-operation { margin-bottom: 0; }
 .modal-backdrop { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(20, 18, 31, .62); backdrop-filter: blur(4px); animation: modal-fade-in .16s ease-out; }
 .operation-modal { position: relative; width: min(680px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; box-shadow: 0 24px 80px rgba(18, 15, 34, .3); animation: modal-rise-in .2s ease-out; }
-.food-details-modal { position: relative; width: min(620px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; box-shadow: 0 24px 80px rgba(18, 15, 34, .3); animation: modal-rise-in .2s ease-out; }
+.food-details-modal { position: relative; width: min(620px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; color: #242334; box-shadow: 0 24px 80px rgba(18, 15, 34, .3); animation: modal-rise-in .2s ease-out; }
 .quick-add { position: fixed; z-index: 50; right: 28px; bottom: 26px; display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 18px 0 13px; border: 0; border-radius: 15px; color: #fff; background: linear-gradient(135deg, #7565ef, #5c4bd8); box-shadow: 0 12px 30px rgba(76,61,190,.3); transition: transform .18s, box-shadow .18s; }
 .quick-add:hover { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(76,61,190,.38); }
 .quick-add span { font-size: 24px; font-weight: 400; line-height: 1; }
@@ -125,6 +125,7 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); letter-spacing: -.04em; }
 .food-legend-row:hover > span::after { transform: translateX(2px); opacity: 1; }
 .food-legend-row:focus-visible { outline: 2px solid rgba(108,92,231,.42); outline-offset: 2px; border-radius: 4px; }
 .food-details-legend { margin-top: 8px; }
+.food-details-legend span { color: #353344; }
 .food-subcategory-field { grid-column: 1 / -1; }
 .donut-caption { fill: #9997a5; font-size: 13px; }
 .donut-total { fill: #242334; font-size: 17px; font-weight: 800; }
@@ -333,6 +334,8 @@ html[data-theme="dark"] .vehicle-subtype button.selected { color: #a99fff; backg
 html[data-theme="dark"] .mileage-notice { color: #f1cf83; background: rgba(240, 183, 66, .08); border-color: rgba(240, 183, 66, .25); }
 html[data-theme="dark"] .modal-close { color: #c8c5d5; background: #3a374d; }
 html[data-theme="dark"] .modal-close:hover { color: white; background: #464258; }
+html[data-theme="dark"] .food-details-modal { color: #f5f3fb; }
+html[data-theme="dark"] .food-details-legend span { color: #f5f3fb; }
 html[data-theme="dark"] th,
 html[data-theme="dark"] td,
 html[data-theme="dark"] .full-legend div { border-color: #3b394a; }
