@@ -439,3 +439,13 @@ html[data-theme="dark"] .period-switcher button.current:not(.active) { color: #c
   .home-link { display: none; }
   .quick-add { bottom: calc(18px + env(safe-area-inset-bottom)); }
 }
+
+/* Keep custom select arrows from being reset by component background rules. */
+select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 42px;
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px 16px;
+}
