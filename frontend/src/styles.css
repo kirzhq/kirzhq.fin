@@ -444,8 +444,11 @@ html[data-theme="dark"] .period-switcher button.current:not(.active) { color: #c
 select {
   -webkit-appearance: none;
   appearance: none;
-  padding-right: 42px;
+  min-height: 44px;
+  padding: 10px 42px 10px 13px;
+  border-radius: 11px;
   background-repeat: no-repeat;
-  background-position: right 14px center;
+  background-position: right 13px center;
   background-size: 16px 16px;
+  line-height: 1.2;
 }
