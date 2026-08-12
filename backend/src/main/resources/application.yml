@@ -38,6 +38,3 @@ app:
     token: ${SHORTCUT_API_TOKEN:}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost}
-  telegram:
-    token: ${TELEGRAM_BOT_TOKEN:}
-    allowed-chat-id: ${TELEGRAM_ALLOWED_CHAT_ID:}
