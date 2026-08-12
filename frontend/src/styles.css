@@ -5,6 +5,16 @@
 body { margin: 0; min-width: 320px; min-height: 100vh; }
 body.modal-open { overflow: hidden; }
 button, input, select { font: inherit; }
+select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 42px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='m3.25 6 4.75 4.75L12.75 6' stroke='%236F6B7C' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px 16px;
+  cursor: pointer;
+}
 button { cursor: pointer; }
 .app { min-height: 100vh; display: grid; grid-template-columns: 255px 1fr; }
 .sidebar { position: sticky; top: 0; height: 100vh; padding: 28px 18px; background: #25243a; color: white; overflow-y: auto; }
@@ -67,7 +77,7 @@ main { min-width: 0; padding: 36px clamp(20px, 4vw, 58px) 60px; }
 .backup-actions .backup-icon svg { width: 19px; height: 19px; fill: currentColor; }
 .kicker { margin: 0 0 4px; color: #888694; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
 h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); letter-spacing: -.04em; }
-.topbar select { padding: 10px 36px 10px 14px; border: 1px solid #dedce6; border-radius: 10px; background: white; color: #474557; }
+.topbar select { padding: 10px 42px 10px 14px; border: 1px solid #dedce6; border-radius: 10px; background-color: white; color: #474557; }
 .error { display: flex; justify-content: space-between; margin-bottom: 18px; padding: 13px 16px; color: #a23b3b; background: #fff0f0; border: 1px solid #ffd6d6; border-radius: 12px; }
 .error button { border: 0; background: none; color: inherit; }
 .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px; }
@@ -133,7 +143,8 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); letter-spacing: -.04em; }
 .transaction-form label { display: grid; min-width: 0; gap: 6px; color: #777584; font-size: 13px; font-weight: 600; }
 .transaction-form input[type="date"] { display: block; min-width: 0; max-width: 100%; }
 .transaction-form label small { color: #9997a5; font-size: 11px; font-weight: 500; line-height: 1.35; }
-input, select { width: 100%; padding: 11px 12px; border: 1px solid #dedce6; border-radius: 9px; outline: none; background: white; color: #353344; }
+input, select { width: 100%; padding: 11px 12px; border: 1px solid #dedce6; border-radius: 9px; outline: none; background-color: white; color: #353344; }
+select { padding-right: 42px; }
 input:focus, select:focus { border-color: #8071f2; box-shadow: 0 0 0 3px #8071f21c; }
 .segmented { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; padding: 3px; border-radius: 10px; background: #f1f0f5; }
 .segmented button { border: 0; padding: 9px; border-radius: 8px; background: transparent; color: #777584; }
@@ -322,6 +333,9 @@ html[data-theme="dark"] input,
 html[data-theme="dark"] select,
 html[data-theme="dark"] .secondary,
 html[data-theme="dark"] .row-actions button { color: #f5f3fb; background-color: #302e43; border-color: #49465d; }
+html[data-theme="dark"] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='m3.25 6 4.75 4.75L12.75 6' stroke='%23D7D4E2' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
 html[data-theme="dark"] .debt-actions button { color: #a99fff; background: #302e43; border-color: #49465d; }
 html[data-theme="dark"] .debt-actions button.delete { color: #ff8e8e; }
 html[data-theme="dark"] .debt-overdue { color: #ff927d; background: rgba(255,112,86,.1); }
