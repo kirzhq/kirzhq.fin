@@ -327,7 +327,7 @@ export default function App() {
               <MonthlyChart data={chartData} theme={theme} />
             </article>
             <div className="recent-heading"><div><h2>Последние операции</h2><p>Быстрый обзор последних записей</p></div><button onClick={() => openView('transactions')}>Все операции →</button></div>
-            <TransactionTable items={transactions.slice(0, 8)} loading={loading} onEdit={editOperation} onDelete={removeOperation} />
+            <TransactionTable items={transactions} limit={8} loading={loading} onEdit={editOperation} onDelete={removeOperation} />
           </div>
           <article className="card category-chart-card"><CardTitle title="Расходы по категориям" subtitle={month ? months[month - 1] : `${year} год`} />
             <CategoryChart points={summary?.categoryPoints ?? []} expense={summary?.expense ?? 0} theme={theme} />
@@ -423,12 +423,13 @@ function OperationForm({ form, setForm, categories, vehicles, editing, onType, o
   </form>;
 }
 
-function TransactionTable({ items, loading, onEdit, onDelete }: { items: Transaction[]; loading: boolean; onEdit: (item: Transaction) => void; onDelete: (item: Transaction) => void }) {
+function TransactionTable({ items, limit, loading, onEdit, onDelete }: { items: Transaction[]; limit?: number; loading: boolean; onEdit: (item: Transaction) => void; onDelete: (item: Transaction) => void }) {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const categoryOptions = useMemo(() => [...new Set(items.map((item) => item.category))].sort((a, b) => a.localeCompare(b, 'ru')), [items]);
   const filteredItems = selectedCategories.length
     ? items.filter((item) => selectedCategories.includes(item.category))
     : items;
+  const visibleItems = limit == null ? filteredItems : filteredItems.slice(0, limit);
 
   useEffect(() => {
     setSelectedCategories((current) => current.filter((category) => categoryOptions.includes(category)));
@@ -436,7 +437,11 @@ function TransactionTable({ items, loading, onEdit, onDelete }: { items: Transac
 
   const subtitle = loading
     ? 'Загрузка…'
-    : selectedCategories.length ? `${filteredItems.length} из ${items.length} записей` : `${items.length} записей`;
+    : limit == null
+      ? selectedCategories.length ? `${filteredItems.length} из ${items.length} записей` : `${items.length} записей`
+      : selectedCategories.length
+        ? `${visibleItems.length} последних · всего ${filteredItems.length}`
+        : `${visibleItems.length} последних · всего ${items.length}`;
 
   function toggleCategory(category: string) {
     setSelectedCategories((current) => current.includes(category)
@@ -467,7 +472,7 @@ function TransactionTable({ items, loading, onEdit, onDelete }: { items: Transac
         </div>
       </details>
     </div>
-    <div className="table-wrap"><table><thead><tr><th>Дата</th><th>Категория</th><th>Комментарий</th><th>Сумма</th><th /></tr></thead><tbody>{filteredItems.map((item) => <tr key={item.id}><td>{formatDate(item.transactionDate)}</td><td><b>{item.category}{item.vehicleExpenseType ? ` · ${vehicleExpenseTypeLabel(item.vehicleExpenseType)}` : ''}</b>{(item.odometerKm != null || item.fuelLiters != null) && <small className="odometer-note">{item.odometerKm != null ? `${formatNumber(item.odometerKm)} км` : ''}{item.odometerKm != null && item.fuelLiters != null ? ' · ' : ''}{item.fuelLiters != null ? `${formatFuelLiters(item.fuelLiters)} л` : ''}</small>}</td><td>{item.description || '—'}</td><td className={item.type === 'INCOME' ? 'money-in' : 'money-out'}>{item.type === 'INCOME' ? '+' : '−'} {formatMoney(item.amount)}</td><td className="row-actions"><button onClick={() => onEdit(item)} title="Редактировать">✎</button><button className="delete" onClick={() => onDelete(item)} title="Удалить">×</button></td></tr>)}</tbody></table></div>
+    <div className="table-wrap"><table><thead><tr><th>Дата</th><th>Категория</th><th>Комментарий</th><th>Сумма</th><th /></tr></thead><tbody>{visibleItems.map((item) => <tr key={item.id}><td data-label="Дата">{formatDate(item.transactionDate)}</td><td data-label="Категория"><b>{item.category}{item.vehicleExpenseType ? ` · ${vehicleExpenseTypeLabel(item.vehicleExpenseType)}` : ''}</b>{(item.odometerKm != null || item.fuelLiters != null) && <small className="odometer-note">{item.odometerKm != null ? `${formatNumber(item.odometerKm)} км` : ''}{item.odometerKm != null && item.fuelLiters != null ? ' · ' : ''}{item.fuelLiters != null ? `${formatFuelLiters(item.fuelLiters)} л` : ''}</small>}</td><td data-label="Комментарий">{item.description || '—'}</td><td data-label="Сумма" className={item.type === 'INCOME' ? 'money-in' : 'money-out'}>{item.type === 'INCOME' ? '+' : '−'} {formatMoney(item.amount)}</td><td className="row-actions"><button onClick={() => onEdit(item)} title="Редактировать" aria-label="Редактировать">✎</button><button className="delete" onClick={() => onDelete(item)} title="Удалить" aria-label="Удалить">×</button></td></tr>)}</tbody></table></div>
   </section>;
 }
 
