@@ -146,7 +146,7 @@ public class TelegramBotService {
                 String description = text.equals("Без комментария") ? "" : text;
                 Long vehicleId = "Машина".equalsIgnoreCase(session.category) ? vehicles.defaultVehicleId() : null;
                 TransactionRequest request = new TransactionRequest(session.type, session.category, session.amount,
-                        session.date, description, vehicleId, null, null, null);
+                        session.date, description, vehicleId, null, null, null, null);
                 TransactionResponse result = session.edit ? transactions.update(session.id, request) : transactions.create(request);
                 sessions.remove(chatId);
                 sendMenu(chatId, (session.edit ? "Изменено: #" : "Добавлено: #") + result.id()
@@ -174,7 +174,7 @@ public class TelegramBotService {
         String category = parts[1].trim();
         Long vehicleId = "Машина".equalsIgnoreCase(category) ? vehicles.defaultVehicleId() : null;
         return new TransactionRequest(type, category, new BigDecimal(parts[2].trim().replace(',', '.')),
-                LocalDate.parse(parts[3].trim()), parts.length > 4 ? parts[4].trim() : "", vehicleId, null, null, null);
+                LocalDate.parse(parts[3].trim()), parts.length > 4 ? parts[4].trim() : "", vehicleId, null, null, null, null);
     }
 
     private void send(String chatId, String text) {

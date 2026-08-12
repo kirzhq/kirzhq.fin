@@ -18,6 +18,7 @@ public record TransactionRequest(
         Long vehicleId,
         VehicleExpenseType vehicleExpenseType,
         Long odometerKm,
-        BigDecimal fuelLiters
+        BigDecimal fuelLiters,
+        String foodSubcategory
 ) {
 }

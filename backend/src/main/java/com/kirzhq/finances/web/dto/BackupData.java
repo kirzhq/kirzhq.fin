@@ -23,7 +23,7 @@ public record BackupData(
     public record VehicleItem(Long id, String name) {}
     public record TransactionItem(Long id, TransactionType type, String category, BigDecimal amount,
             LocalDate transactionDate, String description, Long vehicleId,
-            VehicleExpenseType vehicleExpenseType, Long odometerKm, BigDecimal fuelLiters) {}
+            VehicleExpenseType vehicleExpenseType, Long odometerKm, BigDecimal fuelLiters, String foodSubcategory) {}
     public record DebtItem(Long id, String name, BigDecimal initialAmount, LocalDate createdDate, String note) {}
     public record DebtPaymentItem(Long id, Long debtId, Long transactionId) {}
     public record SavingsGoalItem(Long id, String name, BigDecimal targetAmount, LocalDate targetDate,

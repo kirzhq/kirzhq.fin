@@ -23,7 +23,8 @@ import java.util.Map;
 public class TransactionService {
 
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
-    private static final List<String> FOOD_CATEGORIES = List.of("Еда домой", "Еда доставки", "Еда улица");
+    private static final List<String> FOOD_SUBCATEGORIES = List.of(
+            "Доставка из ресторанов", "Доставка из магазина", "Ресторан", "Перекус", "Готовая еда", "Продукты");
 
     private final TransactionRepository transactionRepository;
     private final CategoryService categoryService;
@@ -106,7 +107,7 @@ public class TransactionService {
 
         BigDecimal foodExpense = transactions.stream()
                 .filter(transaction -> transaction.getType() == TransactionType.EXPENSE)
-                .filter(transaction -> FOOD_CATEGORIES.contains(transaction.getCategory()))
+                .filter(transaction -> "Еда".equals(transaction.getCategory()))
                 .map(Transaction::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         int calculationDays = calculationDays(year, month);
@@ -164,6 +165,15 @@ public class TransactionService {
         }
         transaction.setType(request.type());
         transaction.setCategory(request.category().trim());
+        if ("Еда".equalsIgnoreCase(request.category())) {
+            String subcategory = request.foodSubcategory() == null ? "Перекус" : request.foodSubcategory().trim();
+            if (!FOOD_SUBCATEGORIES.contains(subcategory)) {
+                throw new IllegalArgumentException("Выбранная подкатегория еды не существует");
+            }
+            transaction.setFoodSubcategory(subcategory);
+        } else {
+            transaction.setFoodSubcategory(null);
+        }
         transaction.setAmount(request.amount());
         transaction.setTransactionDate(request.transactionDate());
         transaction.setDescription(request.description() == null ? "" : request.description().trim());
@@ -192,7 +202,8 @@ public class TransactionService {
                 transaction.getVehicle() == null ? null : transaction.getVehicle().getName(),
                 transaction.getVehicleExpenseType(),
                 transaction.getOdometerKm(),
-                transaction.getFuelLiters()
+                transaction.getFuelLiters(),
+                transaction.getFoodSubcategory()
         );
     }
 }

@@ -5,6 +5,7 @@ export type Transaction = {
   id: number;
   type: TransactionType;
   category: string;
+  foodSubcategory: string | null;
   amount: number;
   transactionDate: string;
   description: string;

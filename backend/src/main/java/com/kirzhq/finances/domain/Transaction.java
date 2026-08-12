@@ -29,6 +29,9 @@ public class Transaction {
     @Column(nullable = false)
     private String category;
 
+    @Column(name = "food_subcategory")
+    private String foodSubcategory;
+
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
 
@@ -74,6 +77,14 @@ public class Transaction {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public String getFoodSubcategory() {
+        return foodSubcategory;
+    }
+
+    public void setFoodSubcategory(String foodSubcategory) {
+        this.foodSubcategory = foodSubcategory;
     }
 
     public BigDecimal getAmount() {

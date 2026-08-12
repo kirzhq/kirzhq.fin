@@ -12,10 +12,11 @@ type View = 'overview' | 'transactions' | 'vehicles' | 'debts' | 'savings' | 'ca
 const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const shortMonths = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 const colors = ['#6c5ce7', '#00b894', '#fdcb6e', '#e17055', '#0984e3', '#e84393', '#00cec9', '#a29bfe'];
+const foodSubcategories = ['Доставка из ресторанов', 'Доставка из магазина', 'Ресторан', 'Перекус', 'Готовая еда', 'Продукты'];
 const emptyForm = {
   type: 'EXPENSE' as TransactionType, category: '', amount: '',
   transactionDate: new Date().toISOString().slice(0, 10), description: '', vehicleId: null as number | null,
-  vehicleExpenseType: 'OTHER' as VehicleExpenseType, odometerKm: '', fuelLiters: '',
+  vehicleExpenseType: 'OTHER' as VehicleExpenseType, odometerKm: '', fuelLiters: '', foodSubcategory: 'Перекус',
 };
 const emptyDebtForm = { name: '', initialAmount: '', createdDate: new Date().toISOString().slice(0, 10), note: '' };
 const emptyPaymentForm = { amount: '', paymentDate: new Date().toISOString().slice(0, 10), comment: '' };
@@ -37,7 +38,8 @@ export default function App() {
   const [paymentForm, setPaymentForm] = useState(emptyPaymentForm);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [creatingOperation, setCreatingOperation] = useState(false);
+  const [creatingOperation, setCreatingOperation] = useState(() => new URLSearchParams(window.location.search).get('quickAdd') === '1');
+  const [foodDetailsOpen, setFoodDetailsOpen] = useState(false);
   const [categoryName, setCategoryName] = useState('');
   const [categoryType, setCategoryType] = useState<TransactionType>('EXPENSE');
   const [error, setError] = useState('');
@@ -51,6 +53,11 @@ export default function App() {
   const vehicleTotal = useMemo(() => vehicleTransactions.reduce((total, item) => total + item.amount, 0), [vehicleTransactions]);
   const fuelTotal = useMemo(() => vehicleTransactions.filter((item) => item.vehicleExpenseType === 'FUEL'
     || (!item.vehicleExpenseType && /бенз|азс|топлив/i.test(item.description))).reduce((total, item) => total + item.amount, 0), [vehicleTransactions]);
+  const foodBreakdown = useMemo(() => foodSubcategories.map((subcategory) => ({
+    category: subcategory,
+    amount: transactions.filter((item) => item.type === 'EXPENSE' && item.category === 'Еда' && item.foodSubcategory === subcategory)
+      .reduce((total, item) => total + item.amount, 0),
+  })).filter((point) => point.amount > 0).sort((left, right) => right.amount - left.amount), [transactions]);
 
   async function loadData() {
     setLoading(true);
@@ -95,9 +102,17 @@ export default function App() {
     localStorage.setItem('finance-theme', theme);
   }, [theme]);
   useEffect(() => {
-    if (!editingId && !creatingOperation) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('quickAdd') !== '1') return;
+    url.searchParams.delete('quickAdd');
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+  }, []);
+  useEffect(() => {
+    if (!editingId && !creatingOperation && !foodDetailsOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeOperationModal();
+      if (event.key !== 'Escape') return;
+      if (foodDetailsOpen) setFoodDetailsOpen(false);
+      else closeOperationModal();
     };
     document.addEventListener('keydown', closeOnEscape);
     document.body.classList.add('modal-open');
@@ -105,7 +120,7 @@ export default function App() {
       document.removeEventListener('keydown', closeOnEscape);
       document.body.classList.remove('modal-open');
     };
-  }, [editingId, creatingOperation]);
+  }, [editingId, creatingOperation, foodDetailsOpen]);
 
   function openView(nextView: View, selectedMonth: number | null = month) {
     setView(nextView);
@@ -136,6 +151,7 @@ export default function App() {
         ? Number(form.odometerKm) : null,
       fuelLiters: form.category === 'Машина' && form.vehicleExpenseType === 'FUEL' && form.fuelLiters
         ? Number(form.fuelLiters) : null,
+      foodSubcategory: form.category === 'Еда' ? form.foodSubcategory : null,
     };
     try {
       if (editingId) {
@@ -173,7 +189,7 @@ export default function App() {
       type: item.type, category: item.category, amount: String(item.amount),
       transactionDate: item.transactionDate, description: item.description, vehicleId: item.vehicleId,
       vehicleExpenseType: item.vehicleExpenseType ?? 'OTHER', odometerKm: item.odometerKm ? String(item.odometerKm) : '',
-      fuelLiters: item.fuelLiters ? String(item.fuelLiters) : '',
+      fuelLiters: item.fuelLiters ? String(item.fuelLiters) : '', foodSubcategory: item.foodSubcategory ?? 'Перекус',
     });
   }
 
@@ -331,7 +347,7 @@ export default function App() {
           </div>
           <article className="card category-chart-card"><CardTitle title="Расходы по категориям" subtitle={month ? months[month - 1] : `${year} год`} />
             <CategoryChart points={summary?.categoryPoints ?? []} expense={summary?.expense ?? 0} theme={theme} />
-            <div className="legend-list full-legend">{(summary?.categoryPoints ?? []).map((point, index) => <div key={point.category}><i style={{ background: colors[index % colors.length] }} /><span>{point.category}</span><strong>{summary?.expense ? ((point.amount / summary.expense) * 100).toFixed(1) : '0'}%</strong><small>{formatMoney(point.amount)}</small></div>)}</div>
+            <div className="legend-list full-legend">{(summary?.categoryPoints ?? []).map((point, index) => <div key={point.category} className={point.category === 'Еда' ? 'food-legend-row' : ''} role={point.category === 'Еда' ? 'button' : undefined} tabIndex={point.category === 'Еда' ? 0 : undefined} onClick={() => point.category === 'Еда' && setFoodDetailsOpen(true)} onKeyDown={(event) => { if (point.category === 'Еда' && (event.key === 'Enter' || event.key === ' ')) setFoodDetailsOpen(true); }}><i style={{ background: colors[index % colors.length] }} /><span>{point.category}</span><strong>{summary?.expense ? ((point.amount / summary.expense) * 100).toFixed(1) : '0'}%</strong><small>{formatMoney(point.amount)}</small>{point.category === 'Еда' && <b className="legend-open">›</b>}</div>)}</div>
           </article>
         </section>
       </>}
@@ -404,6 +420,14 @@ export default function App() {
         <OperationForm form={form} setForm={setForm} categories={availableCategories} vehicles={vehicles} editing={false} onType={changeType} onSubmit={saveOperation} onCancel={closeOperationModal} />
       </section>
     </div>}
+    {foodDetailsOpen && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setFoodDetailsOpen(false); }}>
+      <section className="card food-details-modal" role="dialog" aria-modal="true" aria-labelledby="food-details-title">
+        <button type="button" className="modal-close" onClick={() => setFoodDetailsOpen(false)} aria-label="Закрыть">×</button>
+        <div className="card-title"><div><h2 id="food-details-title">Расходы на еду</h2><p>{month ? months[month - 1] : `${year} год`} · по подкатегориям</p></div></div>
+        <CategoryChart points={foodBreakdown} expense={foodBreakdown.reduce((total, point) => total + point.amount, 0)} theme={theme} />
+        <div className="legend-list full-legend food-details-legend">{foodBreakdown.map((point, index) => <div key={point.category}><i style={{ background: colors[index % colors.length] }} /><span>{point.category}</span><strong>{summary?.foodExpense ? ((point.amount / summary.foodExpense) * 100).toFixed(1) : '0'}%</strong><small>{formatMoney(point.amount)}</small></div>)}</div>
+      </section>
+    </div>}
   </div>;
 }
 
@@ -412,6 +436,7 @@ function OperationForm({ form, setForm, categories, vehicles, editing, onType, o
     <div className="segmented"><button type="button" className={form.type === 'EXPENSE' ? 'selected' : ''} onClick={() => onType('EXPENSE')}>Расход</button><button type="button" className={form.type === 'INCOME' ? 'selected' : ''} onClick={() => onType('INCOME')}>Доход</button></div>
     <label>Категория<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value, vehicleExpenseType: 'OTHER', odometerKm: '', fuelLiters: '' })}>{categories.map((category: Category) => <option key={category.id}>{category.name}</option>)}</select></label>
     <label>Сумма<input required type="number" min="0.01" step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} placeholder="0 ₽" /></label>
+    {form.category === 'Еда' && <label className="food-subcategory-field">Подкатегория<select required value={form.foodSubcategory} onChange={(event) => setForm({ ...form, foodSubcategory: event.target.value })}>{foodSubcategories.map((subcategory) => <option key={subcategory}>{subcategory}</option>)}</select></label>}
     {form.category === 'Машина' && <>
       <fieldset className="vehicle-subtype"><legend>Тип расхода</legend><div><button type="button" className={form.vehicleExpenseType === 'OTHER' ? 'selected' : ''} onClick={() => setForm({ ...form, vehicleExpenseType: 'OTHER', odometerKm: '', fuelLiters: '' })}>Прочее</button><button type="button" className={form.vehicleExpenseType === 'MAINTENANCE' ? 'selected' : ''} onClick={() => setForm({ ...form, vehicleExpenseType: 'MAINTENANCE', odometerKm: '', fuelLiters: '' })}>Тех. обслуживание</button><button type="button" className={form.vehicleExpenseType === 'FUEL' ? 'selected' : ''} onClick={() => setForm({ ...form, vehicleExpenseType: 'FUEL' })}>Бензин</button></div></fieldset>
       {form.vehicleExpenseType === 'FUEL' && <><label>Пробег на одометре, км<input type="number" min="1" step="1" value={form.odometerKm} onChange={(event) => setForm({ ...form, odometerKm: event.target.value })} placeholder="Например, 48 250" /></label><label>Заправлено, литров<input type="number" min="0.001" step="0.001" value={form.fuelLiters} onChange={(event) => setForm({ ...form, fuelLiters: event.target.value })} placeholder="Например, 42.5" /><small>Для точного расчёта заполняйте оба поля при каждой заправке.</small></label></>}
@@ -472,7 +497,7 @@ function TransactionTable({ items, limit, loading, onEdit, onDelete }: { items: 
         </div>
       </details>
     </div>
-    <div className="table-wrap"><table><thead><tr><th>Дата</th><th>Категория</th><th>Комментарий</th><th>Сумма</th><th /></tr></thead><tbody>{visibleItems.map((item) => <tr key={item.id}><td data-label="Дата">{formatDate(item.transactionDate)}</td><td data-label="Категория"><b>{item.category}{item.vehicleExpenseType ? ` · ${vehicleExpenseTypeLabel(item.vehicleExpenseType)}` : ''}</b>{(item.odometerKm != null || item.fuelLiters != null) && <small className="odometer-note">{item.odometerKm != null ? `${formatNumber(item.odometerKm)} км` : ''}{item.odometerKm != null && item.fuelLiters != null ? ' · ' : ''}{item.fuelLiters != null ? `${formatFuelLiters(item.fuelLiters)} л` : ''}</small>}</td><td data-label="Комментарий">{item.description || '—'}</td><td data-label="Сумма" className={item.type === 'INCOME' ? 'money-in' : 'money-out'}>{item.type === 'INCOME' ? '+' : '−'} {formatMoney(item.amount)}</td><td className="row-actions"><button onClick={() => onEdit(item)} title="Редактировать" aria-label="Редактировать">✎</button><button className="delete" onClick={() => onDelete(item)} title="Удалить" aria-label="Удалить">×</button></td></tr>)}</tbody></table></div>
+    <div className="table-wrap"><table><thead><tr><th>Дата</th><th>Категория</th><th>Комментарий</th><th>Сумма</th><th /></tr></thead><tbody>{visibleItems.map((item) => <tr key={item.id}><td data-label="Дата">{formatDate(item.transactionDate)}</td><td data-label="Категория"><b>{item.category}{item.foodSubcategory ? ` · ${item.foodSubcategory}` : ''}{item.vehicleExpenseType ? ` · ${vehicleExpenseTypeLabel(item.vehicleExpenseType)}` : ''}</b>{(item.odometerKm != null || item.fuelLiters != null) && <small className="odometer-note">{item.odometerKm != null ? `${formatNumber(item.odometerKm)} км` : ''}{item.odometerKm != null && item.fuelLiters != null ? ' · ' : ''}{item.fuelLiters != null ? `${formatFuelLiters(item.fuelLiters)} л` : ''}</small>}</td><td data-label="Комментарий">{item.description || '—'}</td><td data-label="Сумма" className={item.type === 'INCOME' ? 'money-in' : 'money-out'}>{item.type === 'INCOME' ? '+' : '−'} {formatMoney(item.amount)}</td><td className="row-actions"><button onClick={() => onEdit(item)} title="Редактировать" aria-label="Редактировать">✎</button><button className="delete" onClick={() => onDelete(item)} title="Удалить" aria-label="Удалить">×</button></td></tr>)}</tbody></table></div>
   </section>;
 }
 

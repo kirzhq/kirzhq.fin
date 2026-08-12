@@ -74,7 +74,8 @@ public class ShortcutController {
                 vehicleExpense ? vehicleService.defaultVehicleId() : null,
                 request.vehicleExpenseType(),
                 request.odometerKm(),
-                request.fuelLiters()
+                request.fuelLiters(),
+                request.foodSubcategory()
         );
         return transactionService.create(transaction);
     }

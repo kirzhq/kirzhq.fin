@@ -17,6 +17,7 @@ public record ShortcutTransactionRequest(
         String description,
         VehicleExpenseType vehicleExpenseType,
         Long odometerKm,
-        BigDecimal fuelLiters
+        BigDecimal fuelLiters,
+        String foodSubcategory
 ) {
 }

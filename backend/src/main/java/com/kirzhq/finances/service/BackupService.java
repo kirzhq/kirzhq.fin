@@ -11,7 +11,9 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.Types;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class BackupService {
@@ -24,7 +26,7 @@ public class BackupService {
     @Transactional(readOnly = true)
     public BackupData exportData() {
         return new BackupData(
-                4, Instant.now(),
+                5, Instant.now(),
                 jdbc.query("SELECT id, name, type FROM categories ORDER BY id",
                         (rs, row) -> new BackupData.CategoryItem(rs.getLong("id"), rs.getString("name"),
                                 TransactionType.valueOf(rs.getString("type")))),
@@ -32,7 +34,7 @@ public class BackupService {
                         (rs, row) -> new BackupData.VehicleItem(rs.getLong("id"), rs.getString("name"))),
                 jdbc.query("""
                         SELECT id, type, category, amount, transaction_date, description, vehicle_id,
-                               vehicle_expense_type, odometer_km, fuel_liters
+                               vehicle_expense_type, odometer_km, fuel_liters, food_subcategory
                         FROM transactions ORDER BY id
                         """, (rs, row) -> new BackupData.TransactionItem(
                                 rs.getLong("id"), TransactionType.valueOf(rs.getString("type")),
@@ -41,7 +43,8 @@ public class BackupService {
                                 rs.getObject("vehicle_id", Long.class),
                                 rs.getString("vehicle_expense_type") == null ? null
                                         : VehicleExpenseType.valueOf(rs.getString("vehicle_expense_type")),
-                                rs.getObject("odometer_km", Long.class), rs.getBigDecimal("fuel_liters"))),
+                                rs.getObject("odometer_km", Long.class), rs.getBigDecimal("fuel_liters"),
+                                rs.getString("food_subcategory"))),
                 jdbc.query("SELECT id, name, initial_amount, created_date, note FROM debts ORDER BY id",
                         (rs, row) -> new BackupData.DebtItem(
                                 rs.getLong("id"), rs.getString("name"), rs.getBigDecimal("initial_amount"),
@@ -88,7 +91,7 @@ public class BackupService {
     }
 
     private void validate(BackupData backup) {
-        if (backup == null || (backup.version() < 1 || backup.version() > 4)
+        if (backup == null || (backup.version() < 1 || backup.version() > 5)
                 || backup.categories() == null || backup.vehicles() == null
                 || backup.transactions() == null || backup.debts() == null
                 || backup.debtPayments() == null) {
@@ -98,7 +101,20 @@ public class BackupService {
 
     private void batchCategories(List<BackupData.CategoryItem> items) {
         if (items.isEmpty()) return;
-        jdbc.batchUpdate("INSERT INTO categories (id, name, type) VALUES (?, ?, ?)", items, items.size(),
+        List<BackupData.CategoryItem> normalized = new ArrayList<>();
+        BackupData.CategoryItem firstLegacyFood = null;
+        boolean hasFood = items.stream().anyMatch(item -> item.type() == TransactionType.EXPENSE && "Еда".equals(item.name()));
+        for (BackupData.CategoryItem item : items) {
+            if (isLegacyFoodCategory(item.name())) {
+                if (firstLegacyFood == null) firstLegacyFood = item;
+            } else {
+                normalized.add(item);
+            }
+        }
+        if (!hasFood && firstLegacyFood != null) {
+            normalized.add(new BackupData.CategoryItem(firstLegacyFood.id(), "Еда", TransactionType.EXPENSE));
+        }
+        jdbc.batchUpdate("INSERT INTO categories (id, name, type) VALUES (?, ?, ?)", normalized, normalized.size(),
                 (statement, item) -> {
                     statement.setLong(1, item.id());
                     statement.setString(2, item.name());
@@ -120,12 +136,12 @@ public class BackupService {
         jdbc.batchUpdate("""
                 INSERT INTO transactions
                     (id, type, category, amount, transaction_date, description, vehicle_id,
-                     vehicle_expense_type, odometer_km, fuel_liters)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     vehicle_expense_type, odometer_km, fuel_liters, food_subcategory)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, items, items.size(), (statement, item) -> {
                     statement.setLong(1, item.id());
                     statement.setString(2, item.type().name());
-                    statement.setString(3, item.category());
+                    statement.setString(3, isLegacyFoodCategory(item.category()) ? "Еда" : item.category());
                     statement.setBigDecimal(4, item.amount());
                     statement.setDate(5, Date.valueOf(item.transactionDate()));
                     statement.setString(6, item.description());
@@ -143,7 +159,36 @@ public class BackupService {
                     } else {
                         statement.setNull(10, Types.NUMERIC);
                     }
+                    String foodSubcategory = normalizeFoodSubcategory(item.category(), item.description(), item.foodSubcategory());
+                    if (foodSubcategory == null) statement.setNull(11, Types.VARCHAR);
+                    else statement.setString(11, foodSubcategory);
                 });
+    }
+
+    private boolean isLegacyFoodCategory(String category) {
+        return "Еда улица".equals(category) || "Еда доставки".equals(category) || "Еда домой".equals(category);
+    }
+
+    private String normalizeFoodSubcategory(String category, String description, String provided) {
+        if ("Еда".equals(category)) return provided == null || provided.isBlank() ? "Перекус" : provided;
+        if (!isLegacyFoodCategory(category)) return null;
+        String text = description == null ? "" : description.toLowerCase(Locale.ROOT);
+        if ("Еда улица".equals(category)) {
+            return containsAny(text, "мак", "ростикс", "kfc", "токио", "ресторан", "кафе", "шав", "вьетнам", "вок", "wok", "тц")
+                    ? "Ресторан" : "Перекус";
+        }
+        if ("Еда доставки".equals(category)) {
+            return containsAny(text, "озон", "fresh", "фреш", "лента", "магазин", "продукт")
+                    ? "Доставка из магазина" : "Доставка из ресторанов";
+        }
+        if (containsAny(text, "лента", "магазин", "продукт")) return "Продукты";
+        if (containsAny(text, "готов", "нагг", "наген", "кулинари", "апетит", "аппетит", "суп", "еда")) return "Готовая еда";
+        return "Доставка из магазина";
+    }
+
+    private boolean containsAny(String value, String... needles) {
+        for (String needle : needles) if (value.contains(needle)) return true;
+        return false;
     }
 
     private void batchDebts(List<BackupData.DebtItem> items) {
