@@ -22,18 +22,7 @@ const emptyForm = {
 const emptyDebtForm = { name: '', initialAmount: '', createdDate: new Date().toISOString().slice(0, 10), note: '' };
 const emptyPaymentForm = { amount: '', paymentDate: new Date().toISOString().slice(0, 10), comment: '' };
 type MetricId = 'income' | 'expense' | 'balance' | 'operations' | 'daily' | 'food';
-type Preferences = { compact: boolean; metrics: MetricId[] };
-const defaultPreferences: Preferences = { compact: false, metrics: ['income', 'expense', 'balance', 'operations', 'daily', 'food'] };
-function readPreferences(): Preferences {
-  try {
-    const stored = JSON.parse(localStorage.getItem('finance-preferences') ?? '{}') as Partial<Preferences>;
-    const validMetrics = Array.isArray(stored.metrics)
-      ? stored.metrics.filter((item): item is MetricId => defaultPreferences.metrics.includes(item as MetricId))
-      : defaultPreferences.metrics;
-    return { compact: stored.compact === true, metrics: [...new Set(validMetrics)] };
-  }
-  catch { return defaultPreferences; }
-}
+const metricOrder: MetricId[] = ['income', 'expense', 'balance', 'operations', 'daily', 'food'];
 
 export default function App() {
   const [view, setView] = useState<View>('overview');
@@ -59,7 +48,6 @@ export default function App() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => localStorage.getItem('finance-theme') === 'dark' ? 'dark' : 'light');
-  const [preferences, setPreferences] = useState<Preferences>(readPreferences);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [budgets, setBudgets] = useState<CategoryBudget[]>([]);
   const [budgetCategory, setBudgetCategory] = useState('Еда');
@@ -122,7 +110,6 @@ export default function App() {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('finance-theme', theme);
   }, [theme]);
-  useEffect(() => { localStorage.setItem('finance-preferences', JSON.stringify(preferences)); }, [preferences]);
   useEffect(() => {
     const url = new URL(window.location.href);
     if (url.searchParams.get('quickAdd') !== '1') return;
@@ -312,17 +299,6 @@ export default function App() {
     } catch (requestError) { setError(message(requestError)); }
   }
 
-  function moveMetric(id: MetricId, direction: -1 | 1) {
-    setPreferences((current) => {
-      const metrics = [...current.metrics];
-      const index = metrics.indexOf(id);
-      const next = index + direction;
-      if (index < 0 || next < 0 || next >= metrics.length) return current;
-      [metrics[index], metrics[next]] = [metrics[next], metrics[index]];
-      return { ...current, metrics };
-    });
-  }
-
   const metricDefinitions: Record<MetricId, { title: string; value: number | undefined; kind?: string; plain?: boolean; monthly?: boolean }> = {
     income: { title: 'Доход', value: summary?.income, kind: 'income' },
     expense: { title: 'Расход', value: summary?.expense, kind: 'expense' },
@@ -331,10 +307,10 @@ export default function App() {
     daily: { title: 'В среднем за сутки', value: summary?.averageDailyExpense, kind: 'daily', monthly: true },
     food: { title: 'Еда в среднем за сутки', value: summary?.averageDailyFoodExpense, kind: 'food', monthly: true },
   };
-  const visibleMetrics = preferences.metrics.map((id) => ({ id, ...metricDefinitions[id] }))
+  const visibleMetrics = metricOrder.map((id) => ({ id, ...metricDefinitions[id] }))
     .filter((item) => !item.monthly || month);
 
-  return <div className={`app ${preferences.compact ? 'compact' : ''}`}>
+  return <div className="app">
     <aside className="sidebar">
       <a className="home-link" href="https://home.kirzhq.ru" aria-label="Вернуться на главную страницу">
         <span>←</span> Мой дом
@@ -361,7 +337,7 @@ export default function App() {
       <header className="topbar">
         <div><p className="kicker">{subtitle(view, month)}</p><h1>{title(view, month, year)}</h1></div>
         {view === 'overview' && month === null && <div className="backup-actions">
-          <button type="button" onClick={() => setSettingsOpen(true)}><AppIcon name="settings" />Настроить</button>
+          <button type="button" onClick={() => setSettingsOpen(true)}><AppIcon name="settings" />Лимиты</button>
           <button type="button" onClick={() => exportBackup().catch((requestError) => setError(message(requestError)))}>
             <span className="backup-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 3h4v8h3.5L12 16.5 6.5 11H10V3ZM5 18h14v3H5v-3Z" /></svg></span>Экспорт
           </button>
@@ -479,10 +455,8 @@ export default function App() {
     {settingsOpen && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSettingsOpen(false); }}>
       <section className="card settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
         <button type="button" className="modal-close" onClick={() => setSettingsOpen(false)} aria-label="Закрыть"><AppIcon name="close" /></button>
-        <CardTitle title="Персонализация" subtitle="Настройте главную под себя" />
-        <div className="preference-section"><h3>Карточки показателей</h3>{defaultPreferences.metrics.map((id) => { const index = preferences.metrics.indexOf(id); return <div className="preference-row" key={id}><label><input type="checkbox" checked={index >= 0} onChange={() => setPreferences((current) => ({ ...current, metrics: current.metrics.includes(id) ? current.metrics.filter((item) => item !== id) : [...current.metrics, id] }))} />{metricDefinitions[id].title}</label><span><button type="button" disabled={index <= 0} onClick={() => moveMetric(id, -1)} aria-label="Переместить выше"><AppIcon name="up" /></button><button type="button" disabled={index < 0 || index === preferences.metrics.length - 1} onClick={() => moveMetric(id, 1)} aria-label="Переместить ниже"><AppIcon name="down" /></button></span></div>; })}</div>
-        <section className="density-setting" aria-labelledby="density-title"><div><h3 id="density-title">Плотность интерфейса</h3><p>Компактный режим помещает больше данных на экран.</p></div><div className="density-options"><button type="button" className={!preferences.compact ? 'selected' : ''} onClick={() => setPreferences((current) => ({ ...current, compact: false }))}>Комфортно</button><button type="button" className={preferences.compact ? 'selected' : ''} onClick={() => setPreferences((current) => ({ ...current, compact: true }))}>Компактно</button></div></section>
-        <form className="budget-form" onSubmit={submitBudget}><h3>Месячные лимиты</h3><select value={budgetCategory} onChange={(event) => setBudgetCategory(event.target.value)}>{categories.filter((item) => item.type === 'EXPENSE').map((item) => <option key={item.id}>{item.name}</option>)}</select><input required type="number" min="1" step="1" value={budgetAmount} onChange={(event) => setBudgetAmount(event.target.value)} placeholder="Лимит в ₽" /><button className="primary">Сохранить</button></form>
+        <CardTitle title="Лимиты расходов" subtitle="Контроль бюджета по категориям" />
+        <form className="budget-form" onSubmit={submitBudget}><h3>Новый месячный лимит</h3><select value={budgetCategory} onChange={(event) => setBudgetCategory(event.target.value)}>{categories.filter((item) => item.type === 'EXPENSE').map((item) => <option key={item.id}>{item.name}</option>)}</select><input required type="number" min="1" step="1" value={budgetAmount} onChange={(event) => setBudgetAmount(event.target.value)} placeholder="Сумма в ₽" /><button className="primary">Добавить</button></form>
         <div className="budget-settings-list">{budgets.map((budget) => <div key={budget.id}><span>{budget.category}</span><strong>{formatMoney(budget.monthlyLimit)}</strong><button type="button" onClick={() => deleteBudget(budget.id).then(() => getBudgets().then(setBudgets)).catch((requestError) => setError(message(requestError)))} aria-label={`Удалить лимит ${budget.category}`}><AppIcon name="trash" /></button></div>)}</div>
       </section>
     </div>}

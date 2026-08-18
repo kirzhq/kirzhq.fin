@@ -1,11 +1,12 @@
 FROM node:22-alpine AS build
 WORKDIR /app
+ARG VITE_BASE_PATH=/
 
 COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+RUN npm run build -- --base=${VITE_BASE_PATH}
 
 FROM nginx:1.27-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf

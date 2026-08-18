@@ -16,6 +16,90 @@ select {
   background-size: 16px 16px;
   cursor: pointer;
 }
+
+/* 2026 interface refresh: calm surfaces, clear hierarchy, fewer containers. */
+:root { color: #202124; background: #f7f7f8; }
+.app { grid-template-columns: 232px minmax(0, 1fr); background: #f7f7f8; }
+.sidebar { padding: 24px 16px; background: #141619; border-right-color: #282b30; }
+.home-link { margin: 0 6px 24px; padding: 7px 8px; color: #8f959d; }
+.brand { padding: 0 8px 24px; }
+.brand span { width: 36px; height: 36px; border-radius: 10px; background: #725ff0; font-size: 21px; }
+.brand strong { font-size: 18px; letter-spacing: -.025em; }
+.sidebar-controls { padding: 0 8px 20px; border-bottom-color: #2b2e33; }
+.sidebar-controls select { background-color: #1d2024; border-color: #353940; }
+nav { gap: 2px; }
+nav button { padding: 10px 12px; border-radius: 8px; color: #989ea7; font-size: 14px; }
+nav button:hover { background: #1d2024; }
+nav button.active { background: #25282d; box-shadow: inset 2px 0 #8b7df2; }
+main { width: 100%; padding: 32px clamp(24px, 3.2vw, 52px) 56px; background: #f7f7f8; }
+.topbar { margin-bottom: 22px; }
+.kicker { margin-bottom: 5px; color: #92949b; font-size: 11px; letter-spacing: .11em; }
+h1 { font-size: clamp(29px, 2.6vw, 38px); }
+.backup-actions { gap: 7px; }
+.backup-actions button { min-height: 40px; padding: 0 13px; border-color: #dedfe3; border-radius: 9px; box-shadow: none; font-size: 13px; }
+.backup-actions button:hover { transform: none; }
+.period-switcher { gap: 0; margin: 0 0 18px; padding: 3px; border-color: #e2e3e6; border-radius: 11px; background: #efeff1; }
+.period-switcher button { min-height: 36px; border-radius: 8px; color: #777a82; }
+.period-switcher button.active { color: #4f43b9; box-shadow: 0 1px 4px rgba(28,28,34,.08); }
+.metrics, .metrics.monthly-metrics, .vehicle-metrics {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin-bottom: 16px;
+  overflow: hidden; border: 1px solid #e2e3e6; border-radius: 14px; background: #fff;
+}
+.metrics.monthly-metrics { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.metric { min-height: 112px; padding: 20px; border: 0; border-right: 1px solid #ececef; border-radius: 0; box-shadow: none; background: transparent; }
+.metric:last-child { border-right: 0; }
+.metric::before { left: 20px; right: auto; top: 21px; width: 6px; height: 6px; border-radius: 50%; }
+.metric span { padding-left: 14px; color: #777a82; font-size: 12px; }
+.metric strong { font-size: clamp(19px, 1.55vw, 25px); }
+.card { border-color: #e2e3e6; border-radius: 14px; box-shadow: none; }
+.content-grid { grid-template-columns: minmax(0, 1.65fr) minmax(350px, .85fr); gap: 16px; }
+.card-title h2, .recent-heading h2 { font-size: 18px; letter-spacing: -.025em; }
+.card-title p, .recent-heading p { font-size: 12px; }
+.chart-card { min-height: 390px; }
+.category-chart-card { min-height: 390px; }
+.recent-heading { margin-top: 8px; }
+.transactions { overflow: hidden; }
+th { color: #8b8d94; font-size: 10px; letter-spacing: .09em; }
+th, td { padding-block: 12px; }
+tbody tr:last-child td { border-bottom: 0; }
+.monthly-control { border-color: #e2e3e6; }
+.forecast-panel, .budget-panel { padding: 21px 22px; }
+.forecast-panel > header, .budget-panel > header { margin-bottom: 15px; }
+.forecast-values { gap: 0; overflow: hidden; border: 1px solid #ececef; border-radius: 11px; }
+.forecast-values > div, .forecast-primary { padding: 13px 15px; border-right: 1px solid #ececef; border-radius: 0; background: transparent !important; }
+.forecast-values > div:last-child { border-right: 0; }
+.forecast-primary strong { color: inherit; }
+.forecast-values span { min-height: 30px; }
+.month-progress { margin-top: 15px; }
+.efficiency-summary { gap: 0; overflow: hidden; border: 1px solid #ececef; border-radius: 12px; }
+.efficiency-summary > div { border-right: 1px solid #ececef; border-radius: 0; background: transparent; }
+.efficiency-summary > div:last-child { border-right: 0; }
+.debt-layout, .savings-layout { gap: 18px; }
+.debt-card::before, .savings-card::before { width: 3px; }
+.debt-values div, .savings-insights div, .payment-form { background: #f6f6f7; }
+.quick-add { right: 24px; bottom: 22px; min-height: 46px; border-radius: 12px; background: #6957e7; box-shadow: 0 10px 26px rgba(69,55,174,.24); }
+.settings-modal { width: min(560px, calc(100vw - 32px)); }
+.budget-form { margin-top: 20px; padding-top: 0; border-top: 0; }
+
+html[data-theme="dark"] { background: #0f1012; }
+html[data-theme="dark"] body, html[data-theme="dark"] main, html[data-theme="dark"] .app { background: #111315; }
+html[data-theme="dark"] .sidebar { background: #0d0f11; border-color: #292c31; }
+html[data-theme="dark"] .metric,
+html[data-theme="dark"] .card { background: #191b1f; border-color: #30343a; box-shadow: none; }
+html[data-theme="dark"] .metrics,
+html[data-theme="dark"] .metrics.monthly-metrics,
+html[data-theme="dark"] .vehicle-metrics { background: #191b1f; border-color: #30343a; }
+html[data-theme="dark"] .metric { background: transparent; border-color: #2d3035; }
+html[data-theme="dark"] .forecast-values, html[data-theme="dark"] .efficiency-summary { border-color: #30343a; }
+html[data-theme="dark"] .forecast-values > div, html[data-theme="dark"] .efficiency-summary > div { border-color: #30343a; }
+html[data-theme="dark"] .debt-values div, html[data-theme="dark"] .savings-insights div, html[data-theme="dark"] .payment-form { background: #202328; }
+
+@media (max-width: 1250px) {
+  .metrics.monthly-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .metrics.monthly-metrics .metric:nth-child(3) { border-right: 0; }
+  .metrics.monthly-metrics .metric:nth-child(-n+3) { border-bottom: 1px solid #ececef; }
+  html[data-theme="dark"] .metrics.monthly-metrics .metric:nth-child(-n+3) { border-color: #2d3035; }
+}
 button { cursor: pointer; }
 button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid #8071f2; outline-offset: 3px; }
 button:disabled { cursor: not-allowed; }
@@ -585,4 +669,72 @@ select {
   background-position: right 13px center;
   background-size: 16px 16px;
   line-height: 1.2;
+}
+
+/* Final refresh overrides. Kept last intentionally to win over legacy component rules. */
+body .app { grid-template-columns: 232px minmax(0, 1fr); background: #f7f7f8; }
+body .sidebar { padding: 24px 16px; background: #141619; border-right-color: #282b30; }
+body .home-link { margin: 0 6px 24px; }
+body .brand { padding: 0 8px 24px; }
+body .brand > span { width: 36px; height: 36px; border-radius: 10px; }
+body .sidebar-controls { padding-inline: 8px; }
+body nav { gap: 2px; }
+body nav button { padding: 10px 12px; border-radius: 8px; font-size: 14px; }
+body nav button.active { background: #25282d; box-shadow: inset 2px 0 #8b7df2; }
+body main { width: 100%; padding: 32px clamp(24px, 3.2vw, 52px) 56px; background: #f7f7f8; }
+body .topbar { margin-bottom: 22px; }
+body .kicker { font-size: 11px; letter-spacing: .11em; }
+body .backup-actions { gap: 7px; }
+body .backup-actions button { min-height: 40px; padding-inline: 13px; border-radius: 9px; font-size: 13px; box-shadow: none; }
+body .backup-actions button:hover { transform: none; }
+body .period-switcher { gap: 0; margin: 0 0 18px; padding: 3px; border-radius: 11px; }
+body .period-switcher button { min-height: 36px; border-radius: 8px; }
+body .metrics, body .metrics.monthly-metrics, body .vehicle-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin-bottom: 16px; overflow: hidden; border: 1px solid #e2e3e6; border-radius: 14px; background: #fff; }
+body .metrics.monthly-metrics { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+body .metric { min-height: 112px; padding: 20px; border: 0; border-right: 1px solid #ececef; border-radius: 0; box-shadow: none; background: transparent; }
+body .metric:last-child { border-right: 0; }
+body .metric::before { left: 20px; right: auto; top: 21px; width: 6px; height: 6px; border-radius: 50%; }
+body .metric span { padding-left: 14px; font-size: 12px; }
+body .metric strong { font-size: clamp(19px, 1.55vw, 25px); }
+body .card { border-color: #e2e3e6; border-radius: 14px; box-shadow: none; }
+body .content-grid { grid-template-columns: minmax(0, 1.65fr) minmax(350px, .85fr); }
+body .chart-card, body .category-chart-card { min-height: 390px; }
+body .forecast-panel, body .budget-panel { padding: 21px 22px; }
+body .forecast-values { gap: 0; overflow: hidden; border: 1px solid #ececef; border-radius: 11px; }
+body .forecast-values > div, body .forecast-primary { padding: 13px 15px; border-right: 1px solid #ececef; border-radius: 0; background: transparent !important; }
+body .forecast-values > div:last-child { border-right: 0; }
+body .forecast-primary strong { color: inherit; }
+body .efficiency-summary { gap: 0; overflow: hidden; border: 1px solid #ececef; border-radius: 12px; }
+body .efficiency-summary > div { border-right: 1px solid #ececef; border-radius: 0; background: transparent; }
+body .efficiency-summary > div:last-child { border-right: 0; }
+body .quick-add { border-radius: 12px; background: #6957e7; box-shadow: 0 10px 26px rgba(69,55,174,.24); }
+html[data-theme="dark"] body .app, html[data-theme="dark"] body main { background: #111315; }
+html[data-theme="dark"] body .sidebar { background: #0d0f11; }
+html[data-theme="dark"] body .metrics, html[data-theme="dark"] body .metrics.monthly-metrics, html[data-theme="dark"] body .vehicle-metrics { background: #191b1f; border-color: #30343a; }
+html[data-theme="dark"] body .metric { background: transparent; border-color: #2d3035; box-shadow: none; }
+html[data-theme="dark"] body .forecast-values, html[data-theme="dark"] body .efficiency-summary { border-color: #30343a; }
+html[data-theme="dark"] body .forecast-values > div, html[data-theme="dark"] body .efficiency-summary > div { border-color: #30343a; }
+
+@media (max-width: 1250px) and (min-width: 701px) {
+  body .metrics.monthly-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  body .metrics.monthly-metrics .metric:nth-child(3) { border-right: 0; }
+  body .metrics.monthly-metrics .metric:nth-child(-n+3) { border-bottom: 1px solid #ececef; }
+}
+
+@media (max-width: 1050px) and (min-width: 701px) {
+  body .app { grid-template-columns: 210px minmax(0, 1fr); }
+  body main { padding-inline: 26px; }
+  body .content-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 700px) {
+  body .app { display: block; }
+  body .sidebar { padding: max(14px, env(safe-area-inset-top)) 14px 12px; }
+  body .brand { grid-template-columns: 36px minmax(0, 1fr) 78px 34px; padding: 0 2px 13px; }
+  body main { padding: 20px 14px calc(100px + env(safe-area-inset-bottom)); }
+  body .metrics, body .metrics.monthly-metrics, body .vehicle-metrics { grid-template-columns: 1fr 1fr; gap: 0; }
+  body .metric { min-height: 102px; padding: 15px; border-right: 1px solid #ececef; border-bottom: 1px solid #ececef; }
+  body .metric:nth-child(even) { border-right: 0; }
+  body .metric:nth-last-child(-n+2) { border-bottom: 0; }
+  body .content-grid { grid-template-columns: 1fr; }
 }

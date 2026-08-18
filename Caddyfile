@@ -21,6 +21,17 @@
         }
     }
 
+    handle_path /beta* {
+        route {
+            vars original_uri {uri}
+            forward_auth kirzhq-home-backend:8080 {
+                uri /api/auth/check
+            }
+            rewrite * {vars.original_uri}
+            reverse_proxy frontend-beta:80
+        }
+    }
+
     handle {
         route {
             vars original_uri {uri}
