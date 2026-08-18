@@ -111,6 +111,11 @@ public class TransactionService {
                 .map(Transaction::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         int calculationDays = calculationDays(year, month);
+        boolean forecastAvailable = month != null && YearMonth.of(year, month).equals(YearMonth.now());
+        int daysInMonth = month == null ? 0 : YearMonth.of(year, month).lengthOfMonth();
+        BigDecimal projectedExpense = forecastAvailable
+                ? averagePerDay(expense, calculationDays).multiply(BigDecimal.valueOf(daysInMonth)).setScale(2, RoundingMode.HALF_UP)
+                : expense;
 
         return new SummaryResponse(
                 income,
@@ -120,6 +125,10 @@ public class TransactionService {
                 foodExpense,
                 averagePerDay(foodExpense, calculationDays),
                 calculationDays,
+                projectedExpense,
+                income.subtract(projectedExpense),
+                daysInMonth,
+                forecastAvailable,
                 monthly.entrySet().stream()
                         .map(entry -> new SummaryResponse.MonthlyPoint(
                                 entry.getKey(),

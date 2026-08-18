@@ -11,6 +11,10 @@ public record SummaryResponse(
         BigDecimal foodExpense,
         BigDecimal averageDailyFoodExpense,
         int calculationDays,
+        BigDecimal projectedExpense,
+        BigDecimal projectedBalance,
+        int daysInMonth,
+        boolean forecastAvailable,
         List<MonthlyPoint> monthlyPoints,
         List<CategoryPoint> categoryPoints
 ) {

@@ -52,6 +52,10 @@ export type Summary = {
   foodExpense: number;
   averageDailyFoodExpense: number;
   calculationDays: number;
+  projectedExpense: number;
+  projectedBalance: number;
+  daysInMonth: number;
+  forecastAvailable: boolean;
   monthlyPoints: Array<{
     month: string;
     income: number;
@@ -62,6 +66,8 @@ export type Summary = {
     amount: number;
   }>;
 };
+
+export type CategoryBudget = { id: number; category: string; monthlyLimit: number };
 
 export type Debt = {
   id: number;

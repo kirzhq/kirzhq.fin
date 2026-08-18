@@ -1,4 +1,4 @@
-import type { Category, Debt, SavingsGoal, Summary, Transaction, TransactionType, Vehicle, VehicleSummary } from './types';
+import type { Category, CategoryBudget, Debt, SavingsGoal, Summary, Transaction, TransactionType, Vehicle, VehicleSummary } from './types';
 
 const API_BASE = '/api';
 
@@ -81,6 +81,16 @@ export function createCategory(payload: { name: string; type: TransactionType })
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export function getBudgets() { return request<CategoryBudget[]>('/budgets'); }
+export function saveBudget(payload: { category: string; monthlyLimit: number }) {
+  return request<CategoryBudget>('/budgets', { method: 'PUT', body: JSON.stringify(payload) });
+}
+export async function deleteBudget(id: number) {
+  const token = csrfToken();
+  const response = await fetch(`${API_BASE}/budgets/${id}`, { method: 'DELETE', headers: token ? { 'X-XSRF-TOKEN': decodeURIComponent(token) } : {} });
+  ensureAuthenticated(response); if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
 }
 
 export function getVehicles() {

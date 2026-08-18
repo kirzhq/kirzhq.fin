@@ -5,8 +5,9 @@ import {
   getDebts, getSummary, getTransactions, getVehicleSummary, getVehicles, importBackup, exportBackup,
   payDebt, updateDebt, updateTransaction,
   addSavingsEntry, createSavingsGoal, deleteSavingsEntry, deleteSavingsGoal, getSavings, updateSavingsGoal,
+  deleteBudget, getBudgets, saveBudget,
 } from './api';
-import type { Category, Debt, SavingsGoal, Summary, Transaction, TransactionType, Vehicle, VehicleExpenseType, VehicleSummary } from './types';
+import type { Category, CategoryBudget, Debt, SavingsGoal, Summary, Transaction, TransactionType, Vehicle, VehicleExpenseType, VehicleSummary } from './types';
 
 type View = 'overview' | 'transactions' | 'vehicles' | 'debts' | 'savings' | 'categories';
 const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
@@ -20,6 +21,13 @@ const emptyForm = {
 };
 const emptyDebtForm = { name: '', initialAmount: '', createdDate: new Date().toISOString().slice(0, 10), note: '' };
 const emptyPaymentForm = { amount: '', paymentDate: new Date().toISOString().slice(0, 10), comment: '' };
+type MetricId = 'income' | 'expense' | 'balance' | 'operations' | 'daily' | 'food';
+type Preferences = { compact: boolean; metrics: MetricId[] };
+const defaultPreferences: Preferences = { compact: false, metrics: ['income', 'expense', 'balance', 'operations', 'daily', 'food'] };
+function readPreferences(): Preferences {
+  try { return { ...defaultPreferences, ...JSON.parse(localStorage.getItem('finance-preferences') ?? '{}') }; }
+  catch { return defaultPreferences; }
+}
 
 export default function App() {
   const [view, setView] = useState<View>('overview');
@@ -45,6 +53,11 @@ export default function App() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => localStorage.getItem('finance-theme') === 'dark' ? 'dark' : 'light');
+  const [preferences, setPreferences] = useState<Preferences>(readPreferences);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [budgets, setBudgets] = useState<CategoryBudget[]>([]);
+  const [budgetCategory, setBudgetCategory] = useState('Еда');
+  const [budgetAmount, setBudgetAmount] = useState('');
   const referenceDataLoaded = useRef(false);
   const backupInput = useRef<HTMLInputElement>(null);
 
@@ -62,17 +75,19 @@ export default function App() {
   async function loadData() {
     setLoading(true);
     try {
-      const [items, totals, categoryItems, vehicleItems] = await Promise.all([
+      const [items, totals, categoryItems, vehicleItems, budgetItems] = await Promise.all([
         getTransactions(year, month),
         getSummary(year, month),
         referenceDataLoaded.current ? Promise.resolve(categories) : getCategories(),
         referenceDataLoaded.current ? Promise.resolve(vehicles) : getVehicles(),
+        getBudgets(),
       ]);
       referenceDataLoaded.current = true;
       setTransactions(items);
       setSummary(totals);
       setCategories(categoryItems);
       setVehicles(vehicleItems);
+      setBudgets(budgetItems);
       setVehicleSummary(vehicleItems[0] ? await getVehicleSummary(vehicleItems[0].id, year) : null);
       setForm((current) => ({
         ...current,
@@ -101,6 +116,7 @@ export default function App() {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('finance-theme', theme);
   }, [theme]);
+  useEffect(() => { localStorage.setItem('finance-preferences', JSON.stringify(preferences)); }, [preferences]);
   useEffect(() => {
     const url = new URL(window.location.href);
     if (url.searchParams.get('quickAdd') !== '1') return;
@@ -108,7 +124,7 @@ export default function App() {
     window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
   }, []);
   useEffect(() => {
-    if (!editingId && !creatingOperation && !foodDetailsOpen) return;
+    if (!editingId && !creatingOperation && !foodDetailsOpen && !settingsOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       if (foodDetailsOpen) setFoodDetailsOpen(false);
@@ -120,7 +136,7 @@ export default function App() {
       document.removeEventListener('keydown', closeOnEscape);
       document.body.classList.remove('modal-open');
     };
-  }, [editingId, creatingOperation, foodDetailsOpen]);
+  }, [editingId, creatingOperation, foodDetailsOpen, settingsOpen]);
 
   function openView(nextView: View, selectedMonth: number | null = month) {
     setView(nextView);
@@ -281,7 +297,38 @@ export default function App() {
     if (nextYear === 2026 && month !== null && month < 7) setMonth(null);
   }
 
-  return <div className="app">
+  async function submitBudget(event: React.FormEvent) {
+    event.preventDefault();
+    try {
+      await saveBudget({ category: budgetCategory, monthlyLimit: Number(budgetAmount) });
+      setBudgets(await getBudgets());
+      setBudgetAmount('');
+    } catch (requestError) { setError(message(requestError)); }
+  }
+
+  function moveMetric(id: MetricId, direction: -1 | 1) {
+    setPreferences((current) => {
+      const metrics = [...current.metrics];
+      const index = metrics.indexOf(id);
+      const next = index + direction;
+      if (index < 0 || next < 0 || next >= metrics.length) return current;
+      [metrics[index], metrics[next]] = [metrics[next], metrics[index]];
+      return { ...current, metrics };
+    });
+  }
+
+  const metricDefinitions: Record<MetricId, { title: string; value: number | undefined; kind?: string; plain?: boolean; monthly?: boolean }> = {
+    income: { title: 'Доход', value: summary?.income, kind: 'income' },
+    expense: { title: 'Расход', value: summary?.expense, kind: 'expense' },
+    balance: { title: 'Сальдо', value: summary?.balance, kind: 'balance' },
+    operations: { title: 'Операций', value: transactions.length, plain: true },
+    daily: { title: 'В среднем за сутки', value: summary?.averageDailyExpense, kind: 'daily', monthly: true },
+    food: { title: 'Еда в среднем за сутки', value: summary?.averageDailyFoodExpense, kind: 'food', monthly: true },
+  };
+  const visibleMetrics = preferences.metrics.map((id) => ({ id, ...metricDefinitions[id] }))
+    .filter((item) => !item.monthly || month);
+
+  return <div className={`app ${preferences.compact ? 'compact' : ''}`}>
     <aside className="sidebar">
       <a className="home-link" href="https://home.kirzhq.ru" aria-label="Вернуться на главную страницу">
         <span>←</span> Мой дом
@@ -308,6 +355,7 @@ export default function App() {
       <header className="topbar">
         <div><p className="kicker">{subtitle(view, month)}</p><h1>{title(view, month, year)}</h1></div>
         {view === 'overview' && month === null && <div className="backup-actions">
+          <button type="button" onClick={() => setSettingsOpen(true)}><span className="backup-icon" aria-hidden="true">⚙</span>Настроить</button>
           <button type="button" onClick={() => exportBackup().catch((requestError) => setError(message(requestError)))}>
             <span className="backup-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 3h4v8h3.5L12 16.5 6.5 11H10V3ZM5 18h14v3H5v-3Z" /></svg></span>Экспорт
           </button>
@@ -329,14 +377,8 @@ export default function App() {
       </div>}
 
       {view === 'overview' && <>
-        <section className={`metrics ${month ? 'monthly-metrics' : ''}`}>
-          <Metric title="Доход" value={summary?.income} kind="income" />
-          <Metric title="Расход" value={summary?.expense} kind="expense" />
-          <Metric title="Сальдо" value={summary?.balance} kind="balance" />
-          <Metric title="Операций" value={transactions.length} plain />
-          {month && <Metric title="В среднем за сутки" value={summary?.averageDailyExpense} kind="daily" />}
-          {month && <Metric title="Еда в среднем за сутки" value={summary?.averageDailyFoodExpense} kind="food" />}
-        </section>
+        <section className={`metrics ${month ? 'monthly-metrics' : ''}`}>{visibleMetrics.map((item) => <Metric key={item.id} title={item.title} value={item.value} kind={item.kind} plain={item.plain} />)}</section>
+        {month && <MonthlyControl summary={summary} budgets={budgets} />}
         <section className="content-grid">
           <div className="dashboard-stack">
             <article className="card chart-card"><CardTitle title={month ? 'Доходы и расходы' : 'Динамика по месяцам'} subtitle={month ? months[month - 1] : `${year} год`} />
@@ -428,7 +470,23 @@ export default function App() {
         <div className="legend-list full-legend food-details-legend">{foodBreakdown.map((point, index) => <div key={point.category}><i style={{ background: colors[index % colors.length] }} /><span>{point.category}</span><strong>{summary?.foodExpense ? ((point.amount / summary.foodExpense) * 100).toFixed(1) : '0'}%</strong><small>{formatMoney(point.amount)}</small></div>)}</div>
       </section>
     </div>}
+    {settingsOpen && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSettingsOpen(false); }}>
+      <section className="card settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <button type="button" className="modal-close" onClick={() => setSettingsOpen(false)} aria-label="Закрыть">×</button>
+        <CardTitle title="Персонализация" subtitle="Настройте главную под себя" />
+        <div className="preference-section"><h3>Карточки показателей</h3>{defaultPreferences.metrics.map((id) => { const index = preferences.metrics.indexOf(id); return <div className="preference-row" key={id}><label><input type="checkbox" checked={index >= 0} onChange={() => setPreferences((current) => ({ ...current, metrics: current.metrics.includes(id) ? current.metrics.filter((item) => item !== id) : [...current.metrics, id] }))} />{metricDefinitions[id].title}</label><span><button type="button" disabled={index <= 0} onClick={() => moveMetric(id, -1)} aria-label="Переместить выше">↑</button><button type="button" disabled={index < 0 || index === preferences.metrics.length - 1} onClick={() => moveMetric(id, 1)} aria-label="Переместить ниже">↓</button></span></div>; })}</div>
+        <label className="density-switch"><input type="checkbox" checked={preferences.compact} onChange={(event) => setPreferences((current) => ({ ...current, compact: event.target.checked }))} /><span>Компактный режим</span></label>
+        <form className="budget-form" onSubmit={submitBudget}><h3>Месячные лимиты</h3><select value={budgetCategory} onChange={(event) => setBudgetCategory(event.target.value)}>{categories.filter((item) => item.type === 'EXPENSE').map((item) => <option key={item.id}>{item.name}</option>)}</select><input required type="number" min="1" step="1" value={budgetAmount} onChange={(event) => setBudgetAmount(event.target.value)} placeholder="Лимит в ₽" /><button className="primary">Сохранить</button></form>
+        <div className="budget-settings-list">{budgets.map((budget) => <div key={budget.id}><span>{budget.category}</span><strong>{formatMoney(budget.monthlyLimit)}</strong><button type="button" onClick={() => deleteBudget(budget.id).then(() => getBudgets().then(setBudgets)).catch((requestError) => setError(message(requestError)))} aria-label={`Удалить лимит ${budget.category}`}>×</button></div>)}</div>
+      </section>
+    </div>}
   </div>;
+}
+
+function MonthlyControl({ summary, budgets }: { summary: Summary | null; budgets: CategoryBudget[] }) {
+  if (!summary || (!summary.forecastAvailable && budgets.length === 0)) return null;
+  const amounts = new Map(summary.categoryPoints.map((point) => [point.category, point.amount]));
+  return <article className="card monthly-control"><div className="monthly-control-head"><div><span>Контроль месяца</span><strong>{summary.forecastAvailable ? `Прогноз расходов: ${formatMoney(summary.projectedExpense)}` : 'Лимиты категорий'}</strong></div>{summary.forecastAvailable && <small>По темпу за {summary.calculationDays} дн. из {summary.daysInMonth}</small>}</div><div className="budget-progress-list">{budgets.map((budget) => { const spent = amounts.get(budget.category) ?? 0; const percent = Math.min((spent / budget.monthlyLimit) * 100, 100); return <div key={budget.id}><p><span>{budget.category}</span><b>{formatMoney(spent)} <small>из {formatMoney(budget.monthlyLimit)}</small></b></p><div className={`budget-track ${percent >= 100 ? 'over' : percent >= 85 ? 'near' : ''}`}><i style={{ width: `${percent}%` }} /></div></div>; })}</div></article>;
 }
 
 function OperationForm({ form, setForm, categories, vehicles, editing, onType, onSubmit, onCancel }: any) {
