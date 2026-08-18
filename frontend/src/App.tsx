@@ -486,7 +486,19 @@ export default function App() {
 function MonthlyControl({ summary, budgets }: { summary: Summary | null; budgets: CategoryBudget[] }) {
   if (!summary || (!summary.forecastAvailable && budgets.length === 0)) return null;
   const amounts = new Map(summary.categoryPoints.map((point) => [point.category, point.amount]));
-  return <article className="card monthly-control"><div className="monthly-control-head"><div><span>Контроль месяца</span><strong>{summary.forecastAvailable ? `Прогноз расходов: ${formatMoney(summary.projectedExpense)}` : 'Лимиты категорий'}</strong></div>{summary.forecastAvailable && <small>По темпу за {summary.calculationDays} дн. из {summary.daysInMonth}</small>}</div><div className="budget-progress-list">{budgets.map((budget) => { const spent = amounts.get(budget.category) ?? 0; const percent = Math.min((spent / budget.monthlyLimit) * 100, 100); return <div key={budget.id}><p><span>{budget.category}</span><b>{formatMoney(spent)} <small>из {formatMoney(budget.monthlyLimit)}</small></b></p><div className={`budget-track ${percent >= 100 ? 'over' : percent >= 85 ? 'near' : ''}`}><i style={{ width: `${percent}%` }} /></div></div>; })}</div></article>;
+  const elapsed = summary.daysInMonth ? Math.min(100, summary.calculationDays / summary.daysInMonth * 100) : 0;
+  return <article className={`card monthly-control ${budgets.length ? 'with-limits' : 'forecast-only'}`}>
+    {summary.forecastAvailable && <section className="forecast-panel">
+      <header><div><span className="section-label">Прогноз месяца</span><h2>Если сохранить текущий темп</h2></div><small>{summary.calculationDays} из {summary.daysInMonth} дней</small></header>
+      <div className="forecast-values">
+        <div className="forecast-primary"><span>Расходы к концу месяца</span><strong>{formatMoney(summary.projectedExpense)}</strong></div>
+        <div><span>Ожидаемое сальдо</span><strong className={summary.projectedBalance >= 0 ? 'money-in' : 'money-out'}>{formatMoney(summary.projectedBalance)}</strong></div>
+        <div><span>Текущий темп</span><strong>{formatMoney(summary.averageDailyExpense)}<small>/день</small></strong></div>
+      </div>
+      <div className="month-progress" aria-label={`Прошло ${summary.calculationDays} из ${summary.daysInMonth} дней`}><i style={{ width: `${elapsed}%` }} /></div>
+    </section>}
+    {budgets.length > 0 && <section className="budget-panel"><header><span className="section-label">Лимиты категорий</span><small>{budgets.length}</small></header><div className="budget-progress-list">{budgets.map((budget) => { const spent = amounts.get(budget.category) ?? 0; const rawPercent = spent / budget.monthlyLimit * 100; const percent = Math.min(rawPercent, 100); return <div key={budget.id}><p><span>{budget.category}</span><b>{Math.round(rawPercent)}% <small>{formatMoney(spent)} из {formatMoney(budget.monthlyLimit)}</small></b></p><div className={`budget-track ${rawPercent >= 100 ? 'over' : rawPercent >= 85 ? 'near' : ''}`}><i style={{ width: `${percent}%` }} /></div></div>; })}</div></section>}
+  </article>;
 }
 
 function OperationForm({ form, setForm, categories, vehicles, editing, onType, onSubmit, onCancel }: any) {
@@ -711,7 +723,7 @@ const MonthlyChart = memo(function MonthlyChart({ data, theme }: {
   data: Array<{ monthLabel: string; income: number; expense: number }>;
   theme: 'light' | 'dark';
 }) {
-  return <ResponsiveContainer width="100%" height={320}><BarChart data={data}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#3b394d' : '#e9e8f0'} /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip formatter={(value, name) => [formatMoney(Number(value)), name]} contentStyle={tooltipStyle(theme)} /><Legend /><Bar dataKey="income" name="Доход" fill="#00b894" radius={[5, 5, 0, 0]} /><Bar dataKey="expense" name="Расход" fill="#6c5ce7" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer>;
+  return <ResponsiveContainer width="100%" height={320}><BarChart data={data}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#34383f' : '#e9e8f0'} /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip formatter={(value, name) => [formatMoney(Number(value)), name]} contentStyle={tooltipStyle(theme)} /><Legend /><Bar dataKey="income" name="Доход" fill="#00b894" radius={[5, 5, 0, 0]} /><Bar dataKey="expense" name="Расход" fill="#6c5ce7" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer>;
 });
 
 const CategoryChart = memo(function CategoryChart({ points, expense, theme }: {
@@ -755,8 +767,8 @@ function yandexSplitOverdueDays() {
 function message(error: unknown) { return error instanceof Error ? error.message : 'Произошла ошибка'; }
 function tooltipStyle(theme: 'light' | 'dark') {
   return {
-    background: theme === 'dark' ? '#302e43' : '#ffffff',
-    border: `1px solid ${theme === 'dark' ? '#49465d' : '#e5e2ec'}`,
+    background: theme === 'dark' ? '#24272c' : '#ffffff',
+    border: `1px solid ${theme === 'dark' ? '#40454e' : '#e5e2ec'}`,
     borderRadius: '10px',
     color: theme === 'dark' ? '#f6f4ff' : '#242334',
   };
