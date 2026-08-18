@@ -358,23 +358,45 @@ export default function App() {
         })}
       </div>}
 
-      {view === 'overview' && <>
-        <section className={`metrics ${month ? 'monthly-metrics' : ''}`}>{visibleMetrics.map((item) => <Metric key={item.id} title={item.title} value={item.value} kind={item.kind} plain={item.plain} />)}</section>
-        {month && <MonthlyControl summary={summary} budgets={budgets} />}
-        <section className="content-grid">
-          <div className="dashboard-stack">
-            <article className="card chart-card"><CardTitle title={month ? 'Доходы и расходы' : 'Динамика по месяцам'} subtitle={month ? months[month - 1] : `${year} год`} />
-              <MonthlyChart data={chartData} theme={theme} />
-            </article>
-            <div className="recent-heading"><div><h2>Последние операции</h2><p>Быстрый обзор последних записей</p></div><button onClick={() => openView('transactions')}>Все операции →</button></div>
-            <TransactionTable items={transactions} limit={8} loading={loading} onEdit={editOperation} onDelete={removeOperation} />
+      {view === 'overview' && <section className="overview-canvas">
+        <article className="financial-pulse">
+          <div className="pulse-primary">
+            <span className="pulse-eyebrow">{month ? `Расходы · ${months[month - 1]}` : `Расходы · ${year}`}</span>
+            <strong>{formatMoney(summary?.expense ?? 0)}</strong>
+            <p>{month && summary?.forecastAvailable
+              ? `При текущем темпе к концу месяца — ${formatMoney(summary.projectedExpense)}`
+              : `${transactions.length} операций в выбранном периоде`}</p>
           </div>
-          <article className="card category-chart-card"><CardTitle title="Расходы по категориям" subtitle={month ? months[month - 1] : `${year} год`} />
-            <CategoryChart points={summary?.categoryPoints ?? []} expense={summary?.expense ?? 0} theme={theme} />
-            <div className="legend-list full-legend">{(summary?.categoryPoints ?? []).map((point, index) => <div key={point.category} className={point.category === 'Еда' ? 'food-legend-row' : ''} role={point.category === 'Еда' ? 'button' : undefined} tabIndex={point.category === 'Еда' ? 0 : undefined} onClick={() => point.category === 'Еда' && setFoodDetailsOpen(true)} onKeyDown={(event) => { if (point.category === 'Еда' && (event.key === 'Enter' || event.key === ' ')) setFoodDetailsOpen(true); }}><i style={{ background: colors[index % colors.length] }} /><span>{point.category}</span><strong>{summary?.expense ? ((point.amount / summary.expense) * 100).toFixed(1) : '0'}%</strong><small>{formatMoney(point.amount)}</small></div>)}</div>
+          <div className="pulse-secondary">
+            <div><span>Доход</span><strong className="money-in">{formatMoney(summary?.income ?? 0)}</strong></div>
+            <div><span>Сальдо</span><strong className={(summary?.balance ?? 0) >= 0 ? 'money-in' : 'money-out'}>{formatMoney(summary?.balance ?? 0)}</strong></div>
+            {month
+              ? <><div><span>В день</span><strong>{formatMoney(summary?.averageDailyExpense ?? 0)}</strong></div><div><span>Еда в день</span><strong>{formatMoney(summary?.averageDailyFoodExpense ?? 0)}</strong></div></>
+              : <div className="pulse-operation-count"><span>Записей</span><strong>{transactions.length}</strong></div>}
+          </div>
+        </article>
+
+        {month && <MonthlyControl summary={summary} budgets={budgets} />}
+
+        <section className="insight-layout">
+          <article className="card trend-panel">
+            <div className="panel-heading"><div><span>Динамика</span><h2>{month ? 'Деньги в этом месяце' : 'Год в движении'}</h2></div><p>{month ? months[month - 1] : `${year}`}</p></div>
+            <MonthlyChart data={chartData} theme={theme} />
+          </article>
+          <article className="card category-panel">
+            <div className="panel-heading"><div><span>Структура расходов</span><h2>Куда уходят деньги</h2></div></div>
+            <div className="category-panel-body">
+              <CategoryChart points={summary?.categoryPoints ?? []} expense={summary?.expense ?? 0} theme={theme} />
+              <div className="legend-list full-legend">{(summary?.categoryPoints ?? []).map((point, index) => <div key={point.category} className={point.category === 'Еда' ? 'food-legend-row' : ''} role={point.category === 'Еда' ? 'button' : undefined} tabIndex={point.category === 'Еда' ? 0 : undefined} onClick={() => point.category === 'Еда' && setFoodDetailsOpen(true)} onKeyDown={(event) => { if (point.category === 'Еда' && (event.key === 'Enter' || event.key === ' ')) setFoodDetailsOpen(true); }}><i style={{ background: colors[index % colors.length] }} /><span>{point.category}</span><strong>{summary?.expense ? ((point.amount / summary.expense) * 100).toFixed(1) : '0'}%</strong><small>{formatMoney(point.amount)}</small></div>)}</div>
+            </div>
           </article>
         </section>
-      </>}
+
+        <section className="activity-section">
+          <div className="recent-heading"><div><span className="section-label">Журнал</span><h2>Последние операции</h2><p>Самые свежие изменения без лишнего шума</p></div><button onClick={() => openView('transactions')}>Открыть все <span>→</span></button></div>
+          <TransactionTable items={transactions} limit={8} loading={loading} onEdit={editOperation} onDelete={removeOperation} />
+        </section>
+      </section>}
 
       {view === 'transactions' && <TransactionTable items={transactions} loading={loading} onEdit={editOperation} onDelete={removeOperation} />}
 
