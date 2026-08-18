@@ -25,7 +25,13 @@ type MetricId = 'income' | 'expense' | 'balance' | 'operations' | 'daily' | 'foo
 type Preferences = { compact: boolean; metrics: MetricId[] };
 const defaultPreferences: Preferences = { compact: false, metrics: ['income', 'expense', 'balance', 'operations', 'daily', 'food'] };
 function readPreferences(): Preferences {
-  try { return { ...defaultPreferences, ...JSON.parse(localStorage.getItem('finance-preferences') ?? '{}') }; }
+  try {
+    const stored = JSON.parse(localStorage.getItem('finance-preferences') ?? '{}') as Partial<Preferences>;
+    const validMetrics = Array.isArray(stored.metrics)
+      ? stored.metrics.filter((item): item is MetricId => defaultPreferences.metrics.includes(item as MetricId))
+      : defaultPreferences.metrics;
+    return { compact: stored.compact === true, metrics: [...new Set(validMetrics)] };
+  }
   catch { return defaultPreferences; }
 }
 
@@ -355,7 +361,7 @@ export default function App() {
       <header className="topbar">
         <div><p className="kicker">{subtitle(view, month)}</p><h1>{title(view, month, year)}</h1></div>
         {view === 'overview' && month === null && <div className="backup-actions">
-          <button type="button" onClick={() => setSettingsOpen(true)}><span className="backup-icon" aria-hidden="true">⚙</span>Настроить</button>
+          <button type="button" onClick={() => setSettingsOpen(true)}><AppIcon name="settings" />Настроить</button>
           <button type="button" onClick={() => exportBackup().catch((requestError) => setError(message(requestError)))}>
             <span className="backup-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 3h4v8h3.5L12 16.5 6.5 11H10V3ZM5 18h14v3H5v-3Z" /></svg></span>Экспорт
           </button>
@@ -366,7 +372,7 @@ export default function App() {
             onChange={(event) => void restoreBackup(event.target.files?.[0])} />
         </div>}
       </header>
-      {error && <div className="error">{error}<button onClick={() => setError('')}>×</button></div>}
+      {error && <div className="error">{error}<button onClick={() => setError('')} aria-label="Закрыть сообщение"><AppIcon name="close" /></button></div>}
 
       {(view === 'overview' || view === 'transactions') && <div className="period-switcher">
         <button className={month === null ? 'active' : ''} onClick={() => setMonth(null)}>Весь год</button>
@@ -445,26 +451,26 @@ export default function App() {
         <form className="category-form" onSubmit={addCategory}><input required value={categoryName} onChange={(event) => setCategoryName(event.target.value)} placeholder="Название новой категории" /><select value={categoryType} onChange={(event) => setCategoryType(event.target.value as TransactionType)}><option value="EXPENSE">Расход</option><option value="INCOME">Доход</option></select><button className="primary">Добавить</button></form>
       </article>}
     </main>
-    <button className="quick-add" onClick={() => { cancelEdit(); setCreatingOperation(true); }} aria-label="Добавить операцию"><span>＋</span><b>Операция</b></button>
+    <button className="quick-add" onClick={() => { cancelEdit(); setCreatingOperation(true); }} aria-label="Добавить операцию"><AppIcon name="plus" /><b>Операция</b></button>
     {editingId && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => {
       if (event.target === event.currentTarget) cancelEdit();
     }}>
       <section className="card operation-modal" role="dialog" aria-modal="true" aria-labelledby="edit-operation-title">
-        <button type="button" className="modal-close" onClick={cancelEdit} aria-label="Закрыть">×</button>
+        <button type="button" className="modal-close" onClick={cancelEdit} aria-label="Закрыть"><AppIcon name="close" /></button>
         <div className="card-title"><div><h2 id="edit-operation-title">Редактировать операцию</h2><p>Операция №{editingId}</p></div></div>
         <OperationForm form={form} setForm={setForm} categories={availableCategories} vehicles={vehicles} editing onType={changeType} onSubmit={saveOperation} onCancel={cancelEdit} />
       </section>
     </div>}
     {creatingOperation && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeOperationModal(); }}>
       <section className="card operation-modal" role="dialog" aria-modal="true" aria-labelledby="create-operation-title">
-        <button type="button" className="modal-close" onClick={closeOperationModal} aria-label="Закрыть">×</button>
+        <button type="button" className="modal-close" onClick={closeOperationModal} aria-label="Закрыть"><AppIcon name="close" /></button>
         <div className="card-title"><div><h2 id="create-operation-title">Новая операция</h2><p>Дата и выбранный тип сохраняются между записями</p></div></div>
         <OperationForm form={form} setForm={setForm} categories={availableCategories} vehicles={vehicles} editing={false} onType={changeType} onSubmit={saveOperation} onCancel={closeOperationModal} />
       </section>
     </div>}
     {foodDetailsOpen && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setFoodDetailsOpen(false); }}>
       <section className="card food-details-modal" role="dialog" aria-modal="true" aria-labelledby="food-details-title">
-        <button type="button" className="modal-close" onClick={() => setFoodDetailsOpen(false)} aria-label="Закрыть">×</button>
+        <button type="button" className="modal-close" onClick={() => setFoodDetailsOpen(false)} aria-label="Закрыть"><AppIcon name="close" /></button>
         <div className="card-title"><div><h2 id="food-details-title">Расходы на еду</h2><p>{month ? months[month - 1] : `${year} год`} · по подкатегориям</p></div></div>
         <CategoryChart points={foodBreakdown} expense={foodBreakdown.reduce((total, point) => total + point.amount, 0)} theme={theme} />
         <div className="legend-list full-legend food-details-legend">{foodBreakdown.map((point, index) => <div key={point.category}><i style={{ background: colors[index % colors.length] }} /><span>{point.category}</span><strong>{summary?.foodExpense ? ((point.amount / summary.foodExpense) * 100).toFixed(1) : '0'}%</strong><small>{formatMoney(point.amount)}</small></div>)}</div>
@@ -472,12 +478,12 @@ export default function App() {
     </div>}
     {settingsOpen && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSettingsOpen(false); }}>
       <section className="card settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-        <button type="button" className="modal-close" onClick={() => setSettingsOpen(false)} aria-label="Закрыть">×</button>
+        <button type="button" className="modal-close" onClick={() => setSettingsOpen(false)} aria-label="Закрыть"><AppIcon name="close" /></button>
         <CardTitle title="Персонализация" subtitle="Настройте главную под себя" />
-        <div className="preference-section"><h3>Карточки показателей</h3>{defaultPreferences.metrics.map((id) => { const index = preferences.metrics.indexOf(id); return <div className="preference-row" key={id}><label><input type="checkbox" checked={index >= 0} onChange={() => setPreferences((current) => ({ ...current, metrics: current.metrics.includes(id) ? current.metrics.filter((item) => item !== id) : [...current.metrics, id] }))} />{metricDefinitions[id].title}</label><span><button type="button" disabled={index <= 0} onClick={() => moveMetric(id, -1)} aria-label="Переместить выше">↑</button><button type="button" disabled={index < 0 || index === preferences.metrics.length - 1} onClick={() => moveMetric(id, 1)} aria-label="Переместить ниже">↓</button></span></div>; })}</div>
-        <label className="density-switch"><input type="checkbox" checked={preferences.compact} onChange={(event) => setPreferences((current) => ({ ...current, compact: event.target.checked }))} /><span>Компактный режим</span></label>
+        <div className="preference-section"><h3>Карточки показателей</h3>{defaultPreferences.metrics.map((id) => { const index = preferences.metrics.indexOf(id); return <div className="preference-row" key={id}><label><input type="checkbox" checked={index >= 0} onChange={() => setPreferences((current) => ({ ...current, metrics: current.metrics.includes(id) ? current.metrics.filter((item) => item !== id) : [...current.metrics, id] }))} />{metricDefinitions[id].title}</label><span><button type="button" disabled={index <= 0} onClick={() => moveMetric(id, -1)} aria-label="Переместить выше"><AppIcon name="up" /></button><button type="button" disabled={index < 0 || index === preferences.metrics.length - 1} onClick={() => moveMetric(id, 1)} aria-label="Переместить ниже"><AppIcon name="down" /></button></span></div>; })}</div>
+        <section className="density-setting" aria-labelledby="density-title"><div><h3 id="density-title">Плотность интерфейса</h3><p>Компактный режим помещает больше данных на экран.</p></div><div className="density-options"><button type="button" className={!preferences.compact ? 'selected' : ''} onClick={() => setPreferences((current) => ({ ...current, compact: false }))}>Комфортно</button><button type="button" className={preferences.compact ? 'selected' : ''} onClick={() => setPreferences((current) => ({ ...current, compact: true }))}>Компактно</button></div></section>
         <form className="budget-form" onSubmit={submitBudget}><h3>Месячные лимиты</h3><select value={budgetCategory} onChange={(event) => setBudgetCategory(event.target.value)}>{categories.filter((item) => item.type === 'EXPENSE').map((item) => <option key={item.id}>{item.name}</option>)}</select><input required type="number" min="1" step="1" value={budgetAmount} onChange={(event) => setBudgetAmount(event.target.value)} placeholder="Лимит в ₽" /><button className="primary">Сохранить</button></form>
-        <div className="budget-settings-list">{budgets.map((budget) => <div key={budget.id}><span>{budget.category}</span><strong>{formatMoney(budget.monthlyLimit)}</strong><button type="button" onClick={() => deleteBudget(budget.id).then(() => getBudgets().then(setBudgets)).catch((requestError) => setError(message(requestError)))} aria-label={`Удалить лимит ${budget.category}`}>×</button></div>)}</div>
+        <div className="budget-settings-list">{budgets.map((budget) => <div key={budget.id}><span>{budget.category}</span><strong>{formatMoney(budget.monthlyLimit)}</strong><button type="button" onClick={() => deleteBudget(budget.id).then(() => getBudgets().then(setBudgets)).catch((requestError) => setError(message(requestError)))} aria-label={`Удалить лимит ${budget.category}`}><AppIcon name="trash" /></button></div>)}</div>
       </section>
     </div>}
   </div>;
@@ -487,13 +493,14 @@ function MonthlyControl({ summary, budgets }: { summary: Summary | null; budgets
   if (!summary || (!summary.forecastAvailable && budgets.length === 0)) return null;
   const amounts = new Map(summary.categoryPoints.map((point) => [point.category, point.amount]));
   const elapsed = summary.daysInMonth ? Math.min(100, summary.calculationDays / summary.daysInMonth * 100) : 0;
+  const projectedRemaining = Math.max(0, summary.projectedExpense - summary.expense);
   return <article className={`card monthly-control ${budgets.length ? 'with-limits' : 'forecast-only'}`}>
     {summary.forecastAvailable && <section className="forecast-panel">
       <header><div><span className="section-label">Прогноз месяца</span><h2>Если сохранить текущий темп</h2></div><small>{summary.calculationDays} из {summary.daysInMonth} дней</small></header>
       <div className="forecast-values">
         <div className="forecast-primary"><span>Расходы к концу месяца</span><strong>{formatMoney(summary.projectedExpense)}</strong></div>
         <div><span>Ожидаемое сальдо</span><strong className={summary.projectedBalance >= 0 ? 'money-in' : 'money-out'}>{formatMoney(summary.projectedBalance)}</strong></div>
-        <div><span>Текущий темп</span><strong>{formatMoney(summary.averageDailyExpense)}<small>/день</small></strong></div>
+        <div><span>Ещё до конца месяца</span><strong>{formatMoney(projectedRemaining)}</strong></div>
       </div>
       <div className="month-progress" aria-label={`Прошло ${summary.calculationDays} из ${summary.daysInMonth} дней`}><i style={{ width: `${elapsed}%` }} /></div>
     </section>}
@@ -567,7 +574,7 @@ function TransactionTable({ items, limit, loading, onEdit, onDelete }: { items: 
         </div>
       </details>
     </div>
-    <div className="table-wrap"><table><thead><tr><th>Дата</th><th>Категория</th><th>Комментарий</th><th>Сумма</th><th /></tr></thead><tbody>{visibleItems.map((item) => <tr key={item.id}><td data-label="Дата">{formatDate(item.transactionDate)}</td><td data-label="Категория"><b>{item.category}{item.foodSubcategory ? ` · ${item.foodSubcategory}` : ''}{item.vehicleExpenseType ? ` · ${vehicleExpenseTypeLabel(item.vehicleExpenseType)}` : ''}</b>{(item.odometerKm != null || item.fuelLiters != null) && <small className="odometer-note">{item.odometerKm != null ? `${formatNumber(item.odometerKm)} км` : ''}{item.odometerKm != null && item.fuelLiters != null ? ' · ' : ''}{item.fuelLiters != null ? `${formatFuelLiters(item.fuelLiters)} л` : ''}</small>}</td><td data-label="Комментарий">{item.description || '—'}</td><td data-label="Сумма" className={item.type === 'INCOME' ? 'money-in' : 'money-out'}>{item.type === 'INCOME' ? '+' : '−'} {formatMoney(item.amount)}</td><td className="row-actions"><button onClick={() => onEdit(item)} title="Редактировать" aria-label="Редактировать">✎</button><button className="delete" onClick={() => onDelete(item)} title="Удалить" aria-label="Удалить">×</button></td></tr>)}</tbody></table></div>
+    <div className="table-wrap"><table><thead><tr><th>Дата</th><th>Категория</th><th>Комментарий</th><th>Сумма</th><th /></tr></thead><tbody>{visibleItems.map((item) => <tr key={item.id}><td data-label="Дата">{formatDate(item.transactionDate)}</td><td data-label="Категория"><b>{item.category}{item.foodSubcategory ? ` · ${item.foodSubcategory}` : ''}{item.vehicleExpenseType ? ` · ${vehicleExpenseTypeLabel(item.vehicleExpenseType)}` : ''}</b>{(item.odometerKm != null || item.fuelLiters != null) && <small className="odometer-note">{item.odometerKm != null ? `${formatNumber(item.odometerKm)} км` : ''}{item.odometerKm != null && item.fuelLiters != null ? ' · ' : ''}{item.fuelLiters != null ? `${formatFuelLiters(item.fuelLiters)} л` : ''}</small>}</td><td data-label="Комментарий">{item.description || '—'}</td><td data-label="Сумма" className={item.type === 'INCOME' ? 'money-in' : 'money-out'}>{item.type === 'INCOME' ? '+' : '−'} {formatMoney(item.amount)}</td><td className="row-actions"><button onClick={() => onEdit(item)} title="Редактировать" aria-label="Редактировать"><AppIcon name="edit" /></button><button className="delete" onClick={() => onDelete(item)} title="Удалить" aria-label="Удалить"><AppIcon name="trash" /></button></td></tr>)}</tbody></table></div>
   </section>;
 }
 
@@ -608,7 +615,7 @@ function DebtView({ debts, form, setForm, editingId, payingId, paymentForm, setP
               {debt.name.trim().toLocaleLowerCase('ru-RU') === 'яндекс сплит' && debt.remainingAmount > 0 &&
                 <span className="debt-overdue"><i />{yandexSplitOverdueDays()} дней просрочки</span>}
             </div><h2>{debt.name}</h2><p>{debt.note || `Создан ${formatDate(debt.createdDate)}`}</p></div>
-            <div className="debt-actions"><button onClick={() => onEdit(debt)} title="Редактировать">✎</button><button className="delete" onClick={() => onDelete(debt)} title="Удалить">×</button></div>
+            <div className="debt-actions"><button onClick={() => onEdit(debt)} title="Редактировать" aria-label="Редактировать"><AppIcon name="edit" /></button><button className="delete" onClick={() => onDelete(debt)} title="Удалить" aria-label="Удалить"><AppIcon name="trash" /></button></div>
           </div>
           <div className="debt-values"><div><span>Осталось</span><strong>{formatMoney(debt.remainingAmount)}</strong></div><div><span>Погашено</span><b>{formatMoney(debt.paidAmount)} из {formatMoney(debt.initialAmount)}</b></div></div>
           <div className="debt-progress"><i style={{ width: `${debt.progressPercent}%` }} /></div>
@@ -697,7 +704,7 @@ function SavingsView({ goals, setGoals, setError }: { goals: SavingsGoal[]; setG
       <div className="savings-list">
         {goals.length === 0 && <article className="card debt-empty"><span>◎</span><h2>Пока нет целей</h2><p>Создайте первую — например, финансовую подушку.</p></article>}
         {goals.map((goal) => <article className={`card savings-card ${goal.progressPercent >= 100 ? 'complete' : ''}`} key={goal.id} style={{ '--goal-color': goal.color } as React.CSSProperties}>
-          <div className="debt-card-head"><div><span className="debt-status">{goal.progressPercent >= 100 ? 'Цель достигнута' : 'Активная цель'}</span><h2>{goal.name}</h2><p>{goal.note || (goal.targetDate ? `Цель к ${formatDate(goal.targetDate)}` : 'Без установленного срока')}</p></div><div className="debt-actions"><button onClick={() => editGoal(goal)} title="Редактировать">✎</button><button className="delete" onClick={() => void removeGoal(goal)} title="Удалить">×</button></div></div>
+          <div className="debt-card-head"><div><span className="debt-status">{goal.progressPercent >= 100 ? 'Цель достигнута' : 'Активная цель'}</span><h2>{goal.name}</h2><p>{goal.note || (goal.targetDate ? `Цель к ${formatDate(goal.targetDate)}` : 'Без установленного срока')}</p></div><div className="debt-actions"><button onClick={() => editGoal(goal)} title="Редактировать" aria-label="Редактировать"><AppIcon name="edit" /></button><button className="delete" onClick={() => void removeGoal(goal)} title="Удалить" aria-label="Удалить"><AppIcon name="trash" /></button></div></div>
           <div className="savings-amount"><strong>{formatMoney(goal.savedAmount)}</strong><span>из {formatMoney(goal.targetAmount)}</span></div>
           <div className="debt-progress"><i style={{ width: `${Math.min(100, goal.progressPercent)}%`, background: goal.color }} /></div>
           <div className="debt-progress-label"><span>{goal.progressPercent}%</span><span>осталось {formatMoney(goal.remainingAmount)}</span></div>
@@ -711,8 +718,8 @@ function SavingsView({ goals, setGoals, setError }: { goals: SavingsGoal[]; setG
             <label>Дата<input required type="date" value={entry.entryDate} onChange={(event) => setEntry({ ...entry, entryDate: event.target.value })} /></label>
             <label className="payment-comment">Комментарий<input value={entry.comment} onChange={(event) => setEntry({ ...entry, comment: event.target.value })} placeholder="Необязательно" /></label>
             <div className="form-actions"><button className="primary">{entry.withdrawal ? 'Снять из цели' : 'Добавить в цель'}</button><button type="button" className="secondary" onClick={() => setActiveGoalId(null)}>Отмена</button></div>
-          </form> : <button className="primary debt-pay-button" onClick={() => { setActiveGoalId(goal.id); setEntry(freshSavingsEntry()); }}>＋ Изменить сумму</button>}
-          {goal.entries.length > 0 && <details className="payment-history"><summary>История · {goal.entries.length}</summary><div>{goal.entries.map((item) => <p key={item.id}><span>{formatDate(item.entryDate)}{item.comment ? ` · ${item.comment}` : ''}</span><b className={item.amount >= 0 ? 'money-in' : 'money-out'}>{item.amount >= 0 ? '+' : '−'} {formatMoney(Math.abs(item.amount))}</b><button className="entry-delete" onClick={() => void removeEntry(goal.id, item.id)} title="Удалить">×</button></p>)}</div></details>}
+          </form> : <button className="primary debt-pay-button icon-label" onClick={() => { setActiveGoalId(goal.id); setEntry(freshSavingsEntry()); }}><AppIcon name="plus" />Изменить сумму</button>}
+          {goal.entries.length > 0 && <details className="payment-history"><summary>История · {goal.entries.length}</summary><div>{goal.entries.map((item) => <p key={item.id}><span>{formatDate(item.entryDate)}{item.comment ? ` · ${item.comment}` : ''}</span><b className={item.amount >= 0 ? 'money-in' : 'money-out'}>{item.amount >= 0 ? '+' : '−'} {formatMoney(Math.abs(item.amount))}</b><button className="entry-delete" onClick={() => void removeEntry(goal.id, item.id)} title="Удалить" aria-label="Удалить"><AppIcon name="trash" /></button></p>)}</div></details>}
         </article>)}
       </div>
     </section>
@@ -733,6 +740,20 @@ const CategoryChart = memo(function CategoryChart({ points, expense, theme }: {
 }) {
   return <ResponsiveContainer width="100%" height={270}><PieChart><Pie data={points} dataKey="amount" nameKey="category" innerRadius={72} outerRadius={108} paddingAngle={1} cornerRadius={4} stroke="none">{points.map((entry, index) => <Cell key={entry.category} fill={colors[index % colors.length]} />)}<Label value="Расходы" position="center" dy={-12} className="donut-caption" /><Label value={compactMoney(expense)} position="center" dy={13} className="donut-total" /></Pie><Tooltip formatter={(value, _name, item) => [`${formatMoney(Number(value))} · ${expense ? ((Number(value) / expense) * 100).toFixed(1) : '0'}%`, item.payload?.category ?? 'Категория']} contentStyle={tooltipStyle(theme)} /></PieChart></ResponsiveContainer>;
 });
+
+type AppIconName = 'settings' | 'edit' | 'trash' | 'close' | 'plus' | 'up' | 'down';
+function AppIcon({ name }: { name: AppIconName }) {
+  const paths: Record<AppIconName, React.ReactNode> = {
+    settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.08A1.7 1.7 0 0 0 8.94 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.57 15 1.7 1.7 0 0 0 3 14H3v-4h.08A1.7 1.7 0 0 0 4.6 8.94a1.7 1.7 0 0 0-.34-1.88L4.2 7l2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.57 1.7 1.7 0 0 0 10 3h4v.08A1.7 1.7 0 0 0 15.06 4.6a1.7 1.7 0 0 0 1.88-.34L17 4.2 19.83 7l-.06.06A1.7 1.7 0 0 0 19.43 9 1.7 1.7 0 0 0 21 10h.08v4H21a1.7 1.7 0 0 0-1.6 1Z" /></>,
+    edit: <><path d="M4 20h4l10.5-10.5a2.83 2.83 0 0 0-4-4L4 16v4Z" /><path d="m13.5 6.5 4 4" /></>,
+    trash: <><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5" /></>,
+    close: <path d="m7 7 10 10M17 7 7 17" />,
+    plus: <path d="M12 5v14M5 12h14" />,
+    up: <path d="m7 14 5-5 5 5" />,
+    down: <path d="m7 10 5 5 5-5" />,
+  };
+  return <svg className="app-icon" viewBox="0 0 24 24" aria-hidden="true">{paths[name]}</svg>;
+}
 
 function Metric({ title, value, kind, plain, suffix = '' }: { title: string; value?: number; kind?: string; plain?: boolean; suffix?: string }) { return <article className={`metric ${kind ?? ''}`}><span>{title}</span><strong>{plain ? `${formatNumber(value ?? 0)}${suffix}` : formatMoney(value ?? 0)}</strong></article>; }
 function MileageNotice({ summary }: { summary: VehicleSummary }) {
