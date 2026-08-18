@@ -17,89 +17,6 @@ select {
   cursor: pointer;
 }
 
-/* 2026 interface refresh: calm surfaces, clear hierarchy, fewer containers. */
-:root { color: #202124; background: #f7f7f8; }
-.app { grid-template-columns: 232px minmax(0, 1fr); background: #f7f7f8; }
-.sidebar { padding: 24px 16px; background: #141619; border-right-color: #282b30; }
-.home-link { margin: 0 6px 24px; padding: 7px 8px; color: #8f959d; }
-.brand { padding: 0 8px 24px; }
-.brand span { width: 36px; height: 36px; border-radius: 10px; background: #725ff0; font-size: 21px; }
-.brand strong { font-size: 18px; letter-spacing: -.025em; }
-.sidebar-controls { padding: 0 8px 20px; border-bottom-color: #2b2e33; }
-.sidebar-controls select { background-color: #1d2024; border-color: #353940; }
-nav { gap: 2px; }
-nav button { padding: 10px 12px; border-radius: 8px; color: #989ea7; font-size: 14px; }
-nav button:hover { background: #1d2024; }
-nav button.active { background: #25282d; box-shadow: inset 2px 0 #8b7df2; }
-main { width: 100%; padding: 32px clamp(24px, 3.2vw, 52px) 56px; background: #f7f7f8; }
-.topbar { margin-bottom: 22px; }
-.kicker { margin-bottom: 5px; color: #92949b; font-size: 11px; letter-spacing: .11em; }
-h1 { font-size: clamp(29px, 2.6vw, 38px); }
-.backup-actions { gap: 7px; }
-.backup-actions button { min-height: 40px; padding: 0 13px; border-color: #dedfe3; border-radius: 9px; box-shadow: none; font-size: 13px; }
-.backup-actions button:hover { transform: none; }
-.period-switcher { gap: 0; margin: 0 0 18px; padding: 3px; border-color: #e2e3e6; border-radius: 11px; background: #efeff1; }
-.period-switcher button { min-height: 36px; border-radius: 8px; color: #777a82; }
-.period-switcher button.active { color: #4f43b9; box-shadow: 0 1px 4px rgba(28,28,34,.08); }
-.metrics, .metrics.monthly-metrics, .vehicle-metrics {
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin-bottom: 16px;
-  overflow: hidden; border: 1px solid #e2e3e6; border-radius: 14px; background: #fff;
-}
-.metrics.monthly-metrics { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-.metric { min-height: 112px; padding: 20px; border: 0; border-right: 1px solid #ececef; border-radius: 0; box-shadow: none; background: transparent; }
-.metric:last-child { border-right: 0; }
-.metric::before { left: 20px; right: auto; top: 21px; width: 6px; height: 6px; border-radius: 50%; }
-.metric span { padding-left: 14px; color: #777a82; font-size: 12px; }
-.metric strong { font-size: clamp(19px, 1.55vw, 25px); }
-.card { border-color: #e2e3e6; border-radius: 14px; box-shadow: none; }
-.content-grid { grid-template-columns: minmax(0, 1.65fr) minmax(350px, .85fr); gap: 16px; }
-.card-title h2, .recent-heading h2 { font-size: 18px; letter-spacing: -.025em; }
-.card-title p, .recent-heading p { font-size: 12px; }
-.chart-card { min-height: 390px; }
-.category-chart-card { min-height: 390px; }
-.recent-heading { margin-top: 8px; }
-.transactions { overflow: hidden; }
-th { color: #8b8d94; font-size: 10px; letter-spacing: .09em; }
-th, td { padding-block: 12px; }
-tbody tr:last-child td { border-bottom: 0; }
-.monthly-control { border-color: #e2e3e6; }
-.forecast-panel, .budget-panel { padding: 21px 22px; }
-.forecast-panel > header, .budget-panel > header { margin-bottom: 15px; }
-.forecast-values { gap: 0; overflow: hidden; border: 1px solid #ececef; border-radius: 11px; }
-.forecast-values > div, .forecast-primary { padding: 13px 15px; border-right: 1px solid #ececef; border-radius: 0; background: transparent !important; }
-.forecast-values > div:last-child { border-right: 0; }
-.forecast-primary strong { color: inherit; }
-.forecast-values span { min-height: 30px; }
-.month-progress { margin-top: 15px; }
-.efficiency-summary { gap: 0; overflow: hidden; border: 1px solid #ececef; border-radius: 12px; }
-.efficiency-summary > div { border-right: 1px solid #ececef; border-radius: 0; background: transparent; }
-.efficiency-summary > div:last-child { border-right: 0; }
-.debt-layout, .savings-layout { gap: 18px; }
-.debt-card::before, .savings-card::before { width: 3px; }
-.debt-values div, .savings-insights div, .payment-form { background: #f6f6f7; }
-.quick-add { right: 24px; bottom: 22px; min-height: 46px; border-radius: 12px; background: #6957e7; box-shadow: 0 10px 26px rgba(69,55,174,.24); }
-.settings-modal { width: min(560px, calc(100vw - 32px)); }
-.budget-form { margin-top: 20px; padding-top: 0; border-top: 0; }
-
-html[data-theme="dark"] { background: #0f1012; }
-html[data-theme="dark"] body, html[data-theme="dark"] main, html[data-theme="dark"] .app { background: #111315; }
-html[data-theme="dark"] .sidebar { background: #0d0f11; border-color: #292c31; }
-html[data-theme="dark"] .metric,
-html[data-theme="dark"] .card { background: #191b1f; border-color: #30343a; box-shadow: none; }
-html[data-theme="dark"] .metrics,
-html[data-theme="dark"] .metrics.monthly-metrics,
-html[data-theme="dark"] .vehicle-metrics { background: #191b1f; border-color: #30343a; }
-html[data-theme="dark"] .metric { background: transparent; border-color: #2d3035; }
-html[data-theme="dark"] .forecast-values, html[data-theme="dark"] .efficiency-summary { border-color: #30343a; }
-html[data-theme="dark"] .forecast-values > div, html[data-theme="dark"] .efficiency-summary > div { border-color: #30343a; }
-html[data-theme="dark"] .debt-values div, html[data-theme="dark"] .savings-insights div, html[data-theme="dark"] .payment-form { background: #202328; }
-
-@media (max-width: 1250px) {
-  .metrics.monthly-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .metrics.monthly-metrics .metric:nth-child(3) { border-right: 0; }
-  .metrics.monthly-metrics .metric:nth-child(-n+3) { border-bottom: 1px solid #ececef; }
-  html[data-theme="dark"] .metrics.monthly-metrics .metric:nth-child(-n+3) { border-color: #2d3035; }
-}
 button { cursor: pointer; }
 button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid #8071f2; outline-offset: 3px; }
 button:disabled { cursor: not-allowed; }
@@ -725,6 +642,111 @@ html[data-theme="dark"] body .forecast-values > div, html[data-theme="dark"] bod
   body .app { grid-template-columns: 210px minmax(0, 1fr); }
   body main { padding-inline: 26px; }
   body .content-grid { grid-template-columns: 1fr; }
+}
+
+/* Complete refresh for data views and editors. */
+body .transactions { padding: 0; }
+body .transactions-head { align-items: center; padding: 20px 22px 4px; }
+body .transactions-head .card-title { margin: 0; }
+body .transactions .table-wrap { padding: 0 12px 8px; }
+body .transactions table { font-size: 13px; }
+body .transactions th { padding-top: 13px; }
+body .category-filter { width: 205px; flex-basis: 205px; }
+body .category-filter summary { min-height: 38px; padding: 8px 12px; border-radius: 9px; background: #f7f7f8; }
+body .category-filter-menu { border-radius: 11px; box-shadow: 0 18px 45px rgba(24,24,29,.13); }
+body .settings-card { max-width: none; padding: 0; overflow: hidden; }
+body .settings-card > .card-title { margin: 0; padding: 22px 24px 18px; border-bottom: 1px solid #ececef; }
+body .category-groups { grid-template-columns: 1fr 1fr; gap: 0; }
+body .category-groups > div { min-width: 0; padding: 22px 24px; }
+body .category-groups > div + div { border-left: 1px solid #ececef; }
+body .category-groups h3 { margin-bottom: 14px; color: #777a82; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+body .category-pills { display: grid; gap: 0; max-height: none; overflow: visible; }
+body .category-pills span, body .category-pills span.income-pill { padding: 10px 0; border-bottom: 1px solid #f0f0f2; border-radius: 0; color: #303238; background: transparent; font-size: 13px; font-weight: 600; }
+body .category-pills span:last-child { border-bottom: 0; }
+body .category-form { margin: 0; padding: 18px 24px 22px; border-top: 1px solid #ececef; background: #fafafa; }
+body .section-actions { margin: -58px 0 22px; }
+body .export-button { min-height: 40px; padding: 9px 14px; border-radius: 9px; font-size: 13px; }
+body .vehicle-details .card { padding: 0; overflow: hidden; }
+body .vehicle-details .card-title { margin: 0; padding: 20px 22px 16px; border-bottom: 1px solid #ececef; }
+body .efficiency-summary { margin: 18px 22px 22px; }
+body .efficiency-summary > div { min-height: 105px; padding: 17px 19px; }
+body .efficiency-summary span { margin-bottom: 13px; font-size: 12px; }
+body .mileage-notice { margin: 0 22px 22px; }
+body .debt-layout, body .savings-layout { grid-template-columns: minmax(270px, .62fr) minmax(0, 1.55fr); gap: 18px; }
+body .debt-editor, body .savings-editor { top: 18px; padding: 20px; }
+body .debt-list, body .savings-list { gap: 12px; }
+body .debt-card, body .savings-card { padding: 22px 24px; }
+body .debt-card-head h2 { font-size: 20px; }
+body .debt-values { gap: 0; overflow: hidden; margin-top: 18px; border: 1px solid #ececef; border-radius: 11px; }
+body .debt-values div { padding: 13px 15px; border-radius: 0; background: transparent; }
+body .debt-values div + div { border-left: 1px solid #ececef; }
+body .debt-values strong { font-size: 21px; }
+body .debt-pay-button { min-height: 42px; margin-top: 16px; background: #f0eefc; color: #5546c8; box-shadow: none; }
+body .debt-pay-button:hover { background: #e8e4fb; box-shadow: none; }
+body .payment-form { border: 1px solid #ececef; border-radius: 11px; }
+body .savings-amount { margin-top: 18px; }
+body .savings-amount strong { font-size: 25px; }
+body .savings-insights { gap: 0; overflow: hidden; border: 1px solid #ececef; border-radius: 11px; }
+body .savings-insights div { border-radius: 0; background: transparent; }
+body .savings-insights div + div { border-left: 1px solid #ececef; }
+body input, body select { min-height: 42px; border-color: #dfe0e4; border-radius: 9px; background-color: #fff; }
+body input:hover, body select:hover { border-color: #c9cad0; }
+body .segmented, body .vehicle-subtype > div { border: 1px solid #e3e3e7; background: #f2f2f4; }
+body .primary, body .secondary { min-height: 42px; border-radius: 9px; }
+body .modal-backdrop { padding: 24px; background: rgba(12,13,15,.64); backdrop-filter: blur(8px); }
+body .operation-modal, body .food-details-modal, body .settings-modal { border-radius: 16px; box-shadow: 0 30px 90px rgba(0,0,0,.28); }
+body .operation-modal { width: min(720px, 100%); padding: 26px; }
+body .modal-close { top: 16px; right: 16px; border: 1px solid #e2e3e6; background: #f7f7f8; }
+body .modal-close:hover { background: #efeff1; }
+
+html[data-theme="dark"] body .transactions-head,
+html[data-theme="dark"] body .settings-card > .card-title,
+html[data-theme="dark"] body .category-form,
+html[data-theme="dark"] body .vehicle-details .card-title { border-color: #30343a; }
+html[data-theme="dark"] body .category-form { background: #17191c; }
+html[data-theme="dark"] body .category-groups > div + div,
+html[data-theme="dark"] body .category-pills span,
+html[data-theme="dark"] body .debt-values,
+html[data-theme="dark"] body .debt-values div + div,
+html[data-theme="dark"] body .savings-insights,
+html[data-theme="dark"] body .savings-insights div + div,
+html[data-theme="dark"] body .payment-form { border-color: #30343a; }
+html[data-theme="dark"] body .category-pills span,
+html[data-theme="dark"] body .category-pills span.income-pill { color: #e4e6e9; }
+html[data-theme="dark"] body .category-filter summary,
+html[data-theme="dark"] body input,
+html[data-theme="dark"] body select { background-color: #202328; border-color: #3a3e45; }
+html[data-theme="dark"] body .debt-values div,
+html[data-theme="dark"] body .savings-insights div { background: transparent; }
+html[data-theme="dark"] body .debt-pay-button { color: #c4bcff; background: #29273a; }
+html[data-theme="dark"] body .modal-close { border-color: #3a3e45; background: #24272c; }
+
+@media (max-width: 1050px) {
+  body .debt-layout, body .savings-layout { grid-template-columns: 1fr; }
+  body .debt-editor, body .savings-editor { position: static; }
+}
+
+@media (max-width: 700px) {
+  body .transactions-head { display: grid; gap: 13px; padding: 17px 16px 0; }
+  body .transactions .table-wrap { padding: 0 16px 8px; }
+  body .category-filter { width: 100%; margin: 0 0 8px; }
+  body .category-filter summary { min-height: 42px; }
+  body .category-groups { grid-template-columns: 1fr; }
+  body .category-groups > div { padding: 18px; }
+  body .category-groups > div + div { border-top: 1px solid #ececef; border-left: 0; }
+  body .category-form { padding: 18px; }
+  body .section-actions { margin: 0 0 14px; }
+  body .efficiency-summary { margin: 14px; border: 0; }
+  body .efficiency-summary > div { border: 1px solid #ececef; border-radius: 10px; }
+  body .efficiency-summary > div + div { margin-top: 8px; }
+  body .debt-card, body .savings-card { padding: 19px 18px; }
+  body .debt-card-head { gap: 12px; }
+  body .debt-values { grid-template-columns: 1fr; }
+  body .debt-values div + div { border-top: 1px solid #ececef; border-left: 0; }
+  body .savings-insights { grid-template-columns: 1fr; }
+  body .savings-insights div + div { border-top: 1px solid #ececef; border-left: 0; }
+  body .modal-backdrop { align-items: end; padding: 0; }
+  body .operation-modal, body .food-details-modal, body .settings-modal { width: 100%; max-height: calc(100dvh - env(safe-area-inset-top) - 12px); padding: 22px 18px calc(20px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; }
 }
 
 @media (max-width: 700px) {

@@ -453,7 +453,7 @@ export default function App() {
       </section>
     </div>}
     {settingsOpen && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSettingsOpen(false); }}>
-      <section className="card settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <section className="card settings-modal" role="dialog" aria-modal="true" aria-label="Лимиты расходов">
         <button type="button" className="modal-close" onClick={() => setSettingsOpen(false)} aria-label="Закрыть"><AppIcon name="close" /></button>
         <CardTitle title="Лимиты расходов" subtitle="Контроль бюджета по категориям" />
         <form className="budget-form" onSubmit={submitBudget}><h3>Новый месячный лимит</h3><select value={budgetCategory} onChange={(event) => setBudgetCategory(event.target.value)}>{categories.filter((item) => item.type === 'EXPENSE').map((item) => <option key={item.id}>{item.name}</option>)}</select><input required type="number" min="1" step="1" value={budgetAmount} onChange={(event) => setBudgetAmount(event.target.value)} placeholder="Сумма в ₽" /><button className="primary">Добавить</button></form>
