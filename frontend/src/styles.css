@@ -743,6 +743,199 @@ html[data-theme="dark"] .activity-section .recent-heading button { border-color:
   .activity-section .recent-heading button { padding: 8px 10px; font-size: 12px; }
 }
 
+/* Horizon beta — complete interface architecture. */
+:root {
+  --accent: #ff6b4a;
+  --accent-soft: #fff0eb;
+  --positive: #159c7e;
+  --ink: #181a1f;
+  --muted: #777b84;
+  --line: #dedfdc;
+  --surface: #ffffff;
+  --canvas: #f2f1ed;
+}
+html[data-theme="dark"] {
+  --accent: #ff7657;
+  --accent-soft: #35221e;
+  --positive: #49c9a9;
+  --ink: #f0f1f2;
+  --muted: #92979f;
+  --line: #30343a;
+  --surface: #191c20;
+  --canvas: #0e1012;
+}
+body { color: var(--ink); background: var(--canvas); }
+body .app { display: block; min-height: 100vh; background: var(--canvas); }
+body .sidebar {
+  position: sticky;
+  z-index: 100;
+  top: 0;
+  display: grid;
+  grid-template-columns: auto auto auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "home brand theme . controls navigation";
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  height: 76px;
+  padding: 0 max(24px, calc((100vw - 1540px) / 2));
+  overflow: visible;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--canvas) 90%, transparent);
+  backdrop-filter: blur(22px) saturate(130%);
+}
+body .home-link { grid-area: home; width: 38px; height: 38px; margin: 0; padding: 0; justify-content: center; border: 1px solid var(--line); border-radius: 50%; color: var(--muted); background: var(--surface); font-size: 0; }
+body .home-link span { color: var(--ink); font-size: 18px; }
+body .home-link:hover { color: var(--ink); background: var(--accent-soft); }
+body .brand { grid-area: brand; display: flex; gap: 10px; width: max-content; padding: 0; color: var(--ink); font-size: 16px; }
+body .brand > span { width: 34px; height: 34px; border-radius: 50%; color: #fff; background: var(--accent); font-size: 19px; }
+body .brand strong { flex: none; }
+body .theme-icon { width: 34px; height: 34px; flex-basis: 34px; border-color: var(--line); border-radius: 50%; color: var(--muted); background: var(--surface); }
+body .sidebar > .theme-icon { grid-area: theme; }
+body .theme-icon:hover { color: var(--ink); border-color: var(--muted); background: var(--surface); }
+body .sidebar-controls { grid-area: controls; display: block; width: 92px; margin: 0; padding: 0; border: 0; }
+body .sidebar-controls label { display: block; font-size: 0; }
+body .sidebar-controls select { min-height: 36px; padding: 7px 31px 7px 12px; border-color: var(--line); border-radius: 999px; color: var(--ink); background-color: var(--surface); background-position: right 10px center; background-size: 13px; font-size: 13px; }
+body nav { grid-area: navigation; display: flex; align-items: center; gap: 1px; }
+body nav button { position: relative; width: auto; padding: 12px 10px; border-radius: 0; color: var(--muted); background: transparent; font-size: 12px; font-weight: 650; text-align: center; }
+body nav button:hover { color: var(--ink); background: transparent; }
+body nav button.active { color: var(--ink); background: transparent; box-shadow: none; }
+body nav button.active::after { position: absolute; right: 10px; bottom: 5px; left: 10px; height: 2px; border-radius: 2px; background: var(--accent); content: ""; }
+body main { width: min(1540px, 100%); min-height: calc(100vh - 76px); margin: 0 auto; padding: 48px clamp(24px, 4vw, 64px) 80px; color: var(--ink); background: transparent; }
+body .topbar { align-items: center; margin-bottom: 30px; }
+body .kicker { margin-bottom: 7px; color: var(--accent); font-size: 10px; letter-spacing: .16em; }
+body .topbar h1 { font-size: clamp(35px, 4vw, 58px); font-weight: 750; letter-spacing: -.065em; line-height: 1; }
+body .backup-actions button { min-height: 38px; padding: 0 12px; border-color: var(--line); border-radius: 999px; color: var(--ink); background: var(--surface); font-size: 11px; }
+body .backup-actions button:hover { border-color: var(--accent); background: var(--accent-soft); }
+body .backup-actions .app-icon, body .backup-actions .backup-icon { color: var(--accent); }
+body .period-switcher { gap: 4px; margin: 0 0 24px; padding: 0; border: 0; border-radius: 0; background: transparent; }
+body .period-switcher button { min-height: 34px; padding: 6px 10px; border: 1px solid transparent; border-radius: 999px; color: var(--muted); font-size: 11px; }
+body .period-switcher button.active { border-color: var(--ink); color: var(--surface); background: var(--ink); box-shadow: none; }
+body .period-switcher button.current:not(.active) { color: var(--ink); background: var(--surface); }
+body .period-switcher button.current::after { background: var(--accent); }
+body .card, body .metric { border-color: var(--line); border-radius: 18px; background: var(--surface); box-shadow: none; }
+body .financial-pulse {
+  border-radius: 30px;
+  color: #f8f7f4;
+  background: radial-gradient(circle at 84% 20%, rgba(255,118,87,.35), transparent 34%), linear-gradient(130deg, #1a1d20 0%, #28231f 56%, #17191b 100%);
+  box-shadow: 0 24px 60px rgba(25,20,17,.12);
+}
+body .financial-pulse::after { border-color: rgba(255,255,255,.09); }
+body .pulse-primary { padding: 48px 50px; }
+body .pulse-eyebrow { color: #b8b2ad; }
+body .pulse-primary > strong { font-size: clamp(50px, 5.5vw, 82px); }
+body .pulse-primary p { color: #aaa5a0; }
+body .pulse-secondary { border-color: rgba(255,255,255,.12); }
+body .pulse-secondary .money-in { color: #66d9b8; }
+body .pulse-secondary .money-out { color: #ff9077; }
+body .overview-canvas { gap: 30px; }
+body .insight-layout { grid-template-columns: minmax(0, 1.7fr) minmax(380px, .75fr); gap: 18px; }
+body .trend-panel, body .category-panel { padding: 32px; border-radius: 24px; }
+body .panel-heading span, body .section-label { color: var(--accent); }
+body .panel-heading > p { color: var(--muted); background: var(--canvas); }
+body .category-panel .full-legend > div { border-color: var(--line); }
+body .full-legend strong, body .food-legend-row > span::after { color: var(--accent); }
+body .activity-section .recent-heading button { border-color: var(--line); border-radius: 999px; color: var(--ink); background: var(--surface); }
+body .activity-section .recent-heading button span { color: var(--accent); }
+body .transactions { overflow: visible; border-radius: 24px; }
+body .transactions-head { padding: 24px 26px 8px; }
+body .transactions .table-wrap { padding: 0 16px 14px; }
+body .transactions tbody tr:hover { background: var(--accent-soft); }
+body th, body td { border-color: var(--line); }
+body .category-filter summary { border-color: var(--line); border-radius: 999px; color: var(--ink); background: var(--canvas); }
+body .category-filter summary i { border-color: var(--muted); }
+body .category-filter-menu { border-color: var(--line); color: var(--ink); background: var(--surface); }
+body .category-filter-options label:hover { background: var(--accent-soft); }
+body .category-filter-options span { color: var(--ink); }
+body .category-filter-options input:checked { border-color: var(--accent); background: var(--accent); }
+body .metrics, body .metrics.monthly-metrics, body .vehicle-metrics { gap: 12px; overflow: visible; border: 0; border-radius: 0; background: transparent; }
+body .metric { min-height: 138px; padding: 23px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
+body .metric::before { top: auto; right: auto; bottom: 20px; left: 22px; width: 28px; height: 3px; border-radius: 4px; background: var(--muted); }
+body .metric.income::before { background: var(--positive); }
+body .metric.expense::before { background: var(--accent); }
+body .metric.balance::before { background: #5ca5e8; }
+body .metric span { padding: 0; color: var(--muted); }
+body .metric strong { font-size: clamp(22px, 2vw, 31px); }
+body .debt-layout, body .savings-layout { grid-template-columns: minmax(300px, .62fr) minmax(0, 1.5fr); gap: 18px; }
+body .debt-editor, body .savings-editor { top: 104px; border-radius: 22px; }
+body .debt-card, body .savings-card { position: relative; overflow: hidden; padding: 28px; border-radius: 22px; }
+body .debt-card::before, body .savings-card::before { position: absolute; top: 0; bottom: 0; left: 0; width: 4px; background: var(--accent); content: ""; }
+body .savings-card::before { background: var(--goal-color); }
+body .debt-status { color: var(--accent); background: var(--accent-soft); }
+body .debt-values, body .savings-insights, body .efficiency-summary { border-color: var(--line); }
+body .debt-values div, body .savings-insights div, body .efficiency-summary > div { border-color: var(--line); }
+body .debt-pay-button { color: var(--accent); background: var(--accent-soft); }
+body .debt-pay-button:hover { color: #fff; background: var(--accent); }
+body .settings-card, body .vehicle-details .card { border-radius: 24px; }
+body .settings-card > .card-title, body .category-form, body .vehicle-details .card-title { border-color: var(--line); }
+body .category-form { background: var(--canvas); }
+body .category-groups > div + div, body .category-pills span { border-color: var(--line); }
+body .category-pills span, body .category-pills span.income-pill { color: var(--ink); }
+body input, body select { border-color: var(--line); border-radius: 12px; color: var(--ink); background-color: var(--surface); }
+body input:focus, body select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+body .segmented, body .vehicle-subtype > div { border-color: var(--line); border-radius: 13px; background: var(--canvas); }
+body .segmented button.selected, body .vehicle-subtype button.selected { color: var(--accent); background: var(--surface); }
+body .primary { border-radius: 12px; background: var(--accent); }
+body .primary:hover { background: #ed5839; box-shadow: 0 9px 24px rgba(255,107,74,.2); }
+body .secondary { border-color: var(--line); border-radius: 12px; color: var(--ink); background: var(--surface); }
+body .quick-add { right: 32px; bottom: 30px; border-radius: 999px; background: var(--accent); box-shadow: 0 14px 35px rgba(231,79,47,.25); }
+body .modal-backdrop { background: rgba(5,7,8,.72); backdrop-filter: blur(14px); }
+body .operation-modal, body .food-details-modal, body .settings-modal { border-color: var(--line); border-radius: 24px; color: var(--ink); background: var(--surface); }
+body .modal-close { border-color: var(--line); border-radius: 50%; color: var(--muted); background: var(--canvas); }
+body .modal-close:hover { color: var(--ink); background: var(--accent-soft); }
+body .money-in { color: var(--positive); }
+body .money-out { color: #d5533a; }
+html[data-theme="dark"] body .sidebar { background: rgba(14,16,18,.9); }
+html[data-theme="dark"] body .card, html[data-theme="dark"] body .metric, html[data-theme="dark"] body .metrics, html[data-theme="dark"] body .vehicle-metrics { border-color: var(--line); background: var(--surface); }
+html[data-theme="dark"] body .metrics, html[data-theme="dark"] body .vehicle-metrics { background: transparent; }
+html[data-theme="dark"] body .category-form { background: #131518; }
+html[data-theme="dark"] body .category-filter summary, html[data-theme="dark"] body input, html[data-theme="dark"] body select { border-color: var(--line); background-color: #202328; }
+html[data-theme="dark"] body .panel-heading > p { color: var(--muted); background: #23262b; }
+
+@media (max-width: 1220px) {
+  body .sidebar { grid-template-columns: auto auto auto minmax(0, 1fr); grid-template-areas: "home brand theme controls" "navigation navigation navigation navigation"; height: auto; gap: 10px 16px; padding-block: 11px 9px; }
+  body nav { justify-content: center; }
+  body .insight-layout { grid-template-columns: 1fr; }
+  body .debt-editor, body .savings-editor { top: 124px; }
+}
+
+@media (max-width: 760px) {
+  body .sidebar { position: static; display: grid; grid-template-columns: 34px minmax(0, 1fr) 34px; grid-template-areas: "home brand theme" "navigation navigation navigation"; gap: 10px 8px; padding: max(13px, env(safe-area-inset-top)) 14px 10px; }
+  body .home-link { width: 34px; height: 34px; }
+  body .brand { display: grid; grid-template-columns: minmax(0, 1fr) 68px; width: 100%; min-width: 0; font-size: 16px; }
+  body .brand > span { display: none; }
+  body .brand strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  body .brand .mobile-year-select { display: block; width: 68px; min-height: 34px; padding: 5px 24px 5px 9px; border-color: var(--line); border-radius: 999px; color: var(--ink); background-color: var(--surface); background-position: right 8px center; font-size: 12px; }
+  body .sidebar > .theme-icon { grid-area: theme; }
+  body .sidebar-controls { display: none; }
+  body nav { display: flex; justify-content: flex-start; gap: 2px; width: calc(100vw - 28px); overflow-x: auto; scrollbar-width: none; }
+  body .sidebar { width: 100%; max-width: 100vw; overflow: hidden; }
+  body nav { min-width: 0; max-width: calc(100vw - 28px); }
+  body nav::-webkit-scrollbar { display: none; }
+  body nav button { width: auto; min-width: max-content; padding: 10px 9px; overflow: visible; font-size: 11px; text-overflow: clip; }
+  body main { min-height: 0; padding: 27px 14px calc(94px + env(safe-area-inset-bottom)); }
+  body .topbar { margin-bottom: 20px; }
+  body .topbar h1 { font-size: 34px; }
+  body .period-switcher { margin-inline: -14px; padding-inline: 14px; overflow-x: auto; }
+  body .period-switcher button { flex: 0 0 auto; min-width: 74px; }
+  body .financial-pulse { border-radius: 22px; }
+  body .pulse-primary { padding: 28px 22px 22px; }
+  body .pulse-primary > strong { font-size: clamp(38px, 12vw, 52px); }
+  body .pulse-secondary { grid-template-columns: 1fr 1fr; }
+  body .insight-layout { gap: 14px; }
+  body .insight-layout { grid-template-columns: minmax(0, 1fr); }
+  body .trend-panel, body .category-panel { padding: 20px 16px; border-radius: 20px; }
+  body .metrics, body .metrics.monthly-metrics, body .vehicle-metrics { grid-template-columns: 1fr; gap: 8px; }
+  body .metric { display: flex; align-items: center; justify-content: space-between; min-height: 78px; padding: 18px 18px 18px 28px; border-radius: 16px; }
+  body .metric::before { top: 19px; bottom: 19px; left: 14px; width: 3px; height: auto; }
+  body .metric span { max-width: 47%; }
+  body .metric strong { max-width: 51%; font-size: 20px; text-align: right; }
+  body .debt-layout, body .savings-layout { grid-template-columns: 1fr; }
+  body .debt-card, body .savings-card { padding: 22px 18px 22px 22px; }
+  body .quick-add { right: 14px; bottom: calc(16px + env(safe-area-inset-bottom)); }
+}
+
 /* Complete refresh for data views and editors. */
 body .transactions { padding: 0; }
 body .transactions-head { align-items: center; padding: 20px 22px 4px; }

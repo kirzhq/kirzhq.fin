@@ -12,7 +12,7 @@ import type { Category, CategoryBudget, Debt, SavingsGoal, Summary, Transaction,
 type View = 'overview' | 'transactions' | 'vehicles' | 'debts' | 'savings' | 'categories';
 const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const shortMonths = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
-const colors = ['#6c5ce7', '#00b894', '#fdcb6e', '#e17055', '#0984e3', '#e84393', '#00cec9', '#a29bfe'];
+const colors = ['#ff6b4a', '#22b99a', '#f0b84b', '#5ca5e8', '#d66f9f', '#8b87d8', '#63c7c2', '#d98a5f'];
 const foodSubcategories = ['Доставка из ресторанов', 'Доставка из магазина', 'Ресторан', 'Перекус', 'Готовая еда', 'Продукты'];
 const emptyForm = {
   type: 'EXPENSE' as TransactionType, category: '', amount: '',
@@ -315,11 +315,11 @@ export default function App() {
       <a className="home-link" href="https://home.kirzhq.ru" aria-label="Вернуться на главную страницу">
         <span>←</span> Мой дом
       </a>
-      <div className="brand"><span>₽</span><strong>Мои финансы</strong><select className="mobile-year-select" value={year} onChange={(event) => changeYear(Number(event.target.value))} aria-label="Финансовый год">{yearOptions.map((value) => <option key={value}>{value}</option>)}</select><button className="theme-icon" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label={theme === 'light' ? 'Включить тёмную тему' : 'Включить светлую тему'} title={theme === 'light' ? 'Тёмная тема' : 'Светлая тема'}>
+      <div className="brand"><span>₽</span><strong>Мои финансы</strong><select className="mobile-year-select" value={year} onChange={(event) => changeYear(Number(event.target.value))} aria-label="Финансовый год">{yearOptions.map((value) => <option key={value}>{value}</option>)}</select></div><button className="theme-icon" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label={theme === 'light' ? 'Включить тёмную тему' : 'Включить светлую тему'} title={theme === 'light' ? 'Тёмная тема' : 'Светлая тема'}>
         {theme === 'light'
           ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.3A8.5 8.5 0 0 1 8.7 4a8.5 8.5 0 1 0 11.3 11.3Z" /></svg>
           : <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>}
-      </button></div>
+      </button>
       <div className="sidebar-controls">
         <label>Финансовый год<select value={year} onChange={(event) => changeYear(Number(event.target.value))}>{yearOptions.map((value) => <option key={value}>{value}</option>)}</select></label>
       </div>
@@ -632,7 +632,7 @@ function DebtView({ debts, form, setForm, editingId, payingId, paymentForm, setP
   </>;
 }
 
-const savingsColors = ['#6c5ce7', '#00b894', '#0984e3', '#e84393', '#e17055', '#fdcb6e'];
+const savingsColors = ['#ff6b4a', '#22b99a', '#5ca5e8', '#d66f9f', '#d98a5f', '#f0b84b'];
 const freshSavingsForm = () => ({ name: '', targetAmount: '', targetDate: '', createdDate: new Date().toISOString().slice(0, 10), note: '', color: savingsColors[0] });
 const freshSavingsEntry = () => ({ amount: '', entryDate: new Date().toISOString().slice(0, 10), comment: '', withdrawal: false });
 
@@ -726,7 +726,7 @@ const MonthlyChart = memo(function MonthlyChart({ data, theme }: {
   data: Array<{ monthLabel: string; income: number; expense: number }>;
   theme: 'light' | 'dark';
 }) {
-  return <ResponsiveContainer width="100%" height={320}><BarChart data={data}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#34383f' : '#e9e8f0'} /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip formatter={(value, name) => [formatMoney(Number(value)), name]} contentStyle={tooltipStyle(theme)} /><Legend /><Bar dataKey="income" name="Доход" fill="#00b894" radius={[5, 5, 0, 0]} /><Bar dataKey="expense" name="Расход" fill="#6c5ce7" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer>;
+  return <ResponsiveContainer width="100%" height={320}><BarChart data={data}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#34383f' : '#e9e8f0'} /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip formatter={(value, name) => [formatMoney(Number(value)), name]} contentStyle={tooltipStyle(theme)} /><Legend /><Bar dataKey="income" name="Доход" fill="#22b99a" radius={[5, 5, 0, 0]} /><Bar dataKey="expense" name="Расход" fill="#ff6b4a" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer>;
 });
 
 const CategoryChart = memo(function CategoryChart({ points, expense, theme }: {
