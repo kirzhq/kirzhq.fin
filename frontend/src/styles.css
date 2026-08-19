@@ -892,6 +892,16 @@ html[data-theme="dark"] body .metrics, html[data-theme="dark"] body .vehicle-met
 html[data-theme="dark"] body .category-form { background: #131518; }
 html[data-theme="dark"] body .category-filter summary, html[data-theme="dark"] body input, html[data-theme="dark"] body select { border-color: var(--line); background-color: #202328; }
 html[data-theme="dark"] body .panel-heading > p { color: var(--muted); background: #23262b; }
+html[data-theme="dark"] body .financial-pulse {
+  background: radial-gradient(circle at 84% 20%, rgba(255,118,87,.28), transparent 34%), linear-gradient(130deg, #181a1d 0%, #29231f 58%, #161719 100%);
+}
+body button:focus-visible, body a:focus-visible, body summary:focus-visible { outline-color: var(--accent); }
+body nav button:focus-visible { outline: 0; color: var(--ink); }
+body .period-switcher button.current:not(.active) { color: var(--ink); background: var(--accent-soft); }
+body .period-switcher button:focus-visible { outline-color: var(--accent); }
+body .category-panel-body { grid-template-rows: 290px minmax(0, 1fr); gap: 24px; }
+body .category-panel .recharts-responsive-container { min-height: 270px; }
+body .category-panel .full-legend { padding-top: 4px; border-top: 1px solid var(--line); }
 
 @media (max-width: 1220px) {
   body .sidebar { grid-template-columns: auto auto auto minmax(0, 1fr); grid-template-areas: "home brand theme controls" "navigation navigation navigation navigation"; height: auto; gap: 10px 16px; padding-block: 11px 9px; }
@@ -926,6 +936,7 @@ html[data-theme="dark"] body .panel-heading > p { color: var(--muted); backgroun
   body .insight-layout { gap: 14px; }
   body .insight-layout { grid-template-columns: minmax(0, 1fr); }
   body .trend-panel, body .category-panel { padding: 20px 16px; border-radius: 20px; }
+  body .category-panel-body { display: grid; grid-template-rows: 250px auto; gap: 18px; }
   body .metrics, body .metrics.monthly-metrics, body .vehicle-metrics { grid-template-columns: 1fr; gap: 8px; }
   body .metric { display: flex; align-items: center; justify-content: space-between; min-height: 78px; padding: 18px 18px 18px 28px; border-radius: 16px; }
   body .metric::before { top: 19px; bottom: 19px; left: 14px; width: 3px; height: auto; }

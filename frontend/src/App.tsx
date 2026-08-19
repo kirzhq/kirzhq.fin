@@ -12,7 +12,7 @@ import type { Category, CategoryBudget, Debt, SavingsGoal, Summary, Transaction,
 type View = 'overview' | 'transactions' | 'vehicles' | 'debts' | 'savings' | 'categories';
 const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const shortMonths = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
-const colors = ['#ff6b4a', '#22b99a', '#f0b84b', '#5ca5e8', '#d66f9f', '#8b87d8', '#63c7c2', '#d98a5f'];
+const colors = ['#ff6b4a', '#22b99a', '#f0b84b', '#5ca5e8', '#d66f9f', '#8eaa64', '#63c7c2', '#d98a5f'];
 const foodSubcategories = ['Доставка из ресторанов', 'Доставка из магазина', 'Ресторан', 'Перекус', 'Готовая еда', 'Продукты'];
 const emptyForm = {
   type: 'EXPENSE' as TransactionType, category: '', amount: '',
