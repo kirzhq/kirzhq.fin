@@ -379,9 +379,9 @@ export default function App() {
         {month && <MonthlyControl summary={summary} budgets={budgets} />}
 
         <section className="insight-layout">
-          <article className="card trend-panel">
+          <article className={`card trend-panel ${month ? 'monthly-trend' : 'yearly-trend'}`}>
             <div className="panel-heading"><div><span>Динамика</span><h2>{month ? 'Деньги в этом месяце' : 'Год в движении'}</h2></div><p>{month ? months[month - 1] : `${year}`}</p></div>
-            <MonthlyChart data={chartData} theme={theme} />
+            <MonthlyChart data={chartData} theme={theme} compact={month !== null} />
           </article>
           <article className="card category-panel">
             <div className="panel-heading"><div><span>Структура расходов</span><h2>Куда уходят деньги</h2></div></div>
@@ -722,11 +722,12 @@ function SavingsView({ goals, setGoals, setError }: { goals: SavingsGoal[]; setG
   </>;
 }
 
-const MonthlyChart = memo(function MonthlyChart({ data, theme }: {
+const MonthlyChart = memo(function MonthlyChart({ data, theme, compact }: {
   data: Array<{ monthLabel: string; income: number; expense: number }>;
   theme: 'light' | 'dark';
+  compact?: boolean;
 }) {
-  return <ResponsiveContainer width="100%" height={320}><BarChart data={data}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#34383f' : '#e9e8f0'} /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip formatter={(value, name) => [formatMoney(Number(value)), name]} contentStyle={tooltipStyle(theme)} /><Legend /><Bar dataKey="income" name="Доход" fill="#22b99a" radius={[5, 5, 0, 0]} /><Bar dataKey="expense" name="Расход" fill="#ff6b4a" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer>;
+  return <ResponsiveContainer width="100%" height={compact ? 220 : 320}><BarChart data={data}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#34383f' : '#e9e8f0'} /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip formatter={(value, name) => [formatMoney(Number(value)), name]} contentStyle={tooltipStyle(theme)} /><Legend /><Bar dataKey="income" name="Доход" fill="#22b99a" radius={[5, 5, 0, 0]} /><Bar dataKey="expense" name="Расход" fill="#ff6b4a" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer>;
 });
 
 const CategoryChart = memo(function CategoryChart({ points, expense, theme }: {

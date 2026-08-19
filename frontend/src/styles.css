@@ -644,6 +644,41 @@ html[data-theme="dark"] body .forecast-values > div, html[data-theme="dark"] bod
   body .content-grid { grid-template-columns: 1fr; }
 }
 
+/* Horizon final reconciliation — this block intentionally stays last. */
+html[data-theme="dark"] body .period-switcher button.active {
+  border-color: var(--accent);
+  color: #fff;
+  background: var(--accent);
+  box-shadow: none;
+}
+html[data-theme="dark"] body .period-switcher button.current:not(.active) {
+  color: #f2b0a1;
+  background: var(--accent-soft);
+}
+html[data-theme="dark"] body .period-switcher button.current::after,
+html[data-theme="dark"] body nav button.active::after { background: var(--accent); }
+html[data-theme="dark"] body nav button.active { color: var(--ink); background: transparent; box-shadow: none; }
+html[data-theme="dark"] body .financial-pulse {
+  background: radial-gradient(circle at 84% 20%, rgba(255,118,87,.28), transparent 34%), linear-gradient(130deg, #181a1d 0%, #29231f 58%, #161719 100%);
+}
+body .category-panel-body { grid-template-rows: 290px auto; gap: 26px; }
+body .category-panel .full-legend {
+  align-content: start;
+  max-height: none;
+  padding-top: 12px;
+  overflow: visible;
+  border-top: 1px solid var(--line);
+}
+body .category-panel { height: auto; min-height: 0; }
+body .monthly-trend { min-height: 0; }
+body .monthly-trend .recharts-responsive-container { min-height: 220px; }
+
+@media (max-width: 700px) {
+  body .category-panel-body { grid-template-rows: 250px auto; gap: 20px; }
+  body .category-panel .full-legend { padding-top: 10px; }
+  body .monthly-trend .recharts-responsive-container { min-height: 210px; }
+}
+
 /* Beta concept: editorial dashboard instead of a grid of equal cards. */
 .overview-canvas { display: grid; gap: 24px; }
 .financial-pulse {
@@ -903,6 +938,41 @@ body .category-panel-body { grid-template-rows: 290px minmax(0, 1fr); gap: 24px;
 body .category-panel .recharts-responsive-container { min-height: 270px; }
 body .category-panel .full-legend { padding-top: 4px; border-top: 1px solid var(--line); }
 
+/* Accent lock: legacy rules above must never reintroduce the old purple palette. */
+html[data-theme="dark"] body .period-switcher button.active {
+  border-color: var(--accent);
+  color: #fff;
+  background: var(--accent);
+  box-shadow: none;
+}
+html[data-theme="dark"] body .period-switcher button.current:not(.active) {
+  color: #f2b0a1;
+  background: var(--accent-soft);
+}
+html[data-theme="dark"] body .period-switcher button.current::after { background: var(--accent); }
+html[data-theme="dark"] body nav button.active { color: var(--ink); background: transparent; box-shadow: none; }
+html[data-theme="dark"] body nav button.active::after { background: var(--accent); }
+html[data-theme="dark"] body .segmented button.selected,
+html[data-theme="dark"] body .vehicle-subtype button.selected { color: var(--accent); background: #272a2f; }
+html[data-theme="dark"] body .backup-actions button:hover,
+html[data-theme="dark"] body .category-filter[open] summary { border-color: var(--accent); }
+html[data-theme="dark"] body .category-filter-options input:checked { border-color: var(--accent); background: var(--accent); }
+html[data-theme="dark"] body .debt-actions button,
+html[data-theme="dark"] body .row-actions button,
+html[data-theme="dark"] body .category-filter-menu-head button { color: var(--accent); }
+html[data-theme="dark"] body .goal-colors button.selected { box-shadow: 0 0 0 2px var(--accent); }
+body .month-progress i, body .budget-track i { background: var(--accent); }
+body .debt-progress i { background: linear-gradient(90deg, var(--accent), var(--positive)); }
+body .debt-progress-label span:first-child { color: var(--accent); }
+body .row-actions button,
+body .debt-actions button,
+body .category-filter-menu-head button,
+body .recent-heading button { color: var(--accent); }
+body .category-filter[open] summary,
+body .sidebar-controls select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+body .goal-colors button.selected { box-shadow: 0 0 0 2px var(--accent); }
+body .food-legend-row:focus-visible { outline-color: var(--accent); }
+
 @media (max-width: 1220px) {
   body .sidebar { grid-template-columns: auto auto auto minmax(0, 1fr); grid-template-areas: "home brand theme controls" "navigation navigation navigation navigation"; height: auto; gap: 10px 16px; padding-block: 11px 9px; }
   body nav { justify-content: center; }
@@ -1062,4 +1132,23 @@ html[data-theme="dark"] body .modal-close { border-color: #3a3e45; background: #
   body .metric:nth-child(even) { border-right: 0; }
   body .metric:nth-last-child(-n+2) { border-bottom: 0; }
   body .content-grid { grid-template-columns: 1fr; }
+}
+
+/* Horizon cascade guard — keep this block at the physical end of the file. */
+html[data-theme="dark"] body .period-switcher button.active { border-color: var(--accent); color: #fff; background: var(--accent); box-shadow: none; }
+html[data-theme="dark"] body .period-switcher button.current:not(.active) { color: #f2b0a1; background: var(--accent-soft); }
+html[data-theme="dark"] body .period-switcher button.current::after,
+html[data-theme="dark"] body nav button.active::after { background: var(--accent); }
+html[data-theme="dark"] body nav button.active { color: var(--ink); background: transparent; box-shadow: none; }
+html[data-theme="dark"] body .financial-pulse { background: radial-gradient(circle at 84% 20%, rgba(255,118,87,.28), transparent 34%), linear-gradient(130deg, #181a1d 0%, #29231f 58%, #161719 100%); }
+body .category-panel-body { grid-template-rows: 290px auto; gap: 26px; }
+body .category-panel .full-legend { align-content: start; max-height: none; padding-top: 12px; overflow: visible; border-top: 1px solid var(--line); }
+body .category-panel { height: auto; min-height: 0; }
+body .monthly-trend { min-height: 0; }
+body .monthly-trend .recharts-responsive-container { min-height: 220px; }
+
+@media (max-width: 700px) {
+  body .category-panel-body { grid-template-rows: 250px auto; gap: 20px; }
+  body .category-panel .full-legend { padding-top: 10px; }
+  body .monthly-trend .recharts-responsive-container { min-height: 210px; }
 }
