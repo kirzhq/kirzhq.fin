@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { Bar, BarChart, CartesianGrid, Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Cell, Label, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
   createCategory, createDebt, createTransaction, deleteDebt, deleteTransaction, exportVehicle, getCategories,
   getDebts, getSummary, getTransactions, getVehicleSummary, getVehicles, importBackup, exportBackup,
@@ -277,10 +277,22 @@ export default function App() {
     } catch (requestError) { setError(message(requestError)); }
   }
 
-  const chartData = useMemo(() => (summary?.monthlyPoints ?? []).map((point, index) => ({
-    ...point,
-    monthLabel: month ? months[month - 1] : shortMonths[index],
-  })), [summary?.monthlyPoints, month]);
+  const chartData = useMemo(() => {
+    if (!month) return (summary?.monthlyPoints ?? []).map((point, index) => ({ ...point, monthLabel: shortMonths[index] }));
+    const days = summary?.daysInMonth ?? new Date(year, month, 0).getDate();
+    const values = new Map<number, { income: number; expense: number }>();
+    transactions.forEach((item) => {
+      const day = Number(item.transactionDate.slice(8, 10));
+      const current = values.get(day) ?? { income: 0, expense: 0 };
+      current[item.type === 'INCOME' ? 'income' : 'expense'] += item.amount;
+      values.set(day, current);
+    });
+    return Array.from({ length: days }, (_, index) => ({
+      monthLabel: String(index + 1),
+      income: values.get(index + 1)?.income ?? 0,
+      expense: values.get(index + 1)?.expense ?? 0,
+    }));
+  }, [summary?.monthlyPoints, summary?.daysInMonth, transactions, month, year]);
   const yearOptions = Array.from({ length: new Date().getFullYear() + 5 - 2026 + 1 }, (_, index) => 2026 + index);
   const visibleMonths = months.map((name, index) => ({ name, number: index + 1 }))
     .filter((item) => year > 2026 || item.number >= 7);
@@ -363,8 +375,8 @@ export default function App() {
           <div className="pulse-primary">
             <span className="pulse-eyebrow">{month ? `Расходы · ${months[month - 1]}` : `Расходы · ${year}`}</span>
             <strong>{formatMoney(summary?.expense ?? 0)}</strong>
-            <p>{month && summary?.forecastAvailable
-              ? `При текущем темпе к концу месяца — ${formatMoney(summary.projectedExpense)}`
+            <p>{month && summary
+              ? `${summary.calculationDays} из ${summary.daysInMonth} дней учтено в расчётах`
               : `${transactions.length} операций в выбранном периоде`}</p>
           </div>
           <div className="pulse-secondary">
@@ -378,9 +390,9 @@ export default function App() {
 
         {month && <MonthlyControl summary={summary} budgets={budgets} />}
 
-        <section className="insight-layout">
+        <section className={`insight-layout ${month ? 'monthly-insights' : 'yearly-insights'}`}>
           <article className={`card trend-panel ${month ? 'monthly-trend' : 'yearly-trend'}`}>
-            <div className="panel-heading"><div><span>Динамика</span><h2>{month ? 'Деньги в этом месяце' : 'Год в движении'}</h2></div><p>{month ? months[month - 1] : `${year}`}</p></div>
+            <div className="panel-heading"><div><span>Динамика</span><h2>{month ? 'Расходы по дням' : 'Год в движении'}</h2></div>{!month && <p>{year}</p>}</div>
             <MonthlyChart data={chartData} theme={theme} compact={month !== null} />
           </article>
           <article className="card category-panel">
@@ -478,7 +490,7 @@ export default function App() {
       <section className="card settings-modal" role="dialog" aria-modal="true" aria-label="Лимиты расходов">
         <button type="button" className="modal-close" onClick={() => setSettingsOpen(false)} aria-label="Закрыть"><AppIcon name="close" /></button>
         <CardTitle title="Лимиты расходов" subtitle="Контроль бюджета по категориям" />
-        <form className="budget-form" onSubmit={submitBudget}><h3>Новый месячный лимит</h3><select value={budgetCategory} onChange={(event) => setBudgetCategory(event.target.value)}>{categories.filter((item) => item.type === 'EXPENSE').map((item) => <option key={item.id}>{item.name}</option>)}</select><input required type="number" min="1" step="1" value={budgetAmount} onChange={(event) => setBudgetAmount(event.target.value)} placeholder="Сумма в ₽" /><button className="primary">Добавить</button></form>
+        <form className="budget-form" onSubmit={submitBudget}><h3>Новый месячный лимит</h3><select value={budgetCategory} onChange={(event) => setBudgetCategory(event.target.value)}>{categories.filter((item) => item.type === 'EXPENSE').map((item) => <option key={item.id}>{item.name}</option>)}</select><input required type="number" min="100" step="100" value={budgetAmount} onChange={(event) => setBudgetAmount(event.target.value)} placeholder="Сумма от 100 ₽" /><button className="primary">Добавить</button></form>
         <div className="budget-settings-list">{budgets.map((budget) => <div key={budget.id}><span>{budget.category}</span><strong>{formatMoney(budget.monthlyLimit)}</strong><button type="button" onClick={() => deleteBudget(budget.id).then(() => getBudgets().then(setBudgets)).catch((requestError) => setError(message(requestError)))} aria-label={`Удалить лимит ${budget.category}`}><AppIcon name="trash" /></button></div>)}</div>
       </section>
     </div>}
@@ -500,7 +512,7 @@ function MonthlyControl({ summary, budgets }: { summary: Summary | null; budgets
       </div>
       <div className="month-progress" aria-label={`Прошло ${summary.calculationDays} из ${summary.daysInMonth} дней`}><i style={{ width: `${elapsed}%` }} /></div>
     </section>}
-    {budgets.length > 0 && <section className="budget-panel"><header><span className="section-label">Лимиты категорий</span><small>{budgets.length}</small></header><div className="budget-progress-list">{budgets.map((budget) => { const spent = amounts.get(budget.category) ?? 0; const rawPercent = spent / budget.monthlyLimit * 100; const percent = Math.min(rawPercent, 100); return <div key={budget.id}><p><span>{budget.category}</span><b>{Math.round(rawPercent)}% <small>{formatMoney(spent)} из {formatMoney(budget.monthlyLimit)}</small></b></p><div className={`budget-track ${rawPercent >= 100 ? 'over' : rawPercent >= 85 ? 'near' : ''}`}><i style={{ width: `${percent}%` }} /></div></div>; })}</div></section>}
+    {budgets.length > 0 && <section className="budget-panel"><header><span className="section-label">Лимиты категорий</span><small>{budgets.length}</small></header><div className="budget-progress-list">{budgets.map((budget) => { const spent = amounts.get(budget.category) ?? 0; const rawPercent = spent / budget.monthlyLimit * 100; const percent = Math.min(rawPercent, 100); const status = rawPercent > 999 ? 'Лимит превышен' : `${Math.round(rawPercent)}%`; return <div key={budget.id}><p><span>{budget.category}</span><b>{status} <small>{formatMoney(spent)} из {formatMoney(budget.monthlyLimit)}</small></b></p><div className={`budget-track ${rawPercent >= 100 ? 'over' : rawPercent >= 85 ? 'near' : ''}`}><i style={{ width: `${percent}%` }} /></div></div>; })}</div></section>}
   </article>;
 }
 
@@ -727,7 +739,8 @@ const MonthlyChart = memo(function MonthlyChart({ data, theme, compact }: {
   theme: 'light' | 'dark';
   compact?: boolean;
 }) {
-  return <ResponsiveContainer width="100%" height={compact ? 220 : 320}><BarChart data={data}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#34383f' : '#e9e8f0'} /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip formatter={(value, name) => [formatMoney(Number(value)), name]} contentStyle={tooltipStyle(theme)} /><Legend /><Bar dataKey="income" name="Доход" fill="#22b99a" radius={[5, 5, 0, 0]} /><Bar dataKey="expense" name="Расход" fill="#ff6b4a" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer>;
+  if (compact) return <ResponsiveContainer width="100%" height={250}><LineChart data={data} margin={{ top: 12, right: 10, left: 0, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#34383f' : '#e9e8f0'} /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} interval={2} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip labelFormatter={(label) => `${label} число`} formatter={(value, name) => [formatMoney(Number(value)), name]} contentStyle={tooltipStyle(theme)} /><Legend /><Line type="monotone" dataKey="income" name="Доход" stroke="#22b99a" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} /><Line type="monotone" dataKey="expense" name="Расход" stroke="#ff6b4a" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} /></LineChart></ResponsiveContainer>;
+  return <ResponsiveContainer width="100%" height={320}><BarChart data={data}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#34383f' : '#e9e8f0'} /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip formatter={(value, name) => [formatMoney(Number(value)), name]} contentStyle={tooltipStyle(theme)} /><Legend /><Bar dataKey="income" name="Доход" fill="#22b99a" radius={[5, 5, 0, 0]} /><Bar dataKey="expense" name="Расход" fill="#ff6b4a" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer>;
 });
 
 const CategoryChart = memo(function CategoryChart({ points, expense, theme }: {
