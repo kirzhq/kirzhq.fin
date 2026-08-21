@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { Bar, BarChart, CartesianGrid, Cell, Label, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Cell, Label, Legend, Line, LineChart, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
   createCategory, createDebt, createTransaction, deleteDebt, deleteTransaction, exportVehicle, getCategories,
   getDebts, getSummary, getTransactions, getVehicleSummary, getVehicles, importBackup, exportBackup,
@@ -711,10 +711,10 @@ function SavingsView({ goals, setGoals, setError }: { goals: SavingsGoal[]; setG
       </article>
       <div className="savings-list">
         {goals.length === 0 && <article className="card debt-empty"><span>◎</span><h2>Пока нет целей</h2><p>Создайте первую — например, финансовую подушку.</p></article>}
-        {goals.map((goal) => <article className={`card savings-card ${goal.progressPercent >= 100 ? 'complete' : ''}`} key={goal.id} style={{ '--goal-color': goal.color } as React.CSSProperties}>
+        {goals.map((goal) => <article className={`card savings-card ${goal.progressPercent >= 100 ? 'complete' : ''}`} key={goal.id} style={{ '--goal-color': normalizeGoalColor(goal.color) } as React.CSSProperties}>
           <div className="debt-card-head"><div><span className="debt-status">{goal.progressPercent >= 100 ? 'Цель достигнута' : 'Активная цель'}</span><h2>{goal.name}</h2><p>{goal.note || (goal.targetDate ? `Цель к ${formatDate(goal.targetDate)}` : 'Без установленного срока')}</p></div><div className="debt-actions"><button onClick={() => editGoal(goal)} title="Редактировать" aria-label="Редактировать"><AppIcon name="edit" /></button><button className="delete" onClick={() => void removeGoal(goal)} title="Удалить" aria-label="Удалить"><AppIcon name="trash" /></button></div></div>
           <div className="savings-amount"><strong>{formatMoney(goal.savedAmount)}</strong><span>из {formatMoney(goal.targetAmount)}</span></div>
-          <div className="debt-progress"><i style={{ width: `${Math.min(100, goal.progressPercent)}%`, background: goal.color }} /></div>
+          <div className="debt-progress"><i style={{ width: `${Math.min(100, goal.progressPercent)}%`, background: normalizeGoalColor(goal.color) }} /></div>
           <div className="debt-progress-label"><span>{goal.progressPercent}%</span><span>осталось {formatMoney(goal.remainingAmount)}</span></div>
           <div className="savings-insights">
             <div><span>Темп</span><strong>{goal.averageMonthly > 0 ? `${formatMoney(goal.averageMonthly)}/мес.` : 'Пока считаем'}</strong></div>
@@ -739,8 +739,12 @@ const MonthlyChart = memo(function MonthlyChart({ data, theme, compact }: {
   theme: 'light' | 'dark';
   compact?: boolean;
 }) {
+  const populatedIncome = data.filter((point) => point.income > 0);
+  const populatedExpense = data.filter((point) => point.expense > 0);
+  const averageIncome = populatedIncome.length ? populatedIncome.reduce((sum, point) => sum + point.income, 0) / populatedIncome.length : 0;
+  const averageExpense = populatedExpense.length ? populatedExpense.reduce((sum, point) => sum + point.expense, 0) / populatedExpense.length : 0;
   if (compact) return <ResponsiveContainer width="100%" height={250}><LineChart data={data} margin={{ top: 12, right: 10, left: 0, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#34383f' : '#e9e8f0'} /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} interval={2} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip labelFormatter={(label) => `${label} число`} formatter={(value, name) => [formatMoney(Number(value)), name]} contentStyle={tooltipStyle(theme)} /><Legend /><Line type="monotone" dataKey="income" name="Доход" stroke="#22b99a" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} /><Line type="monotone" dataKey="expense" name="Расход" stroke="#ff6b4a" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} /></LineChart></ResponsiveContainer>;
-  return <ResponsiveContainer width="100%" height={320}><BarChart data={data}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#34383f' : '#e9e8f0'} /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip formatter={(value, name) => [formatMoney(Number(value)), name]} contentStyle={tooltipStyle(theme)} /><Legend /><Bar dataKey="income" name="Доход" fill="#22b99a" radius={[5, 5, 0, 0]} /><Bar dataKey="expense" name="Расход" fill="#ff6b4a" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer>;
+  return <ResponsiveContainer width="100%" height={280}><BarChart data={data} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#34383f' : '#e9e8f0'} /><XAxis dataKey="monthLabel" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} tickFormatter={compactMoney} /><Tooltip formatter={(value, name) => [formatMoney(Number(value)), name]} contentStyle={tooltipStyle(theme)} /><Legend />{averageIncome > 0 && <ReferenceLine y={averageIncome} name="Средний доход" stroke="#22b99a" strokeDasharray="7 6" strokeWidth={1.5} />}{averageExpense > 0 && <ReferenceLine y={averageExpense} name="Средний расход" stroke="#ff6b4a" strokeDasharray="7 6" strokeWidth={1.5} />}<Bar dataKey="income" name="Доход" fill="#22b99a" radius={[5, 5, 0, 0]} /><Bar dataKey="expense" name="Расход" fill="#ff6b4a" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer>;
 });
 
 const CategoryChart = memo(function CategoryChart({ points, expense, theme }: {
@@ -794,6 +798,10 @@ function vehicleExpenseTypeLabel(value: VehicleExpenseType) {
 function yandexSplitOverdueDays() {
   const today = new Date();
   return Math.max(0, Math.floor((Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(2024, 8, 16)) / 86_400_000));
+}
+function normalizeGoalColor(color: string) {
+  return ['#6c5ce7', '#8071f2', '#8172f3', '#8b7df2', '#7565ef', '#5c4bd8', '#5b4cd4', '#a29bfe']
+    .includes(color.toLowerCase()) ? '#ff6b4a' : color;
 }
 function message(error: unknown) { return error instanceof Error ? error.message : 'Произошла ошибка'; }
 function tooltipStyle(theme: 'light' | 'dark') {

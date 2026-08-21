@@ -1221,3 +1221,59 @@ body .activity-section > .transactions { margin-bottom: 64px; }
 @media (max-width: 620px) {
   body section.monthly-insights .category-panel .full-legend { grid-template-columns: 1fr; }
 }
+
+/* Production component corrections. */
+body .category-filter-options input[type="checkbox"] {
+  appearance: none;
+  place-content: center;
+  display: grid;
+  width: 18px;
+  min-width: 18px;
+  max-width: 18px;
+  height: 18px;
+  min-height: 18px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #555b65;
+  border-radius: 5px;
+  background-color: transparent;
+  box-shadow: none;
+}
+body .category-filter-options input[type="checkbox"]:checked { border-color: var(--accent); background-color: var(--accent); }
+body .category-filter-options label { min-height: 38px; }
+body .transactions td.row-actions {
+  display: table-cell;
+  width: 88px;
+  padding-right: 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+body .transactions td.row-actions button { display: inline-grid; margin-left: 5px; vertical-align: middle; }
+html[data-theme="dark"] body .debt-pay-button,
+html[data-theme="dark"] body .savings-card .debt-pay-button {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+html[data-theme="dark"] body .debt-pay-button:hover,
+html[data-theme="dark"] body .savings-card .debt-pay-button:hover { color: #fff; background: var(--accent); }
+html[data-theme="dark"] body .debt-card::before { background: var(--accent); }
+html[data-theme="dark"] body .debt-status { color: var(--accent); background: var(--accent-soft); }
+
+body .debt-pay-button,
+body .savings-card .debt-pay-button {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+body .debt-pay-button:hover,
+body .savings-card .debt-pay-button:hover { color: #fff; background: var(--accent); }
+body .debt-card::before { background: var(--accent); }
+body .debt-status { color: var(--accent); background: var(--accent-soft); }
+body section.insight-layout.yearly-insights { align-items: start; }
+body section.yearly-insights .trend-panel { min-height: 0; }
+body section.yearly-insights .trend-panel .recharts-responsive-container { min-height: 280px; }
+
+@media (max-width: 700px) {
+  body .transactions td.row-actions { display: flex; width: auto; padding-top: 8px; padding-right: 0; border: 0; }
+}
