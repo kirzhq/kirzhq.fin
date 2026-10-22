@@ -26,7 +26,7 @@ public class BackupService {
     @Transactional(readOnly = true)
     public BackupData exportData() {
         return new BackupData(
-                5, Instant.now(),
+                6, Instant.now(),
                 jdbc.query("SELECT id, name, type FROM categories ORDER BY id",
                         (rs, row) -> new BackupData.CategoryItem(rs.getLong("id"), rs.getString("name"),
                                 TransactionType.valueOf(rs.getString("type")))),
@@ -45,10 +45,11 @@ public class BackupService {
                                         : VehicleExpenseType.valueOf(rs.getString("vehicle_expense_type")),
                                 rs.getObject("odometer_km", Long.class), rs.getBigDecimal("fuel_liters"),
                                 rs.getString("food_subcategory"))),
-                jdbc.query("SELECT id, name, initial_amount, created_date, note FROM debts ORDER BY id",
+                jdbc.query("SELECT id, name, initial_amount, created_date, note, due_date FROM debts ORDER BY id",
                         (rs, row) -> new BackupData.DebtItem(
                                 rs.getLong("id"), rs.getString("name"), rs.getBigDecimal("initial_amount"),
-                                rs.getDate("created_date").toLocalDate(), rs.getString("note"))),
+                                rs.getDate("created_date").toLocalDate(), rs.getString("note"),
+                                rs.getDate("due_date") == null ? null : rs.getDate("due_date").toLocalDate())),
                 jdbc.query("SELECT id, debt_id, transaction_id FROM debt_payments ORDER BY id",
                         (rs, row) -> new BackupData.DebtPaymentItem(
                                 rs.getLong("id"), rs.getLong("debt_id"), rs.getLong("transaction_id"))),
@@ -91,7 +92,7 @@ public class BackupService {
     }
 
     private void validate(BackupData backup) {
-        if (backup == null || (backup.version() < 1 || backup.version() > 5)
+        if (backup == null || (backup.version() < 1 || backup.version() > 6)
                 || backup.categories() == null || backup.vehicles() == null
                 || backup.transactions() == null || backup.debts() == null
                 || backup.debtPayments() == null) {
@@ -193,13 +194,14 @@ public class BackupService {
 
     private void batchDebts(List<BackupData.DebtItem> items) {
         if (items.isEmpty()) return;
-        jdbc.batchUpdate("INSERT INTO debts (id, name, initial_amount, created_date, note) VALUES (?, ?, ?, ?, ?)",
+        jdbc.batchUpdate("INSERT INTO debts (id, name, initial_amount, created_date, note, due_date) VALUES (?, ?, ?, ?, ?, ?)",
                 items, items.size(), (statement, item) -> {
                     statement.setLong(1, item.id());
                     statement.setString(2, item.name());
                     statement.setBigDecimal(3, item.initialAmount());
                     statement.setDate(4, Date.valueOf(item.createdDate()));
                     statement.setString(5, item.note());
+                    if (item.dueDate() == null) statement.setNull(6, Types.DATE); else statement.setDate(6, Date.valueOf(item.dueDate()));
                 });
     }
 

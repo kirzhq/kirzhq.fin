@@ -12,6 +12,7 @@ public record DebtRequest(
         @NotBlank @Size(max = 255) String name,
         @NotNull @Positive BigDecimal initialAmount,
         @NotNull LocalDate createdDate,
-        @Size(max = 1000) String note
+        @Size(max = 1000) String note,
+        LocalDate dueDate
 ) {
 }

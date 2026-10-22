@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kirzhq-fin-shell-v1';
+const CACHE_NAME = 'kirzhq-fin-shell-v2';
 const APP_ASSETS = [
   '/manifest.webmanifest',
   '/finance-favicon.svg',

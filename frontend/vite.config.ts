@@ -7,7 +7,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('recharts') || id.includes('d3-')) return 'charts';
           if (id.includes('node_modules/react') || id.includes('node_modules/scheduler')) return 'react';
         },
       },
@@ -16,7 +15,7 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:8080',
+      '/api': process.env.API_PROXY ?? 'http://localhost:8080',
     },
   },
 });

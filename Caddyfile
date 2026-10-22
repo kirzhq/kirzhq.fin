@@ -21,16 +21,8 @@
         }
     }
 
-    handle_path /beta* {
-        route {
-            vars original_uri {uri}
-            forward_auth kirzhq-home-backend:8080 {
-                uri /api/auth/check
-            }
-            rewrite * {vars.original_uri}
-            reverse_proxy frontend-beta:80
-        }
-    }
+    # The beta build is merged into the main one; keep old links working.
+    redir /beta* / permanent
 
     handle {
         route {
@@ -90,5 +82,25 @@ home.kirzhq.ru {
         X-Content-Type-Options nosniff
         X-Frame-Options DENY
         Referrer-Policy strict-origin-when-cross-origin
+    }
+}
+
+sync.kirzhq.ru {
+    encode zstd gzip
+
+    handle /obsync-plugin-1.7.4.zip {
+        root * /srv/obsync-downloads
+        file_server
+    }
+
+    handle {
+        reverse_proxy obsync-server:4444
+    }
+
+    header {
+        -Server
+        X-Content-Type-Options nosniff
+        Referrer-Policy no-referrer
+        Strict-Transport-Security "max-age=31536000"
     }
 }

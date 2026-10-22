@@ -14,7 +14,11 @@ export type Transaction = {
   vehicleExpenseType: VehicleExpenseType | null;
   odometerKm: number | null;
   fuelLiters: number | null;
+  /** Set when the operation is a payment of this debt. */
+  debtName: string | null;
 };
+
+export type TransactionPayload = Omit<Transaction, 'id' | 'vehicleName' | 'debtName'>;
 
 export type Category = {
   id: number;
@@ -56,15 +60,8 @@ export type Summary = {
   projectedBalance: number;
   daysInMonth: number;
   forecastAvailable: boolean;
-  monthlyPoints: Array<{
-    month: string;
-    income: number;
-    expense: number;
-  }>;
-  categoryPoints: Array<{
-    category: string;
-    amount: number;
-  }>;
+  monthlyPoints: Array<{ month: string; income: number; expense: number }>;
+  categoryPoints: Array<{ category: string; amount: number }>;
 };
 
 export type CategoryBudget = { id: number; category: string; monthlyLimit: number };
@@ -78,6 +75,8 @@ export type Debt = {
   progressPercent: number;
   createdDate: string;
   note: string;
+  dueDate: string | null;
+  overdueDays: number;
   payments: Array<{
     id: number;
     transactionId: number;
@@ -86,6 +85,8 @@ export type Debt = {
     comment: string;
   }>;
 };
+
+export type DebtPayload = { name: string; initialAmount: number; createdDate: string; note: string; dueDate: string | null };
 
 export type SavingsGoal = {
   id: number;
@@ -103,3 +104,8 @@ export type SavingsGoal = {
   recommendedMonthly: number;
   entries: Array<{ id: number; amount: number; entryDate: string; comment: string }>;
 };
+
+export type SavingsGoalPayload = { name: string; targetAmount: number; targetDate: string | null; createdDate: string; note: string; color: string };
+
+/** A selected period: a whole year when month is null. */
+export type Period = { year: number; month: number | null };

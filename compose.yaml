@@ -49,15 +49,6 @@ services:
     networks:
       - web
 
-  frontend-beta:
-    build:
-      context: ./frontend
-      args:
-        VITE_BASE_PATH: /beta/
-    restart: unless-stopped
-    networks:
-      - web
-
   caddy:
     image: caddy:2.10-alpine
     restart: unless-stopped
@@ -69,12 +60,12 @@ services:
       - "443:443/udp"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /opt/obsync-ce/downloads:/srv/obsync-downloads:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
       - backend
       - frontend
-      - frontend-beta
     networks:
       - web
 

@@ -1,190 +1,120 @@
-import type { Category, CategoryBudget, Debt, SavingsGoal, Summary, Transaction, TransactionType, Vehicle, VehicleSummary } from './types';
+import type {
+  Category, CategoryBudget, Debt, DebtPayload, Period, SavingsGoal, SavingsGoalPayload, Summary, Transaction,
+  TransactionPayload, TransactionType, Vehicle, VehicleSummary,
+} from './types';
 
 const API_BASE = '/api';
 
 function csrfToken() {
-  return document.cookie.split('; ')
+  const raw = document.cookie.split('; ')
     .find((value) => value.startsWith('XSRF-TOKEN='))
     ?.split('=').slice(1).join('=');
+  return raw ? decodeURIComponent(raw) : undefined;
 }
 
 function ensureAuthenticated(response: Response) {
   if (response.status === 401 || (response.redirected && response.url.includes('/login'))) {
     window.location.assign(`https://home.kirzhq.ru/login?continue=${encodeURIComponent(window.location.href)}`);
-    throw new Error('Требуется авторизация');
+    throw new Error('Нужно войти заново');
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function errorMessage(response: Response) {
+  try {
+    const body = await response.json() as { message?: string };
+    if (body?.message) return body.message;
+  } catch {
+    // The body is not JSON (proxy error page, empty response).
+  }
+  if (response.status >= 500) return 'Сервер не ответил как надо. Попробуйте ещё раз через минуту.';
+  return `Запрос не выполнен (код ${response.status})`;
+}
+
+async function send(path: string, init: RequestInit = {}): Promise<Response> {
   const token = csrfToken();
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { 'X-XSRF-TOKEN': decodeURIComponent(token) } : {}),
-      ...(init?.headers ?? {}),
-    },
-    ...init,
-  });
-
-  ensureAuthenticated(response);
-  if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
+  const headers: Record<string, string> = { ...(init.headers as Record<string, string> | undefined) };
+  if (init.body) headers['Content-Type'] = 'application/json';
+  if (token && init.method && init.method !== 'GET') headers['X-XSRF-TOKEN'] = token;
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') throw error;
+    throw new Error('Нет связи с сервером. Проверьте интернет.');
   }
-
-  return response.json() as Promise<T>;
+  ensureAuthenticated(response);
+  if (!response.ok) throw new Error(await errorMessage(response));
+  return response;
 }
 
-function periodQuery(year: number, month: number | null) {
+async function json<T>(path: string, init?: RequestInit): Promise<T> {
+  return (await send(path, init)).json() as Promise<T>;
+}
+
+const body = (method: string, payload: unknown): RequestInit => ({ method, body: JSON.stringify(payload) });
+
+function periodQuery({ year, month }: Period) {
   const params = new URLSearchParams({ year: String(year) });
   if (month) params.set('month', String(month));
   return params.toString();
 }
 
-export function getTransactions(year: number, month: number | null) {
-  return request<Transaction[]>(`/transactions?${periodQuery(year, month)}`);
-}
+export const api = {
+  transactions: (period: Period, signal?: AbortSignal) => json<Transaction[]>(`/transactions?${periodQuery(period)}`, { signal }),
+  summary: (period: Period, signal?: AbortSignal) => json<Summary>(`/summary?${periodQuery(period)}`, { signal }),
+  createTransaction: (payload: TransactionPayload) => json<Transaction>('/transactions', body('POST', payload)),
+  updateTransaction: (id: number, payload: TransactionPayload) => json<Transaction>(`/transactions/${id}`, body('PUT', payload)),
+  deleteTransaction: (id: number) => send(`/transactions/${id}`, { method: 'DELETE' }),
 
-export function getSummary(year: number, month: number | null) {
-  return request<Summary>(`/summary?${periodQuery(year, month)}`);
-}
+  categories: () => json<Category[]>('/categories'),
+  createCategory: (name: string, type: TransactionType) => json<Category>('/categories', body('POST', { name, type })),
+  renameCategory: (id: number, name: string) => json<Category>(`/categories/${id}`, body('PUT', { name })),
+  deleteCategory: (id: number, moveTo?: string) =>
+    send(`/categories/${id}${moveTo ? `?moveTo=${encodeURIComponent(moveTo)}` : ''}`, { method: 'DELETE' }),
 
-export function createTransaction(payload: Omit<Transaction, 'id' | 'vehicleName'>) {
-  return request<Transaction>('/transactions', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-}
+  budgets: () => json<CategoryBudget[]>('/budgets'),
+  saveBudget: (category: string, monthlyLimit: number) => json<CategoryBudget>('/budgets', body('PUT', { category, monthlyLimit })),
+  deleteBudget: (id: number) => send(`/budgets/${id}`, { method: 'DELETE' }),
 
-export function updateTransaction(id: number, payload: Omit<Transaction, 'id' | 'vehicleName'>) {
-  return request<Transaction>(`/transactions/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(payload),
-  });
-}
+  vehicles: () => json<Vehicle[]>('/vehicles'),
+  vehicleSummary: (id: number, year: number) => json<VehicleSummary>(`/vehicles/${id}/summary?year=${year}`),
+  exportVehicle: (id: number, year: number) => download(`/vehicles/${id}/export?year=${year}`, `vehicle-${year}.xlsx`),
 
-export async function deleteTransaction(id: number) {
-  const token = csrfToken();
-  const response = await fetch(`${API_BASE}/transactions/${id}`, {
-    method: 'DELETE',
-    headers: token ? { 'X-XSRF-TOKEN': decodeURIComponent(token) } : {},
-  });
-  ensureAuthenticated(response);
-  if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
-}
+  debts: () => json<Debt[]>('/debts'),
+  createDebt: (payload: DebtPayload) => json<Debt>('/debts', body('POST', payload)),
+  updateDebt: (id: number, payload: DebtPayload) => json<Debt>(`/debts/${id}`, body('PUT', payload)),
+  deleteDebt: (id: number) => send(`/debts/${id}`, { method: 'DELETE' }),
+  payDebt: (id: number, payload: { amount: number; paymentDate: string; comment: string }) =>
+    json<Debt>(`/debts/${id}/payments`, body('POST', payload)),
 
-export function getCategories() {
-  return request<Category[]>('/categories');
-}
+  savings: () => json<SavingsGoal[]>('/savings'),
+  createGoal: (payload: SavingsGoalPayload) => json<SavingsGoal>('/savings', body('POST', payload)),
+  updateGoal: (id: number, payload: SavingsGoalPayload) => json<SavingsGoal>(`/savings/${id}`, body('PUT', payload)),
+  deleteGoal: (id: number) => send(`/savings/${id}`, { method: 'DELETE' }),
+  addEntry: (id: number, payload: { amount: number; entryDate: string; comment: string; withdrawal: boolean }) =>
+    json<SavingsGoal>(`/savings/${id}/entries`, body('POST', payload)),
+  deleteEntry: (goalId: number, entryId: number) => send(`/savings/${goalId}/entries/${entryId}`, { method: 'DELETE' }),
 
-export function createCategory(payload: { name: string; type: TransactionType }) {
-  return request<Category>('/categories', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-}
+  exportBackup: () => download('/backup/export', 'kirzhq-fin-backup.json'),
+  async importBackup(file: File) {
+    let backup: unknown;
+    try {
+      backup = JSON.parse(await file.text());
+    } catch {
+      throw new Error('Файл не похож на резервную копию: это не JSON');
+    }
+    return json<{ imported: boolean }>('/backup/import', body('POST', backup));
+  },
+};
 
-export function getBudgets() { return request<CategoryBudget[]>('/budgets'); }
-export function saveBudget(payload: { category: string; monthlyLimit: number }) {
-  return request<CategoryBudget>('/budgets', { method: 'PUT', body: JSON.stringify(payload) });
-}
-export async function deleteBudget(id: number) {
-  const token = csrfToken();
-  const response = await fetch(`${API_BASE}/budgets/${id}`, { method: 'DELETE', headers: token ? { 'X-XSRF-TOKEN': decodeURIComponent(token) } : {} });
-  ensureAuthenticated(response); if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
-}
-
-export function getVehicles() {
-  return request<Vehicle[]>('/vehicles');
-}
-
-export function getVehicleSummary(id: number, year: number) {
-  return request<VehicleSummary>(`/vehicles/${id}/summary?year=${year}`);
-}
-
-export async function exportVehicle(id: number, year: number) {
-  const response = await fetch(`${API_BASE}/vehicles/${id}/export?year=${year}`);
-  ensureAuthenticated(response);
-  if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
-  const blob = await response.blob();
-  const url = URL.createObjectURL(blob);
+async function download(path: string, fallbackName: string) {
+  const response = await send(path);
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+  const name = /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? fallbackName;
+  const url = URL.createObjectURL(await response.blob());
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = `lada-vesta-${year}.xlsx`;
+  anchor.download = name;
   anchor.click();
-  URL.revokeObjectURL(url);
-}
-
-export function getDebts() {
-  return request<Debt[]>('/debts');
-}
-
-export function createDebt(payload: { name: string; initialAmount: number; createdDate: string; note: string }) {
-  return request<Debt>('/debts', { method: 'POST', body: JSON.stringify(payload) });
-}
-
-export function updateDebt(id: number, payload: { name: string; initialAmount: number; createdDate: string; note: string }) {
-  return request<Debt>(`/debts/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
-}
-
-export async function deleteDebt(id: number) {
-  const token = csrfToken();
-  const response = await fetch(`${API_BASE}/debts/${id}`, {
-    method: 'DELETE',
-    headers: token ? { 'X-XSRF-TOKEN': decodeURIComponent(token) } : {},
-  });
-  ensureAuthenticated(response);
-  if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
-}
-
-export function payDebt(id: number, payload: { amount: number; paymentDate: string; comment: string }) {
-  return request<Debt>(`/debts/${id}/payments`, { method: 'POST', body: JSON.stringify(payload) });
-}
-
-export function getSavings() { return request<SavingsGoal[]>('/savings'); }
-export function createSavingsGoal(payload: SavingsGoalPayload) {
-  return request<SavingsGoal>('/savings', { method: 'POST', body: JSON.stringify(payload) });
-}
-export function updateSavingsGoal(id: number, payload: SavingsGoalPayload) {
-  return request<SavingsGoal>(`/savings/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
-}
-export async function deleteSavingsGoal(id: number) {
-  const token = csrfToken();
-  const response = await fetch(`${API_BASE}/savings/${id}`, { method: 'DELETE', headers: token ? { 'X-XSRF-TOKEN': decodeURIComponent(token) } : {} });
-  ensureAuthenticated(response); if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
-}
-export function addSavingsEntry(id: number, payload: { amount: number; entryDate: string; comment: string; withdrawal: boolean }) {
-  return request<SavingsGoal>(`/savings/${id}/entries`, { method: 'POST', body: JSON.stringify(payload) });
-}
-export async function deleteSavingsEntry(goalId: number, entryId: number) {
-  const token = csrfToken();
-  const response = await fetch(`${API_BASE}/savings/${goalId}/entries/${entryId}`, { method: 'DELETE', headers: token ? { 'X-XSRF-TOKEN': decodeURIComponent(token) } : {} });
-  ensureAuthenticated(response); if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
-}
-
-type SavingsGoalPayload = { name: string; targetAmount: number; targetDate: string | null; createdDate: string; note: string; color: string };
-
-export async function exportBackup() {
-  const response = await fetch(`${API_BASE}/backup/export`);
-  ensureAuthenticated(response);
-  if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
-  const blob = await response.blob();
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = `kirzhq-fin-backup-${new Date().toISOString().slice(0, 10)}.json`;
-  anchor.click();
-  URL.revokeObjectURL(url);
-}
-
-export async function importBackup(file: File) {
-  let backup: unknown;
-  try {
-    backup = JSON.parse(await file.text());
-  } catch {
-    throw new Error('Не удалось прочитать файл резервной копии');
-  }
-  return request<{ imported: boolean }>('/backup/import', {
-    method: 'POST',
-    body: JSON.stringify(backup),
-  });
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

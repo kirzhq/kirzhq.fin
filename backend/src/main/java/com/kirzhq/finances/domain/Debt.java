@@ -30,6 +30,9 @@ public class Debt {
     @Column(nullable = false, length = 1000)
     private String note;
 
+    @Column(name = "due_date")
+    private LocalDate dueDate;
+
     public Long getId() { return id; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -39,4 +42,6 @@ public class Debt {
     public void setCreatedDate(LocalDate createdDate) { this.createdDate = createdDate; }
     public String getNote() { return note; }
     public void setNote(String note) { this.note = note; }
+    public LocalDate getDueDate() { return dueDate; }
+    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
 }
