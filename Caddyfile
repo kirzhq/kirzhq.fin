@@ -92,3 +92,23 @@ home.kirzhq.ru {
         Referrer-Policy strict-origin-when-cross-origin
     }
 }
+
+sync.kirzhq.ru {
+    encode zstd gzip
+
+    handle /obsync-plugin-1.7.4.zip {
+        root * /srv/obsync-downloads
+        file_server
+    }
+
+    handle {
+        reverse_proxy obsync-server:4444
+    }
+
+    header {
+        -Server
+        X-Content-Type-Options nosniff
+        Referrer-Policy no-referrer
+        Strict-Transport-Security "max-age=31536000"
+    }
+}
