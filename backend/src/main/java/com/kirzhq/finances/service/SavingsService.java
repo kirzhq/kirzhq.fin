@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
@@ -24,10 +25,12 @@ import java.util.stream.Collectors;
 public class SavingsService {
     private final SavingsGoalRepository goals;
     private final SavingsEntryRepository entries;
+    private final Clock clock;
 
-    public SavingsService(SavingsGoalRepository goals, SavingsEntryRepository entries) {
+    public SavingsService(SavingsGoalRepository goals, SavingsEntryRepository entries, Clock clock) {
         this.goals = goals;
         this.entries = entries;
+        this.clock = clock;
     }
 
     @Transactional(readOnly = true)
@@ -104,7 +107,7 @@ public class SavingsService {
                 .divide(goal.getTargetAmount(), 0, RoundingMode.HALF_UP).intValue();
         BigDecimal average = averageMonthly(ordered);
         LocalDate projected = average.signum() > 0 && remaining.signum() > 0
-                ? LocalDate.now().plusMonths(remaining.divide(average, 0, RoundingMode.CEILING).longValue()) : null;
+                ? LocalDate.now(clock).plusMonths(remaining.divide(average, 0, RoundingMode.CEILING).longValue()) : null;
         BigDecimal recommended = recommendedMonthly(goal.getTargetDate(), remaining);
         return new SavingsGoalResponse(goal.getId(), goal.getName(), goal.getTargetAmount(), saved, remaining,
                 progress, goal.getTargetDate(), goal.getCreatedDate(), goal.getNote(), goal.getColor(), average,
@@ -118,14 +121,14 @@ public class SavingsService {
 
     private BigDecimal averageMonthly(List<SavingsEntry> values) {
         if (values.isEmpty()) return BigDecimal.ZERO;
-        YearMonth first = values.stream().map(SavingsEntry::getEntryDate).min(LocalDate::compareTo).map(YearMonth::from).orElse(YearMonth.now());
-        long months = Math.max(1, ChronoUnit.MONTHS.between(first, YearMonth.now()) + 1);
+        YearMonth first = values.stream().map(SavingsEntry::getEntryDate).min(LocalDate::compareTo).map(YearMonth::from).orElse(YearMonth.now(clock));
+        long months = Math.max(1, ChronoUnit.MONTHS.between(first, YearMonth.now(clock)) + 1);
         return total(values).max(BigDecimal.ZERO).divide(BigDecimal.valueOf(months), 2, RoundingMode.HALF_UP);
     }
 
     private BigDecimal recommendedMonthly(LocalDate targetDate, BigDecimal remaining) {
         if (targetDate == null || remaining.signum() == 0) return BigDecimal.ZERO;
-        long months = Math.max(1, ChronoUnit.MONTHS.between(YearMonth.now(), YearMonth.from(targetDate)) + 1);
+        long months = Math.max(1, ChronoUnit.MONTHS.between(YearMonth.now(clock), YearMonth.from(targetDate)) + 1);
         return remaining.divide(BigDecimal.valueOf(months), 2, RoundingMode.CEILING);
     }
 }

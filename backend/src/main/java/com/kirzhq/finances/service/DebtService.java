@@ -16,6 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -28,9 +31,11 @@ public class DebtService {
     private final DebtPaymentRepository payments;
     private final TransactionRepository transactions;
     private final TransactionService transactionService;
+    private final Clock clock;
 
     public DebtService(DebtRepository debts, DebtPaymentRepository payments,
-            TransactionRepository transactions, TransactionService transactionService) {
+            TransactionRepository transactions, TransactionService transactionService, Clock clock) {
+        this.clock = clock;
         this.debts = debts;
         this.payments = payments;
         this.transactions = transactions;
@@ -84,7 +89,7 @@ public class DebtService {
                 ? "Погашение долга: " + debt.getName()
                 : "Погашение долга: " + debt.getName() + " — " + request.comment().trim();
         var created = transactionService.create(new TransactionRequest(
-                TransactionType.EXPENSE, "Долги", request.amount(), request.paymentDate(), comment, null, null, null, null, null));
+                TransactionType.EXPENSE, TransactionService.DEBT_CATEGORY, request.amount(), request.paymentDate(), comment, null, null, null, null, null));
         Transaction transaction = transactions.findById(created.id())
                 .orElseThrow(() -> new IllegalStateException("Операция погашения не создана"));
         DebtPayment payment = new DebtPayment();
@@ -103,6 +108,7 @@ public class DebtService {
         debt.setInitialAmount(request.initialAmount());
         debt.setCreatedDate(request.createdDate());
         debt.setNote(request.note() == null ? "" : request.note().trim());
+        debt.setDueDate(request.dueDate());
     }
 
     private BigDecimal remaining(Debt debt) {
@@ -130,7 +136,9 @@ public class DebtService {
                         .divide(debt.getInitialAmount(), 0, RoundingMode.HALF_UP).intValue();
         return new DebtResponse(
                 debt.getId(), debt.getName(), debt.getInitialAmount(), paid, remaining, progress,
-                debt.getCreatedDate(), debt.getNote(),
+                debt.getCreatedDate(), debt.getNote(), debt.getDueDate(),
+                remaining.signum() > 0 && debt.getDueDate() != null && debt.getDueDate().isBefore(LocalDate.now(clock))
+                        ? ChronoUnit.DAYS.between(debt.getDueDate(), LocalDate.now(clock)) : 0,
                 debtPayments.stream().map(payment -> new DebtResponse.Payment(
                         payment.getId(),
                         payment.getTransaction().getId(),

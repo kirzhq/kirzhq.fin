@@ -18,6 +18,7 @@ public record TransactionResponse(
         VehicleExpenseType vehicleExpenseType,
         Long odometerKm,
         BigDecimal fuelLiters,
-        String foodSubcategory
+        String foodSubcategory,
+        String debtName
 ) {
 }

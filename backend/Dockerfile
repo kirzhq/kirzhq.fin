@@ -15,4 +15,5 @@ COPY --from=build --chown=app:app /app/target/finance-tracker-backend-*.jar app.
 
 USER app
 EXPOSE 8080
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
+ENV TZ=Europe/Moscow
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-Duser.timezone=Europe/Moscow", "-jar", "app.jar"]

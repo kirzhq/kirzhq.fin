@@ -3,6 +3,7 @@ package com.kirzhq.finances.service;
 import com.kirzhq.finances.domain.Transaction;
 import com.kirzhq.finances.domain.TransactionType;
 import com.kirzhq.finances.domain.VehicleExpenseType;
+import com.kirzhq.finances.repository.DebtPaymentRepository;
 import com.kirzhq.finances.repository.TransactionRepository;
 import com.kirzhq.finances.web.dto.SummaryResponse;
 import com.kirzhq.finances.web.dto.TransactionRequest;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -18,10 +20,12 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class TransactionService {
 
+    public static final String DEBT_CATEGORY = "Долги";
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
     private static final List<String> FOOD_SUBCATEGORIES = List.of(
             "Доставка из ресторанов", "Доставка из магазина", "Ресторан", "Перекус", "Готовая еда", "Продукты");
@@ -29,16 +33,26 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final CategoryService categoryService;
     private final VehicleService vehicleService;
+    private final DebtPaymentRepository debtPaymentRepository;
+    private final Clock clock;
 
-    public TransactionService(TransactionRepository transactionRepository, CategoryService categoryService, VehicleService vehicleService) {
+    public TransactionService(TransactionRepository transactionRepository, CategoryService categoryService,
+            VehicleService vehicleService, DebtPaymentRepository debtPaymentRepository, Clock clock) {
         this.transactionRepository = transactionRepository;
         this.categoryService = categoryService;
         this.vehicleService = vehicleService;
+        this.debtPaymentRepository = debtPaymentRepository;
+        this.clock = clock;
     }
 
     public List<TransactionResponse> findAll(int year, Integer month) {
-        return transactionsForPeriod(year, month).stream()
-                .map(this::toResponse)
+        List<Transaction> transactions = transactionsForPeriod(year, month);
+        Map<Long, String> debtNames = transactions.isEmpty() ? Map.of() : debtPaymentRepository
+                .findDebtNames(transactions.stream().map(Transaction::getId).toList()).stream()
+                .collect(Collectors.toMap(DebtPaymentRepository.TransactionDebt::getTransactionId,
+                        DebtPaymentRepository.TransactionDebt::getDebtName));
+        return transactions.stream()
+                .map(transaction -> toResponse(transaction, debtNames.get(transaction.getId())))
                 .toList();
     }
 
@@ -48,7 +62,7 @@ public class TransactionService {
         }
         Transaction transaction = new Transaction();
         applyRequest(transaction, request);
-        return toResponse(transactionRepository.save(transaction));
+        return toResponse(transactionRepository.save(transaction), null);
     }
 
     public TransactionResponse update(Long id, TransactionRequest request) {
@@ -57,8 +71,12 @@ public class TransactionService {
         }
         Transaction transaction = transactionRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Операция не найдена"));
+        String debtName = debtPaymentRepository.findByTransactionId(id).map(payment -> payment.getDebt().getName()).orElse(null);
+        if (debtName != null && (request.type() != TransactionType.EXPENSE || !DEBT_CATEGORY.equalsIgnoreCase(request.category().trim()))) {
+            throw new IllegalArgumentException("Это платёж по долгу «" + debtName + "». У него можно менять сумму, дату и комментарий, но не категорию.");
+        }
         applyRequest(transaction, request);
-        return toResponse(transactionRepository.save(transaction));
+        return toResponse(transactionRepository.save(transaction), debtName);
     }
 
     public void delete(Long id) {
@@ -111,7 +129,7 @@ public class TransactionService {
                 .map(Transaction::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         int calculationDays = calculationDays(year, month);
-        boolean forecastAvailable = month != null && YearMonth.of(year, month).equals(YearMonth.now());
+        boolean forecastAvailable = month != null && YearMonth.of(year, month).equals(YearMonth.now(clock));
         int daysInMonth = month == null ? 0 : YearMonth.of(year, month).lengthOfMonth();
         BigDecimal projectedExpense = forecastAvailable
                 ? averagePerDay(expense, calculationDays).multiply(BigDecimal.valueOf(daysInMonth)).setScale(2, RoundingMode.HALF_UP)
@@ -147,8 +165,8 @@ public class TransactionService {
             return 0;
         }
         YearMonth selected = YearMonth.of(year, month);
-        YearMonth current = YearMonth.now();
-        return selected.equals(current) ? LocalDate.now().getDayOfMonth() : selected.lengthOfMonth();
+        YearMonth current = YearMonth.now(clock);
+        return selected.equals(current) ? LocalDate.now(clock).getDayOfMonth() : selected.lengthOfMonth();
     }
 
     private BigDecimal averagePerDay(BigDecimal amount, int days) {
@@ -199,7 +217,7 @@ public class TransactionService {
                 .findAllByTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateDescIdDesc(from, to);
     }
 
-    private TransactionResponse toResponse(Transaction transaction) {
+    private TransactionResponse toResponse(Transaction transaction, String debtName) {
         return new TransactionResponse(
                 transaction.getId(),
                 transaction.getType(),
@@ -212,7 +230,8 @@ public class TransactionService {
                 transaction.getVehicleExpenseType(),
                 transaction.getOdometerKm(),
                 transaction.getFuelLiters(),
-                transaction.getFoodSubcategory()
+                transaction.getFoodSubcategory(),
+                debtName
         );
     }
 }

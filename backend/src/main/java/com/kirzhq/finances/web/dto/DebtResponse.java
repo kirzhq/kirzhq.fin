@@ -13,6 +13,8 @@ public record DebtResponse(
         int progressPercent,
         LocalDate createdDate,
         String note,
+        LocalDate dueDate,
+        long overdueDays,
         List<Payment> payments
 ) {
     public record Payment(Long id, Long transactionId, BigDecimal amount, LocalDate paymentDate, String comment) {

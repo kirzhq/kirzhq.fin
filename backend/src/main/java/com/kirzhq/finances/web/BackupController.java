@@ -27,7 +27,7 @@ public class BackupController {
     public ResponseEntity<BackupData> exportData() {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"kirzhq-fin-backup-" + LocalDate.now() + ".json\"")
+                        "attachment; filename=\"kirzhq-fin-backup-" + LocalDate.now(com.kirzhq.finances.config.TimeConfig.MOSCOW) + ".json\"")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(backupService.exportData());
     }
