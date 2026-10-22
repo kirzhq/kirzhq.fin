@@ -35,7 +35,7 @@ class ApiExceptionHandlerTest {
         mvc.perform(post("/api/categories").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"\",\"type\":\"EXPENSE\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.startsWith("Название:")));
+                .andExpect(jsonPath("$.message").value("Название: обязательное поле"));
     }
 
     @Test

@@ -43,7 +43,7 @@ public class ApiExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<Map<String, String>> invalid(MethodArgumentNotValidException exception) {
         String message = exception.getBindingResult().getFieldErrors().stream()
-                .map(error -> FIELD_NAMES.getOrDefault(error.getField(), error.getField()) + ": " + error.getDefaultMessage())
+                .map(error -> FIELD_NAMES.getOrDefault(error.getField(), error.getField()) + ": " + reason(error.getCode()))
                 .distinct()
                 .collect(Collectors.joining("; "));
         return body(HttpStatus.BAD_REQUEST, message.isBlank() ? "Проверьте заполнение формы" : message);
@@ -58,6 +58,17 @@ public class ApiExceptionHandler {
     ResponseEntity<Map<String, String>> conflict(DataIntegrityViolationException exception) {
         log.warn("Data integrity violation", exception);
         return body(HttpStatus.CONFLICT, "Изменение противоречит уже сохранённым данным");
+    }
+
+    /** Validator messages come in the container's locale (English), so build them from the constraint type. */
+    private static String reason(String code) {
+        if (code == null) return "неверное значение";
+        return switch (code) {
+            case "NotBlank", "NotNull", "NotEmpty" -> "обязательное поле";
+            case "Positive", "DecimalMin", "Min" -> "должно быть больше нуля";
+            case "Size", "Max", "DecimalMax" -> "слишком большое значение";
+            default -> "неверное значение";
+        };
     }
 
     private ResponseEntity<Map<String, String>> body(HttpStatus status, String message) {
