@@ -84,8 +84,8 @@ public class CategoryService {
         long used = transactionRepository.countByCategoryAndType(category.getName(), category.getType());
         if (used > 0) {
             if (moveTo == null || moveTo.isBlank()) {
-                throw new IllegalArgumentException("В категории «" + category.getName() + "» " + used
-                        + " операций. Выберите, в какую категорию их перенести.");
+                throw new IllegalArgumentException("В категории «" + category.getName() + "» " + used + " "
+                        + operations(used) + ". Выберите, в какую категорию их перенести.");
             }
             String target = moveTo.trim();
             Category targetCategory = categoryRepository.findAllByOrderByTypeAscNameAsc().stream()
@@ -117,6 +117,14 @@ public class CategoryService {
     private boolean isSystem(Category category) {
         return category.getType() == TransactionType.EXPENSE
                 && SYSTEM_EXPENSE_CATEGORIES.contains(category.getName().toLowerCase(java.util.Locale.ROOT));
+    }
+
+    private static String operations(long count) {
+        long mod10 = count % 10;
+        long mod100 = count % 100;
+        if (mod10 == 1 && mod100 != 11) return "операция";
+        if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "операции";
+        return "операций";
     }
 
     private CategoryResponse toResponse(Category category) {
