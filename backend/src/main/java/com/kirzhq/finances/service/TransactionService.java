@@ -45,8 +45,8 @@ public class TransactionService {
         this.clock = clock;
     }
 
-    public List<TransactionResponse> findAll(int year, Integer month) {
-        List<Transaction> transactions = transactionsForPeriod(year, month);
+    public List<TransactionResponse> findAll(int year, Integer month, boolean includeExcluded) {
+        List<Transaction> transactions = transactionsForPeriod(year, month, includeExcluded);
         Map<Long, String> debtNames = transactions.isEmpty() ? Map.of() : debtPaymentRepository
                 .findDebtNames(transactions.stream().map(Transaction::getId).toList()).stream()
                 .collect(Collectors.toMap(DebtPaymentRepository.TransactionDebt::getTransactionId,
@@ -87,7 +87,7 @@ public class TransactionService {
     }
 
     public SummaryResponse summary(int year, Integer month) {
-        List<Transaction> transactions = transactionsForPeriod(year, month);
+        List<Transaction> transactions = transactionsForPeriod(year, month, false);
 
         BigDecimal income = transactions.stream()
                 .filter(transaction -> transaction.getType() == TransactionType.INCOME)
@@ -210,11 +210,12 @@ public class TransactionService {
         transaction.setFuelLiters(vehicleExpenseType == VehicleExpenseType.FUEL ? request.fuelLiters() : null);
     }
 
-    private List<Transaction> transactionsForPeriod(int year, Integer month) {
+    private List<Transaction> transactionsForPeriod(int year, Integer month, boolean includeExcluded) {
         LocalDate from = month == null ? LocalDate.of(year, 1, 1) : LocalDate.of(year, month, 1);
         LocalDate to = month == null ? from.plusYears(1) : from.plusMonths(1);
-        return transactionRepository
-                .findAllByTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateDescIdDesc(from, to);
+        return includeExcluded
+                ? transactionRepository.findAllByTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateDescIdDesc(from, to)
+                : transactionRepository.findAllByExcludedFromTotalsFalseAndTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateDescIdDesc(from, to);
     }
 
     private TransactionResponse toResponse(Transaction transaction, String debtName) {
@@ -231,7 +232,8 @@ public class TransactionService {
                 transaction.getOdometerKm(),
                 transaction.getFuelLiters(),
                 transaction.getFoodSubcategory(),
-                debtName
+                debtName,
+                transaction.isExcludedFromTotals()
         );
     }
 }

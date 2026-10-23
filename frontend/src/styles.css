@@ -230,6 +230,7 @@ h1 { font-family: var(--f-display); font-weight: 500; font-size: clamp(24px, 3vw
 .op:hover { background: var(--sunk); }
 .op-text { min-width: 0; }
 .op .t { font-weight: 500; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.op .t .pill { margin-left: 8px; font-size: 11px; }
 .op .s { font-size: 13px; color: var(--ink-2); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .op .a { font-size: 15px; white-space: nowrap; }
 .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }

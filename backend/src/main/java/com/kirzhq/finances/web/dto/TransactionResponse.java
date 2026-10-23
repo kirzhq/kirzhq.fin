@@ -19,6 +19,7 @@ public record TransactionResponse(
         Long odometerKm,
         BigDecimal fuelLiters,
         String foodSubcategory,
-        String debtName
+        String debtName,
+        boolean excludedFromTotals
 ) {
 }

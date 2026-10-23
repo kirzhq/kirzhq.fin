@@ -50,7 +50,7 @@ class TransactionServiceTest {
     void forecastUsesMoscowDateNotUtc() {
         // 31 October 22:30 UTC is already 1 November in Moscow.
         Clock lateUtc = Clock.fixed(Instant.parse("2026-10-31T22:30:00Z"), ZoneId.of("Europe/Moscow"));
-        when(transactions.findAllByTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateDescIdDesc(any(), any()))
+        when(transactions.findAllByExcludedFromTotalsFalseAndTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateDescIdDesc(any(), any()))
                 .thenReturn(List.of());
 
         var november = service(lateUtc).summary(2026, 11);

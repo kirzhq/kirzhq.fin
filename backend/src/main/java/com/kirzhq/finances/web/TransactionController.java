@@ -31,9 +31,10 @@ public class TransactionController {
     @GetMapping("/transactions")
     public List<TransactionResponse> transactions(
             @RequestParam(defaultValue = "2026") int year,
-            @RequestParam(required = false) Integer month
+            @RequestParam(required = false) Integer month,
+            @RequestParam(defaultValue = "false") boolean includeExcluded
     ) {
-        return transactionService.findAll(year, month);
+        return transactionService.findAll(year, month, includeExcluded);
     }
 
     @PostMapping("/transactions")

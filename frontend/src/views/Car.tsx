@@ -20,7 +20,7 @@ export function Car() {
     let stale = false;
     setSummary(null);
     setItems(null);
-    Promise.all([api.vehicleSummary(vehicle.id, year), api.transactions({ year, month: null })])
+    Promise.all([api.vehicleSummary(vehicle.id, year), api.transactions({ year, month: null }, undefined, true)])
       .then(([vehicleSummary, transactions]) => {
         if (stale) return;
         setSummary(vehicleSummary);

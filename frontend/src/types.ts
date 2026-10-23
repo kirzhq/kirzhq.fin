@@ -16,9 +16,11 @@ export type Transaction = {
   fuelLiters: number | null;
   /** Set when the operation is a payment of this debt. */
   debtName: string | null;
+  /** Kept in the vehicle log but left out of totals, charts and the journal. */
+  excludedFromTotals: boolean;
 };
 
-export type TransactionPayload = Omit<Transaction, 'id' | 'vehicleName' | 'debtName'>;
+export type TransactionPayload = Omit<Transaction, 'id' | 'vehicleName' | 'debtName' | 'excludedFromTotals'>;
 
 export type Category = {
   id: number;

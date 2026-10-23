@@ -84,13 +84,13 @@ export function OperationList({ items, onOpen, dayTotals = true, empty }: {
     else groups.push({ date: item.transactionDate, items: [item] });
   }
   return <div className="ops">{groups.map((group) => {
-    const spent = group.items.filter((item) => item.type === 'EXPENSE').reduce((sum, item) => sum + item.amount, 0);
+    const spent = group.items.filter((item) => item.type === 'EXPENSE' && !item.excludedFromTotals).reduce((sum, item) => sum + item.amount, 0);
     return <section key={group.date} aria-label={dayLabel(group.date)}>
       <div className="day-h"><b>{dayLabel(group.date)}</b>{dayTotals && spent > 0 && <span className="num">−{money(spent)}</span>}</div>
       {group.items.map((item) => <button type="button" key={item.id} className="op" onClick={() => onOpen(item)}>
         <span className="dot" style={{ background: categoryColor(item.category, item.type) }} />
         <span className="op-text">
-          <span className="t">{item.category}</span>
+          <span className="t">{item.category}{item.excludedFromTotals && <span className="pill" title="Хранится для истории машины, в суммы и графики не входит">не в итогах</span>}</span>
           <span className="s">{operationDetails(item) || ' '}</span>
         </span>
         <span className={`a num${item.type === 'INCOME' ? ' pos' : ''}`}>{item.type === 'INCOME' ? '+' : '−'}{money(item.amount)}</span>
