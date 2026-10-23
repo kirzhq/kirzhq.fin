@@ -177,7 +177,17 @@ h1 { font-family: var(--f-display); font-weight: 500; font-size: clamp(24px, 3vw
 .pill.ok { background: color-mix(in oklab, var(--pos) 14%, var(--panel)); color: var(--pos); }
 
 /* charts */
-.chart-wrap { margin: 0; }
+.chart-wrap { margin: 0; position: relative; }
+.chart .hit { fill: transparent; cursor: crosshair; }
+.chart .hover-band { fill: var(--sunk); opacity: .7; }
+.chart-tip { position: absolute; top: 4px; transform: translateX(-50%); min-width: 176px; display: grid; gap: 3px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); font-size: 13px; pointer-events: none; z-index: 2; }
+.chart-tip.left { transform: translateX(calc(-100% + 24px)); }
+.chart-tip.right { transform: translateX(-24px); }
+.chart-tip b { font-weight: 600; margin-bottom: 2px; }
+.chart-tip span { display: flex; align-items: center; gap: 6px; color: var(--ink-2); }
+.chart-tip em { font-style: normal; margin-left: auto; color: var(--ink); padding-left: 12px; }
+.chart-tip .tip-total { border-top: 1px solid var(--line); padding-top: 4px; margin-top: 2px; }
+.chart-tip small { color: var(--ink-2); font-size: 12px; }
 .chart { width: 100%; height: auto; display: block; }
 .chart text { fill: var(--ink-2); font-family: var(--f-mono); font-size: 10.5px; }
 .chart .grid { stroke: var(--line); stroke-width: 1; }
