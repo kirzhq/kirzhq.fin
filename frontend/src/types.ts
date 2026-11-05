@@ -20,7 +20,7 @@ export type Transaction = {
   excludedFromTotals: boolean;
 };
 
-export type TransactionPayload = Omit<Transaction, 'id' | 'vehicleName' | 'debtName' | 'excludedFromTotals'>;
+export type TransactionPayload = Omit<Transaction, 'id' | 'vehicleName' | 'debtName'>;
 
 export type Category = {
   id: number;

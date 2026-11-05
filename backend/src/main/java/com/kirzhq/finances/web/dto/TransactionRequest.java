@@ -19,6 +19,14 @@ public record TransactionRequest(
         VehicleExpenseType vehicleExpenseType,
         Long odometerKm,
         BigDecimal fuelLiters,
-        String foodSubcategory
+        String foodSubcategory,
+        /** Null keeps the current value, so callers that do not know about it cannot reset it. */
+        Boolean excludedFromTotals
 ) {
+    public TransactionRequest(TransactionType type, String category, BigDecimal amount, LocalDate transactionDate,
+            String description, Long vehicleId, VehicleExpenseType vehicleExpenseType, Long odometerKm,
+            BigDecimal fuelLiters, String foodSubcategory) {
+        this(type, category, amount, transactionDate, description, vehicleId, vehicleExpenseType, odometerKm,
+                fuelLiters, foodSubcategory, null);
+    }
 }

@@ -59,6 +59,21 @@ class TransactionServiceTest {
         assertThat(november.calculationDays()).isEqualTo(1);
     }
 
+    @Test
+    void excludeFlagChangesOnlyWhenSent() {
+        Transaction stored = new Transaction();
+        stored.setExcludedFromTotals(true);
+        when(categories.exists(anyString(), any())).thenReturn(true);
+        when(transactions.findById(11L)).thenReturn(Optional.of(stored));
+        when(payments.findByTransactionId(11L)).thenReturn(Optional.empty());
+        when(transactions.save(any())).thenAnswer(call -> call.getArgument(0));
+        TransactionService service = service(Clock.systemUTC());
+
+        assertThat(service.update(11L, request("Еда")).excludedFromTotals()).isTrue();
+        assertThat(service.update(11L, new TransactionRequest(TransactionType.EXPENSE, "Еда", BigDecimal.TEN, LocalDate.of(2026, 11, 1),
+                "", null, null, null, null, "Перекус", false)).excludedFromTotals()).isFalse();
+    }
+
     private TransactionService service(Clock clock) {
         return new TransactionService(transactions, categories, mock(VehicleService.class), payments, clock);
     }

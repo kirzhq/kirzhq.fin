@@ -208,6 +208,9 @@ public class TransactionService {
         transaction.setVehicleExpenseType(vehicleExpenseType);
         transaction.setOdometerKm(vehicleExpenseType == VehicleExpenseType.FUEL ? request.odometerKm() : null);
         transaction.setFuelLiters(vehicleExpenseType == VehicleExpenseType.FUEL ? request.fuelLiters() : null);
+        if (request.excludedFromTotals() != null) {
+            transaction.setExcludedFromTotals(request.excludedFromTotals());
+        }
     }
 
     private List<Transaction> transactionsForPeriod(int year, Integer month, boolean includeExcluded) {

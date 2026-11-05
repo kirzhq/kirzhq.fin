@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { categoryColor, operationDetails } from '../categories';
-import { dayLabel, isFuturePeriod, money, shiftPeriod, MONTHS } from '../format';
+import { amountText, dayLabel, isExpression, isFuturePeriod, money, parseAmount, shiftPeriod, MONTHS } from '../format';
 import type { Period, Transaction } from '../types';
 import { Icon } from './Icon';
 
@@ -134,12 +134,40 @@ export function Field({ label, children, hint }: { label: string; children: Reac
   return <label className="field"><span>{label}</span>{children}{hint && <small>{hint}</small>}</label>;
 }
 
+/** Amount field that also calculates: «20+20» shows 40 at once and becomes 40 on Enter or on leaving the field. */
 export function AmountInput({ value, onChange, label, autoFocus = true }: { value: string; onChange: (value: string) => void; label: string; autoFocus?: boolean }) {
-  return <label className="amount">
-    <input value={value} onChange={(event) => onChange(event.target.value.replace(/[^\d.,\s]/g, ''))}
-      inputMode="decimal" placeholder="0" aria-label={label} autoComplete="off" {...(autoFocus ? { 'data-autofocus': true } : {})} />
-    <span>₽</span>
-  </label>;
+  const input = useRef<HTMLInputElement>(null);
+  const calculating = isExpression(value);
+  const result = calculating ? parseAmount(value) : NaN;
+  const valid = Number.isFinite(result);
+
+  function settle() {
+    if (calculating && valid) onChange(amountText(result));
+  }
+
+  function insert(operator: string) {
+    const field = input.current;
+    if (!field) return;
+    const start = field.selectionStart ?? value.length;
+    const end = field.selectionEnd ?? value.length;
+    onChange(`${value.slice(0, start)}${operator}${value.slice(end)}`);
+    requestAnimationFrame(() => field.setSelectionRange(start + 1, start + 1));
+  }
+
+  return <div className="amount-field">
+    <label className="amount">
+      <input ref={input} value={value} onChange={(event) => onChange(event.target.value.replace(/[^\d.,\s+\-*/×÷:]/g, ''))}
+        onBlur={settle}
+        onKeyDown={(event) => { if (event.key === 'Enter' && calculating && valid) { event.preventDefault(); settle(); } }}
+        inputMode="decimal" placeholder="0" aria-label={label} autoComplete="off" {...(autoFocus ? { 'data-autofocus': true } : {})} />
+      <span>₽</span>
+    </label>
+    {calculating && <output className={`amount-result num${valid ? '' : ' invalid'}`}>{valid ? `= ${money(result)}` : 'Не получается посчитать'}</output>}
+    <div className="amount-ops" aria-label="Действия калькулятора">
+      {[['+', '+'], ['-', '−'], ['*', '×'], ['/', '÷']].map(([operator, sign]) => <button type="button" key={operator} aria-label={`Вставить ${sign}`}
+        onPointerDown={(event) => event.preventDefault()} onClick={() => insert(operator)}>{sign}</button>)}
+    </div>
+  </div>;
 }
 
 export function Track({ percent, tone, marker }: { percent: number; tone?: 'near' | 'over' | 'pos'; marker?: number }) {

@@ -295,6 +295,18 @@ h1 { font-family: var(--f-display); font-weight: 500; font-size: clamp(24px, 3vw
 .amount { display: flex; align-items: baseline; gap: 8px; border-bottom: 2px solid var(--accent); padding: 4px 2px; }
 .amount input { border: 0; background: none; outline: none; font-family: var(--f-mono); font-size: 34px; font-weight: 500; width: 100%; min-width: 0; letter-spacing: -.02em; }
 .amount span { font-family: var(--f-mono); font-size: 22px; color: var(--ink-2); }
+.switch { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+.switch input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--accent); flex: none; }
+.switch span { display: grid; }
+.switch b { font-weight: 500; font-size: 14px; }
+.switch small { color: var(--ink-2); font-size: 12.5px; }
+.amount-field { display: grid; gap: 6px; }
+.amount-result { color: var(--accent); font-size: 15px; font-weight: 500; }
+.amount-result.invalid { color: var(--neg); font-family: var(--f-body); font-size: 13px; font-weight: 400; }
+/* Phone number pads have no + − × ÷, so give them buttons there. */
+.amount-ops { display: none; gap: 6px; }
+.amount-ops button { flex: 1; height: 38px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); font-family: var(--f-mono); font-size: 18px; cursor: pointer; touch-action: manipulation; }
+@media (pointer: coarse) { .amount-ops { display: flex; } }
 .field { display: grid; gap: 6px; min-width: 0; }
 .field > span { font-size: 13px; color: var(--ink-2); }
 .field > small, .hint { font-size: 12.5px; color: var(--ink-2); margin-top: -8px; }
