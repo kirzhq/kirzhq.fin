@@ -177,7 +177,17 @@ h1 { font-family: var(--f-display); font-weight: 500; font-size: clamp(24px, 3vw
 .pill.ok { background: color-mix(in oklab, var(--pos) 14%, var(--panel)); color: var(--pos); }
 
 /* charts */
-.chart-wrap { margin: 0; }
+.chart-wrap { margin: 0; position: relative; }
+.chart .hit { fill: transparent; cursor: crosshair; }
+.chart .hover-band { fill: var(--sunk); opacity: .7; }
+.chart-tip { position: absolute; top: 4px; transform: translateX(-50%); min-width: 176px; display: grid; gap: 3px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); font-size: 13px; pointer-events: none; z-index: 2; }
+.chart-tip.left { transform: translateX(calc(-100% + 24px)); }
+.chart-tip.right { transform: translateX(-24px); }
+.chart-tip b { font-weight: 600; margin-bottom: 2px; }
+.chart-tip span { display: flex; align-items: center; gap: 6px; color: var(--ink-2); }
+.chart-tip em { font-style: normal; margin-left: auto; color: var(--ink); padding-left: 12px; }
+.chart-tip .tip-total { border-top: 1px solid var(--line); padding-top: 4px; margin-top: 2px; }
+.chart-tip small { color: var(--ink-2); font-size: 12px; }
 .chart { width: 100%; height: auto; display: block; }
 .chart text { fill: var(--ink-2); font-family: var(--f-mono); font-size: 10.5px; }
 .chart .grid { stroke: var(--line); stroke-width: 1; }
@@ -220,6 +230,7 @@ h1 { font-family: var(--f-display); font-weight: 500; font-size: clamp(24px, 3vw
 .op:hover { background: var(--sunk); }
 .op-text { min-width: 0; }
 .op .t { font-weight: 500; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.op .t .pill { margin-left: 8px; font-size: 11px; }
 .op .s { font-size: 13px; color: var(--ink-2); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .op .a { font-size: 15px; white-space: nowrap; }
 .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -284,6 +295,18 @@ h1 { font-family: var(--f-display); font-weight: 500; font-size: clamp(24px, 3vw
 .amount { display: flex; align-items: baseline; gap: 8px; border-bottom: 2px solid var(--accent); padding: 4px 2px; }
 .amount input { border: 0; background: none; outline: none; font-family: var(--f-mono); font-size: 34px; font-weight: 500; width: 100%; min-width: 0; letter-spacing: -.02em; }
 .amount span { font-family: var(--f-mono); font-size: 22px; color: var(--ink-2); }
+.switch { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+.switch input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--accent); flex: none; }
+.switch span { display: grid; }
+.switch b { font-weight: 500; font-size: 14px; }
+.switch small { color: var(--ink-2); font-size: 12.5px; }
+.amount-field { display: grid; gap: 6px; }
+.amount-result { color: var(--accent); font-size: 15px; font-weight: 500; }
+.amount-result.invalid { color: var(--neg); font-family: var(--f-body); font-size: 13px; font-weight: 400; }
+/* Phone number pads have no + − × ÷, so give them buttons there. */
+.amount-ops { display: none; gap: 6px; }
+.amount-ops button { flex: 1; height: 38px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); font-family: var(--f-mono); font-size: 18px; cursor: pointer; touch-action: manipulation; }
+@media (pointer: coarse) { .amount-ops { display: flex; } }
 .field { display: grid; gap: 6px; min-width: 0; }
 .field > span { font-size: 13px; color: var(--ink-2); }
 .field > small, .hint { font-size: 12.5px; color: var(--ink-2); margin-top: -8px; }

@@ -44,4 +44,16 @@ class ApiExceptionHandlerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").exists());
     }
+
+    @Test
+    void transactionRequestReadsExcludeFlagFromJson() throws Exception {
+        var transactions = mock(com.kirzhq.finances.service.TransactionService.class);
+        var captor = org.mockito.ArgumentCaptor.forClass(com.kirzhq.finances.web.dto.TransactionRequest.class);
+        MockMvcBuilders.standaloneSetup(new TransactionController(transactions)).build()
+                .perform(post("/api/transactions").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"EXPENSE\",\"category\":\"Еда\",\"amount\":40,\"transactionDate\":\"2026-11-05\",\"excludedFromTotals\":true}"))
+                .andExpect(status().isOk());
+        org.mockito.Mockito.verify(transactions).create(captor.capture());
+        org.assertj.core.api.Assertions.assertThat(captor.getValue().excludedFromTotals()).isTrue();
+    }
 }

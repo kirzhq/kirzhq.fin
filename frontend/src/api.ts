@@ -60,7 +60,8 @@ function periodQuery({ year, month }: Period) {
 }
 
 export const api = {
-  transactions: (period: Period, signal?: AbortSignal) => json<Transaction[]>(`/transactions?${periodQuery(period)}`, { signal }),
+  transactions: (period: Period, signal?: AbortSignal, includeExcluded = false) =>
+    json<Transaction[]>(`/transactions?${periodQuery(period)}${includeExcluded ? '&includeExcluded=true' : ''}`, { signal }),
   summary: (period: Period, signal?: AbortSignal) => json<Summary>(`/summary?${periodQuery(period)}`, { signal }),
   createTransaction: (payload: TransactionPayload) => json<Transaction>('/transactions', body('POST', payload)),
   updateTransaction: (id: number, payload: TransactionPayload) => json<Transaction>(`/transactions/${id}`, body('PUT', payload)),

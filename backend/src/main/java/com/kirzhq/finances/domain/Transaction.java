@@ -55,6 +55,18 @@ public class Transaction {
     @Column(name = "fuel_liters", precision = 10, scale = 3)
     private BigDecimal fuelLiters;
 
+    /** Kept for history (vehicle log) but left out of totals, charts and the journal. */
+    @Column(name = "excluded_from_totals", nullable = false)
+    private boolean excludedFromTotals;
+
+    public boolean isExcludedFromTotals() {
+        return excludedFromTotals;
+    }
+
+    public void setExcludedFromTotals(boolean excludedFromTotals) {
+        this.excludedFromTotals = excludedFromTotals;
+    }
+
     public Long getId() {
         return id;
     }

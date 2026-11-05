@@ -26,7 +26,7 @@ public class BackupService {
     @Transactional(readOnly = true)
     public BackupData exportData() {
         return new BackupData(
-                6, Instant.now(),
+                7, Instant.now(),
                 jdbc.query("SELECT id, name, type FROM categories ORDER BY id",
                         (rs, row) -> new BackupData.CategoryItem(rs.getLong("id"), rs.getString("name"),
                                 TransactionType.valueOf(rs.getString("type")))),
@@ -34,7 +34,7 @@ public class BackupService {
                         (rs, row) -> new BackupData.VehicleItem(rs.getLong("id"), rs.getString("name"))),
                 jdbc.query("""
                         SELECT id, type, category, amount, transaction_date, description, vehicle_id,
-                               vehicle_expense_type, odometer_km, fuel_liters, food_subcategory
+                               vehicle_expense_type, odometer_km, fuel_liters, food_subcategory, excluded_from_totals
                         FROM transactions ORDER BY id
                         """, (rs, row) -> new BackupData.TransactionItem(
                                 rs.getLong("id"), TransactionType.valueOf(rs.getString("type")),
@@ -44,7 +44,7 @@ public class BackupService {
                                 rs.getString("vehicle_expense_type") == null ? null
                                         : VehicleExpenseType.valueOf(rs.getString("vehicle_expense_type")),
                                 rs.getObject("odometer_km", Long.class), rs.getBigDecimal("fuel_liters"),
-                                rs.getString("food_subcategory"))),
+                                rs.getString("food_subcategory"), rs.getBoolean("excluded_from_totals"))),
                 jdbc.query("SELECT id, name, initial_amount, created_date, note, due_date FROM debts ORDER BY id",
                         (rs, row) -> new BackupData.DebtItem(
                                 rs.getLong("id"), rs.getString("name"), rs.getBigDecimal("initial_amount"),
@@ -92,7 +92,7 @@ public class BackupService {
     }
 
     private void validate(BackupData backup) {
-        if (backup == null || (backup.version() < 1 || backup.version() > 6)
+        if (backup == null || (backup.version() < 1 || backup.version() > 7)
                 || backup.categories() == null || backup.vehicles() == null
                 || backup.transactions() == null || backup.debts() == null
                 || backup.debtPayments() == null) {
@@ -137,8 +137,8 @@ public class BackupService {
         jdbc.batchUpdate("""
                 INSERT INTO transactions
                     (id, type, category, amount, transaction_date, description, vehicle_id,
-                     vehicle_expense_type, odometer_km, fuel_liters, food_subcategory)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     vehicle_expense_type, odometer_km, fuel_liters, food_subcategory, excluded_from_totals)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, items, items.size(), (statement, item) -> {
                     statement.setLong(1, item.id());
                     statement.setString(2, item.type().name());
@@ -163,6 +163,7 @@ public class BackupService {
                     String foodSubcategory = normalizeFoodSubcategory(item.category(), item.description(), item.foodSubcategory());
                     if (foodSubcategory == null) statement.setNull(11, Types.VARCHAR);
                     else statement.setString(11, foodSubcategory);
+                    statement.setBoolean(12, Boolean.TRUE.equals(item.excludedFromTotals()));
                 });
     }
 

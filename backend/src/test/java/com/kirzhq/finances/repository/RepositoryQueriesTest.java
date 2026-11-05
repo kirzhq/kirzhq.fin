@@ -38,6 +38,20 @@ class RepositoryQueriesTest {
     }
 
     @Test
+    void periodQueryCanSkipOperationsLeftOutOfTotals() {
+        Transaction kept = transactions.save(transaction(TransactionType.EXPENSE, "Машина"));
+        Transaction history = transaction(TransactionType.EXPENSE, "Машина");
+        history.setExcludedFromTotals(true);
+        transactions.save(history);
+        LocalDate from = LocalDate.of(2026, 10, 1);
+        LocalDate to = LocalDate.of(2026, 11, 1);
+
+        assertThat(transactions.findAllByExcludedFromTotalsFalseAndTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateDescIdDesc(from, to))
+                .extracting(Transaction::getId).containsExactly(kept.getId());
+        assertThat(transactions.findAllByTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateDescIdDesc(from, to)).hasSize(2);
+    }
+
+    @Test
     void findsDebtNamesOfPayments() {
         Debt debt = new Debt();
         debt.setName("TNF Сплит");

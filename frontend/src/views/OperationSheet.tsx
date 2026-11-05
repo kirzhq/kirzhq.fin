@@ -26,6 +26,7 @@ export function OperationSheet({ draft }: { draft: OperationDraft }) {
   const [odometer, setOdometer] = useState(editing?.odometerKm != null ? String(editing.odometerKm) : '');
   const [fuel, setFuel] = useState(editing?.fuelLiters != null ? String(editing.fuelLiters).replace('.', ',') : '');
   const [vehicleId, setVehicleId] = useState<number | null>(editing?.vehicleId ?? vehicles[0]?.id ?? null);
+  const [excluded, setExcluded] = useState(editing?.excludedFromTotals ?? false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const debtName = editing?.debtName ?? null;
@@ -57,6 +58,7 @@ export function OperationSheet({ draft }: { draft: OperationDraft }) {
       vehicleExpenseType: isCar ? carType : null,
       odometerKm: isCar && carType === 'FUEL' && odometer.trim() ? odometerValue : null,
       fuelLiters: isCar && carType === 'FUEL' && fuel.trim() ? fuelValue : null,
+      excludedFromTotals: excluded,
     };
     setSaving(true);
     setError('');
@@ -65,7 +67,9 @@ export function OperationSheet({ draft }: { draft: OperationDraft }) {
       else await api.createTransaction(payload);
       if (!editing) Object.assign(memory, { type, category, date: date === today ? null : date });
       closeOperation();
-      toast(editing ? 'Изменения сохранены' : `Добавлено: ${category}, ${money(value)}`);
+      toast(excluded && !editing?.excludedFromTotals
+        ? 'Сохранено. В итоги не входит, найти можно в «Операциях» кнопкой «Не в итогах»'
+        : editing ? 'Изменения сохранены' : `Добавлено: ${category}, ${money(value)}`);
       await reload();
     } catch (requestError) {
       setError(errorText(requestError));
@@ -145,6 +149,11 @@ export function OperationSheet({ draft }: { draft: OperationDraft }) {
       </div>
     </div>
     <Field label="Комментарий"><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Необязательно" maxLength={255} /></Field>
+
+    <label className="switch">
+      <input type="checkbox" checked={excluded} onChange={(event) => setExcluded(event.target.checked)} />
+      <span><b>Не учитывать в итогах</b><small>Не войдёт в суммы, графики, лимиты и прогноз</small></span>
+    </label>
 
     {error && <p className="form-error" role="alert">{error}</p>}
     <div className="actions">

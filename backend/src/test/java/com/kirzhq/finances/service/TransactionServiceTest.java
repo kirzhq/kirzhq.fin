@@ -50,13 +50,28 @@ class TransactionServiceTest {
     void forecastUsesMoscowDateNotUtc() {
         // 31 October 22:30 UTC is already 1 November in Moscow.
         Clock lateUtc = Clock.fixed(Instant.parse("2026-10-31T22:30:00Z"), ZoneId.of("Europe/Moscow"));
-        when(transactions.findAllByTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateDescIdDesc(any(), any()))
+        when(transactions.findAllByExcludedFromTotalsFalseAndTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateDescIdDesc(any(), any()))
                 .thenReturn(List.of());
 
         var november = service(lateUtc).summary(2026, 11);
 
         assertThat(november.forecastAvailable()).isTrue();
         assertThat(november.calculationDays()).isEqualTo(1);
+    }
+
+    @Test
+    void excludeFlagChangesOnlyWhenSent() {
+        Transaction stored = new Transaction();
+        stored.setExcludedFromTotals(true);
+        when(categories.exists(anyString(), any())).thenReturn(true);
+        when(transactions.findById(11L)).thenReturn(Optional.of(stored));
+        when(payments.findByTransactionId(11L)).thenReturn(Optional.empty());
+        when(transactions.save(any())).thenAnswer(call -> call.getArgument(0));
+        TransactionService service = service(Clock.systemUTC());
+
+        assertThat(service.update(11L, request("Еда")).excludedFromTotals()).isTrue();
+        assertThat(service.update(11L, new TransactionRequest(TransactionType.EXPENSE, "Еда", BigDecimal.TEN, LocalDate.of(2026, 11, 1),
+                "", null, null, null, null, "Перекус", false)).excludedFromTotals()).isFalse();
     }
 
     private TransactionService service(Clock clock) {
