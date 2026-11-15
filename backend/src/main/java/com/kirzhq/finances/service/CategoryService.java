@@ -4,6 +4,7 @@ import com.kirzhq.finances.domain.Category;
 import com.kirzhq.finances.domain.TransactionType;
 import com.kirzhq.finances.repository.CategoryBudgetRepository;
 import com.kirzhq.finances.repository.CategoryRepository;
+import com.kirzhq.finances.repository.RequiredPaymentRepository;
 import com.kirzhq.finances.repository.TransactionRepository;
 import com.kirzhq.finances.web.dto.CategoryRequest;
 import com.kirzhq.finances.web.dto.CategoryResponse;
@@ -22,12 +23,14 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final TransactionRepository transactionRepository;
     private final CategoryBudgetRepository budgetRepository;
+    private final RequiredPaymentRepository requiredPaymentRepository;
 
     public CategoryService(CategoryRepository categoryRepository, TransactionRepository transactionRepository,
-            CategoryBudgetRepository budgetRepository) {
+            CategoryBudgetRepository budgetRepository, RequiredPaymentRepository requiredPaymentRepository) {
         this.categoryRepository = categoryRepository;
         this.transactionRepository = transactionRepository;
         this.budgetRepository = budgetRepository;
+        this.requiredPaymentRepository = requiredPaymentRepository;
     }
 
     public List<CategoryResponse> findAll() {
@@ -66,6 +69,7 @@ public class CategoryService {
         transactionRepository.moveCategory(oldName, name, category.getType());
         if (category.getType() == TransactionType.EXPENSE) {
             budgetRepository.findByCategoryIgnoreCase(oldName).ifPresent(budget -> budget.setCategory(name));
+            requiredPaymentRepository.moveCategory(oldName, name);
         }
         category.setName(name);
         return toResponse(category);
@@ -82,7 +86,13 @@ public class CategoryService {
             throw new IllegalArgumentException("Категорию «" + category.getName() + "» удалить нельзя: на ней держится отдельный раздел");
         }
         long used = transactionRepository.countByCategoryAndType(category.getName(), category.getType());
-        if (used > 0) {
+        boolean usedByRequired = category.getType() == TransactionType.EXPENSE
+                && requiredPaymentRepository.existsByCategoryIgnoreCase(category.getName());
+        if (usedByRequired && (moveTo == null || moveTo.isBlank())) {
+            throw new IllegalArgumentException("Категория «" + category.getName()
+                    + "» стоит в обязательных платежах. Выберите, в какую категорию их перенести.");
+        }
+        if (used > 0 || usedByRequired) {
             if (moveTo == null || moveTo.isBlank()) {
                 throw new IllegalArgumentException("В категории «" + category.getName() + "» " + used + " "
                         + operations(used) + ". Выберите, в какую категорию их перенести.");
@@ -99,6 +109,7 @@ public class CategoryService {
                 throw new IllegalArgumentException("В «" + targetCategory.getName() + "» переносить нельзя: там нужны дополнительные поля");
             }
             transactionRepository.moveCategory(category.getName(), targetCategory.getName(), category.getType());
+            if (usedByRequired) requiredPaymentRepository.moveCategory(category.getName(), targetCategory.getName());
         }
         if (category.getType() == TransactionType.EXPENSE) {
             budgetRepository.findByCategoryIgnoreCase(category.getName()).ifPresent(budgetRepository::delete);

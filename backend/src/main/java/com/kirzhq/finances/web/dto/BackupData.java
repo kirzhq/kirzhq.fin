@@ -17,7 +17,9 @@ public record BackupData(
         List<DebtItem> debts,
         List<DebtPaymentItem> debtPayments,
         List<SavingsGoalItem> savingsGoals,
-        List<SavingsEntryItem> savingsEntries
+        List<SavingsEntryItem> savingsEntries,
+        List<RequiredPaymentItem> requiredPayments,
+        List<RequiredPaymentTransactionItem> requiredPaymentTransactions
 ) {
     public record CategoryItem(Long id, String name, TransactionType type) {}
     public record VehicleItem(Long id, String name) {}
@@ -30,4 +32,6 @@ public record BackupData(
     public record SavingsGoalItem(Long id, String name, BigDecimal targetAmount, LocalDate targetDate,
             LocalDate createdDate, String note, String color) {}
     public record SavingsEntryItem(Long id, Long goalId, BigDecimal amount, LocalDate entryDate, String comment) {}
+    public record RequiredPaymentItem(Long id, String name, String category, BigDecimal amount, Integer dayOfMonth) {}
+    public record RequiredPaymentTransactionItem(Long id, Long requiredPaymentId, Long transactionId, LocalDate period) {}
 }

@@ -359,3 +359,13 @@ h1 { font-family: var(--f-display); font-weight: 500; font-size: clamp(24px, 3vw
   .period b { min-width: 92px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before { transition: none !important; animation: none !important; } }
+
+/* required payments */
+.required-sum { margin: 0 0 6px; font-size: 14px; }
+.required-sum .muted { display: block; margin-top: 2px; }
+.row.required { gap: 10px; }
+.required-name { display: grid; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; }
+.required-name .t { font-weight: 500; }
+.required-name:hover .t { text-decoration: underline; text-underline-offset: 3px; }
+.required-name .s { font-size: 13px; color: var(--ink-2); display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.btn.mini-btn { padding: 6px 11px; font-size: 13px; }

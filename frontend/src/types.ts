@@ -68,6 +68,22 @@ export type Summary = {
 
 export type CategoryBudget = { id: number; category: string; monthlyLimit: number };
 
+/** A monthly mandatory payment as it stands in one month. */
+export type RequiredPayment = {
+  id: number;
+  name: string;
+  category: string;
+  amount: number;
+  dayOfMonth: number;
+  dueDate: string;
+  status: 'PAID' | 'OVERDUE' | 'UPCOMING';
+  transactionId: number | null;
+  paidAmount: number | null;
+  paidDate: string | null;
+};
+
+export type RequiredPaymentPayload = { name: string; category: string; amount: number; dayOfMonth: number };
+
 export type Debt = {
   id: number;
   name: string;

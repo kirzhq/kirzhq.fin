@@ -1,5 +1,5 @@
 import type {
-  Category, CategoryBudget, Debt, DebtPayload, Period, SavingsGoal, SavingsGoalPayload, Summary, Transaction,
+  Category, CategoryBudget, Debt, DebtPayload, Period, RequiredPayment, RequiredPaymentPayload, SavingsGoal, SavingsGoalPayload, Summary, Transaction,
   TransactionPayload, TransactionType, Vehicle, VehicleSummary,
 } from './types';
 
@@ -76,6 +76,14 @@ export const api = {
   budgets: () => json<CategoryBudget[]>('/budgets'),
   saveBudget: (category: string, monthlyLimit: number) => json<CategoryBudget>('/budgets', body('PUT', { category, monthlyLimit })),
   deleteBudget: (id: number) => send(`/budgets/${id}`, { method: 'DELETE' }),
+
+  requiredPayments: (year: number, month: number, signal?: AbortSignal) =>
+    json<RequiredPayment[]>(`/required-payments?year=${year}&month=${month}`, { signal }),
+  createRequired: (payload: RequiredPaymentPayload) => json<RequiredPayment>('/required-payments', body('POST', payload)),
+  updateRequired: (id: number, payload: RequiredPaymentPayload) => json<RequiredPayment>(`/required-payments/${id}`, body('PUT', payload)),
+  deleteRequired: (id: number) => send(`/required-payments/${id}`, { method: 'DELETE' }),
+  payRequired: (id: number, payload: { year: number; month: number; amount: number; paymentDate: string }) =>
+    json<RequiredPayment>(`/required-payments/${id}/payments`, body('POST', payload)),
 
   vehicles: () => json<Vehicle[]>('/vehicles'),
   vehicleSummary: (id: number, year: number) => json<VehicleSummary>(`/vehicles/${id}/summary?year=${year}`),

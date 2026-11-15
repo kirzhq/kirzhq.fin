@@ -5,6 +5,7 @@ import com.kirzhq.finances.domain.CategoryBudget;
 import com.kirzhq.finances.domain.TransactionType;
 import com.kirzhq.finances.repository.CategoryBudgetRepository;
 import com.kirzhq.finances.repository.CategoryRepository;
+import com.kirzhq.finances.repository.RequiredPaymentRepository;
 import com.kirzhq.finances.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +36,7 @@ class CategoryServiceTest {
         categories = mock(CategoryRepository.class);
         transactions = mock(TransactionRepository.class);
         budgets = mock(CategoryBudgetRepository.class);
-        service = new CategoryService(categories, transactions, budgets);
+        service = new CategoryService(categories, transactions, budgets, mock(RequiredPaymentRepository.class));
     }
 
     @Test

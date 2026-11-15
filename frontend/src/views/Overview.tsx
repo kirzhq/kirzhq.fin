@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon';
 import { ErrorState, Loading, OperationList, PageHead, PeriodControl, Track } from '../components/ui';
 import { money, moneyRounded, MONTHS, periodTitle, plural } from '../format';
 import { useFinance } from '../store';
+import { RequiredPanel } from './Required';
 import type { CategoryBudget, Summary, Transaction } from '../types';
 
 export function Overview({ onCategory }: { onCategory: (category: string) => void }) {
@@ -35,6 +36,7 @@ export function Overview({ onCategory }: { onCategory: (category: string) => voi
           </section>
         </div>
         <div className="col">
+          {isMonth && <RequiredPanel year={period.year} month={period.month!} summary={data.summary} />}
           {isMonth && budgets.length > 0 && <Limits budgets={budgets} summary={data.summary} />}
           <Categories summary={data.summary} transactions={data.transactions} onCategory={onCategory} />
         </div>
