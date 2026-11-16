@@ -1,18 +1,21 @@
 package com.kirzhq.finances.web.dto;
 
+import com.kirzhq.finances.domain.RequiredPaymentKind;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
- * A required payment as it stands in one month. status is PAID, OVERDUE (due date passed, not paid)
- * or UPCOMING. The paid* fields are set only when it is PAID.
+ * A payment as it stands in one month. status is PAID, OVERDUE (due date passed, not paid) or UPCOMING.
+ * dueDate is null for a one-time payment whose date is not known yet. The paid* fields are set only when PAID.
  */
 public record RequiredPaymentResponse(
         Long id,
+        RequiredPaymentKind kind,
         String name,
         String category,
         BigDecimal amount,
-        int dayOfMonth,
+        Integer dayOfMonth,
         LocalDate dueDate,
         String status,
         Long transactionId,

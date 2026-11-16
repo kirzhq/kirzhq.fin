@@ -60,9 +60,10 @@ public class BackupService {
                 jdbc.query("SELECT id, goal_id, amount, entry_date, comment FROM savings_entries ORDER BY id",
                         (rs, row) -> new BackupData.SavingsEntryItem(rs.getLong("id"), rs.getLong("goal_id"),
                                 rs.getBigDecimal("amount"), rs.getDate("entry_date").toLocalDate(), rs.getString("comment"))),
-                jdbc.query("SELECT id, name, category, amount, day_of_month FROM required_payments ORDER BY id",
+                jdbc.query("SELECT id, name, category, amount, day_of_month, kind, due_date FROM required_payments ORDER BY id",
                         (rs, row) -> new BackupData.RequiredPaymentItem(rs.getLong("id"), rs.getString("name"),
-                                rs.getString("category"), rs.getBigDecimal("amount"), rs.getInt("day_of_month"))),
+                                rs.getString("category"), rs.getBigDecimal("amount"), rs.getObject("day_of_month", Integer.class),
+                                rs.getString("kind"), rs.getDate("due_date") == null ? null : rs.getDate("due_date").toLocalDate())),
                 jdbc.query("SELECT id, required_payment_id, transaction_id, period FROM required_payment_transactions ORDER BY id",
                         (rs, row) -> new BackupData.RequiredPaymentTransactionItem(rs.getLong("id"), rs.getLong("required_payment_id"),
                                 rs.getLong("transaction_id"), rs.getDate("period").toLocalDate()))
@@ -252,11 +253,13 @@ public class BackupService {
 
     private void batchRequiredPayments(List<BackupData.RequiredPaymentItem> items) {
         if (items.isEmpty()) return;
-        jdbc.batchUpdate("INSERT INTO required_payments (id, name, category, amount, day_of_month) VALUES (?, ?, ?, ?, ?)",
+        jdbc.batchUpdate("INSERT INTO required_payments (id, name, category, amount, day_of_month, kind, due_date) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 items, items.size(), (statement, item) -> {
                     statement.setLong(1, item.id()); statement.setString(2, item.name());
                     statement.setString(3, item.category()); statement.setBigDecimal(4, item.amount());
-                    statement.setInt(5, item.dayOfMonth());
+                    if (item.dayOfMonth() == null) statement.setNull(5, Types.INTEGER); else statement.setInt(5, item.dayOfMonth());
+                    statement.setString(6, item.kind() == null ? "MONTHLY" : item.kind());
+                    if (item.dueDate() == null) statement.setNull(7, Types.DATE); else statement.setDate(7, Date.valueOf(item.dueDate()));
                 });
     }
 

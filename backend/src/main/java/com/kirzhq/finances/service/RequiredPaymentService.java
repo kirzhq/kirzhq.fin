@@ -1,6 +1,7 @@
 package com.kirzhq.finances.service;
 
 import com.kirzhq.finances.domain.RequiredPayment;
+import com.kirzhq.finances.domain.RequiredPaymentKind;
 import com.kirzhq.finances.domain.RequiredPaymentTransaction;
 import com.kirzhq.finances.domain.Transaction;
 import com.kirzhq.finances.domain.TransactionType;
@@ -20,6 +21,7 @@ import java.time.YearMonth;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -47,14 +49,25 @@ public class RequiredPaymentService {
         this.clock = clock;
     }
 
-    /** All required payments with their state in the given month. */
+    /**
+     * Payments of the given month. Monthly ones always show. A one-time payment shows in the month it was paid;
+     * while unpaid it shows in the current month (whatever its date) and in the future month of its date.
+     */
     @Transactional(readOnly = true)
     public List<RequiredPaymentResponse> forMonth(int year, int month) {
         YearMonth period = YearMonth.of(year, month);
         Map<Long, RequiredPaymentTransaction> paidById = paid.findAllByPeriod(period.atDay(1)).stream()
                 .collect(Collectors.toMap(link -> link.getRequiredPayment().getId(), Function.identity()));
+        Set<Long> paidOnce = new HashSet<>(paid.findPaidOnceIds());
         LocalDate today = LocalDate.now(clock);
+        YearMonth current = YearMonth.from(today);
         return payments.findAllByOrderByDayOfMonthAscNameAsc().stream()
+                .filter(payment -> {
+                    if (payment.getKind() == RequiredPaymentKind.MONTHLY || paidById.containsKey(payment.getId())) return true;
+                    if (paidOnce.contains(payment.getId())) return false;
+                    if (period.equals(current)) return true;
+                    return period.isAfter(current) && payment.getDueDate() != null && YearMonth.from(payment.getDueDate()).equals(period);
+                })
                 .map(payment -> response(payment, period, paidById.get(payment.getId()), today))
                 .toList();
     }
@@ -84,6 +97,9 @@ public class RequiredPaymentService {
     public RequiredPaymentResponse pay(Long id, RequiredPaymentPayRequest request) {
         RequiredPayment payment = get(id);
         YearMonth period = YearMonth.of(request.year(), request.month());
+        if (payment.getKind() == RequiredPaymentKind.ONCE && paid.existsByRequiredPaymentId(id)) {
+            throw new IllegalArgumentException("«" + payment.getName() + "» уже оплачен");
+        }
         if (paid.existsByRequiredPaymentIdAndPeriod(id, period.atDay(1))) {
             throw new IllegalArgumentException("«" + payment.getName() + "» за этот месяц уже оплачен");
         }
@@ -111,10 +127,16 @@ public class RequiredPaymentService {
         if (NOT_ALLOWED.contains(category.toLowerCase(Locale.ROOT))) {
             throw new IllegalArgumentException("Для «" + category + "» нужны дополнительные поля, выберите другую категорию");
         }
+        RequiredPaymentKind kind = request.kind() == null ? RequiredPaymentKind.MONTHLY : request.kind();
+        if (kind == RequiredPaymentKind.MONTHLY && request.dayOfMonth() == null) {
+            throw new IllegalArgumentException("Укажите, до какого числа платить каждый месяц");
+        }
+        payment.setKind(kind);
         payment.setName(request.name().trim());
         payment.setCategory(category);
         payment.setAmount(request.amount());
-        payment.setDayOfMonth(request.dayOfMonth());
+        payment.setDayOfMonth(kind == RequiredPaymentKind.MONTHLY ? request.dayOfMonth() : null);
+        payment.setDueDate(kind == RequiredPaymentKind.ONCE ? request.dueDate() : null);
     }
 
     private RequiredPaymentResponse current(RequiredPayment payment) {
@@ -127,14 +149,16 @@ public class RequiredPaymentService {
     }
 
     static RequiredPaymentResponse response(RequiredPayment payment, YearMonth period, RequiredPaymentTransaction link, LocalDate today) {
-        // A payment on the 31st falls on the last day of shorter months.
-        LocalDate due = period.atDay(Math.min(payment.getDayOfMonth(), period.lengthOfMonth()));
+        // A monthly payment on the 31st falls on the last day of shorter months.
+        LocalDate due = payment.getKind() == RequiredPaymentKind.MONTHLY
+                ? period.atDay(Math.min(payment.getDayOfMonth(), period.lengthOfMonth()))
+                : payment.getDueDate();
         if (link != null) {
             Transaction transaction = link.getTransaction();
-            return new RequiredPaymentResponse(payment.getId(), payment.getName(), payment.getCategory(), payment.getAmount(),
+            return new RequiredPaymentResponse(payment.getId(), payment.getKind(), payment.getName(), payment.getCategory(), payment.getAmount(),
                     payment.getDayOfMonth(), due, "PAID", transaction.getId(), transaction.getAmount(), transaction.getTransactionDate());
         }
-        return new RequiredPaymentResponse(payment.getId(), payment.getName(), payment.getCategory(), payment.getAmount(),
-                payment.getDayOfMonth(), due, due.isBefore(today) ? "OVERDUE" : "UPCOMING", null, null, null);
+        return new RequiredPaymentResponse(payment.getId(), payment.getKind(), payment.getName(), payment.getCategory(), payment.getAmount(),
+                payment.getDayOfMonth(), due, due != null && due.isBefore(today) ? "OVERDUE" : "UPCOMING", null, null, null);
     }
 }

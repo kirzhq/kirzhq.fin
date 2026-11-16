@@ -33,12 +33,34 @@ export function RequiredPanel({ year, month, summary }: { year: number; month: n
     return () => controller.abort();
   }, [load, version]);
 
-  const unpaid = (items ?? []).filter((item) => item.status !== 'PAID');
-  const paid = (items ?? []).filter((item) => item.status === 'PAID');
+  // One-time payments without a date or due after this month are «ahead»; everything else belongs to this month.
+  const monthEnd = `${year}-${String(month).padStart(2, '0')}-31`;
+  const isAhead = (item: RequiredPayment) => item.kind === 'ONCE' && item.status !== 'PAID' && (!item.dueDate || item.dueDate > monthEnd);
+  const thisMonth = (items ?? []).filter((item) => !isAhead(item));
+  const ahead = (items ?? []).filter(isAhead)
+    .sort((left, right) => (left.dueDate ?? '9999').localeCompare(right.dueDate ?? '9999') || left.name.localeCompare(right.name, 'ru'));
+  const unpaid = thisMonth.filter((item) => item.status !== 'PAID')
+    .sort((left, right) => (left.dueDate ?? '').localeCompare(right.dueDate ?? '') || left.name.localeCompare(right.name, 'ru'));
+  const paid = thisMonth.filter((item) => item.status === 'PAID');
   const left = unpaid.reduce((sum, item) => sum + item.amount, 0);
-  const total = (items ?? []).reduce((sum, item) => sum + (item.paidAmount ?? item.amount), 0);
+  const total = thisMonth.reduce((sum, item) => sum + (item.paidAmount ?? item.amount), 0);
+  const aheadTotal = ahead.reduce((sum, item) => sum + item.amount, 0);
   const afterThem = summary.income - summary.expense - left;
   const running = summary.forecastAvailable;
+
+  function row(item: RequiredPayment) {
+    return <div className="row required" key={item.id}>
+      <i className="dot" style={{ background: categoryColor(item.category) }} />
+      <button type="button" className="grow required-name" onClick={() => setSheet({ kind: 'edit', payment: item })} aria-label={`Изменить «${item.name}»`}>
+        <span className="t">{item.name}</span>
+        <span className="s">{statusText(item)}</span>
+      </button>
+      <span className="num">{money(item.paidAmount ?? item.amount)}</span>
+      {item.status === 'PAID'
+        ? <ConfirmButton className="btn mini-btn" label="Отменить" confirmLabel="Удалить операцию?" onConfirm={() => undo(item)} />
+        : <button type="button" className={`btn mini-btn ${item.status === 'OVERDUE' ? 'primary' : 'line'}`} onClick={() => setSheet({ kind: 'pay', payment: item })}>Оплатить</button>}
+    </div>;
+  }
 
   async function undo(item: RequiredPayment) {
     if (!item.transactionId) return;
@@ -54,27 +76,20 @@ export function RequiredPanel({ year, month, summary }: { year: number; month: n
       <button type="button" className="link" onClick={() => setSheet({ kind: 'edit' })}><Icon name="plus" />Добавить</button></div>
     {error && <p className="form-error" role="alert">{error} <button type="button" className="link small" onClick={() => void load()}>Повторить</button></p>}
     {!items && !error && <p className="empty">Загружаем…</p>}
-    {items && items.length === 0 && <p className="empty">Здесь будут платежи, которые повторяются каждый месяц: аренда, связь, подписки. Добавьте их, чтобы видеть, сколько ещё отдать до конца месяца.</p>}
-    {items && items.length > 0 && <>
+    {items && items.length === 0 && <p className="empty">Сюда добавляются траты, о которых знаешь заранее: каждый месяц (аренда, связь, подписки) или один раз, даже если дата пока неизвестна.</p>}
+    {thisMonth.length > 0 && <>
       <p className="required-sum">
         {left > 0
           ? <>Осталось оплатить <b className="num">{money(left)}</b> из {moneyRounded(total)}</>
           : <>Всё оплачено, <span className="num">{moneyRounded(total)}</span></>}
         {running && left > 0 && <span className="muted small">После них останется <span className={`num ${afterThem < 0 ? 'neg' : ''}`}>{money(afterThem, true)}</span> от сальдо месяца.</span>}
       </p>
-      <div className="rows">
-        {[...unpaid, ...paid].map((item) => <div className="row required" key={item.id}>
-          <i className="dot" style={{ background: categoryColor(item.category) }} />
-          <button type="button" className="grow required-name" onClick={() => setSheet({ kind: 'edit', payment: item })} aria-label={`Изменить «${item.name}»`}>
-            <span className="t">{item.name}</span>
-            <span className="s">{statusText(item)}</span>
-          </button>
-          <span className="num">{money(item.paidAmount ?? item.amount)}</span>
-          {item.status === 'PAID'
-            ? <ConfirmButton className="btn mini-btn" label="Отменить" confirmLabel="Удалить операцию?" onConfirm={() => undo(item)} />
-            : <button type="button" className={`btn mini-btn ${item.status === 'OVERDUE' ? 'primary' : 'line'}`} onClick={() => setSheet({ kind: 'pay', payment: item })}>Оплатить</button>}
-        </div>)}
-      </div>
+      <div className="rows">{[...unpaid, ...paid].map((item) => row(item))}</div>
+    </>}
+    {ahead.length > 0 && <>
+      <p className="required-sum ahead">Предстоящие <span className="ahead-sum num">· {money(aheadTotal)}</span>
+        <span className="muted small">Разовые траты без даты или позже этого месяца, в остаток месяца не входят.</span></p>
+      <div className="rows">{ahead.map((item) => row(item))}</div>
     </>}
     {sheet?.kind === 'edit' && <RequiredSheet payment={sheet.payment} onClose={() => setSheet(null)} onSaved={() => load()} />}
     {sheet?.kind === 'pay' && <PaySheet payment={sheet.payment} year={year} month={month} onClose={() => setSheet(null)} />}
@@ -82,12 +97,14 @@ export function RequiredPanel({ year, month, summary }: { year: number; month: n
 }
 
 function statusText(item: RequiredPayment) {
+  const once = item.kind === 'ONCE' ? 'Разовый · ' : '';
   if (item.status === 'PAID') return <><span className="pill ok">оплачен</span> {item.paidDate ? dateShort(item.paidDate) : ''}</>;
+  if (!item.dueDate) return `${once}дата пока неизвестна`;
   if (item.status === 'OVERDUE') {
     const days = Math.round((Date.parse(todayIso()) - Date.parse(item.dueDate)) / 86_400_000);
     return <><span className="pill over">просрочен</span> {days > 0 ? `на ${days} ${plural(days, 'день', 'дня', 'дней')}, ` : ''}срок {dateShort(item.dueDate)}</>;
   }
-  return item.dueDate === todayIso() ? 'Сегодня' : `До ${dateShort(item.dueDate)}`;
+  return `${once}${item.dueDate === todayIso() ? 'сегодня' : `до ${dateShort(item.dueDate)}`}`;
 }
 
 function RequiredSheet({ payment, onClose, onSaved }: { payment?: RequiredPayment; onClose: () => void; onSaved: () => Promise<void> }) {
@@ -96,7 +113,9 @@ function RequiredSheet({ payment, onClose, onSaved }: { payment?: RequiredPaymen
   const [name, setName] = useState(payment?.name ?? '');
   const [category, setCategory] = useState(payment?.category ?? '');
   const [amount, setAmount] = useState(payment ? amountText(payment.amount) : '');
-  const [day, setDay] = useState(payment ? String(payment.dayOfMonth) : '');
+  const [kind, setKind] = useState<'MONTHLY' | 'ONCE'>(payment?.kind ?? 'MONTHLY');
+  const [day, setDay] = useState(payment?.dayOfMonth ? String(payment.dayOfMonth) : '');
+  const [dueDate, setDueDate] = useState(payment?.kind === 'ONCE' ? payment.dueDate ?? '' : '');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -106,12 +125,14 @@ function RequiredSheet({ payment, onClose, onSaved }: { payment?: RequiredPaymen
     if (!name.trim()) { setError('Введите название'); return; }
     if (!category) { setError('Выберите категорию'); return; }
     if (!(value > 0)) { setError('Введите сумму больше нуля'); return; }
-    if (!Number.isInteger(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) { setError('День месяца: число от 1 до 31'); return; }
+    if (kind === 'MONTHLY' && (!Number.isInteger(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31)) { setError('Число месяца: от 1 до 31'); return; }
     setBusy(true);
     try {
-      const payload = { name: name.trim(), category, amount: value, dayOfMonth };
+      const payload = kind === 'MONTHLY'
+        ? { kind, name: name.trim(), category, amount: value, dayOfMonth, dueDate: null }
+        : { kind, name: name.trim(), category, amount: value, dayOfMonth: null, dueDate: dueDate || null };
       if (payment) await api.updateRequired(payment.id, payload); else await api.createRequired(payload);
-      toast(payment ? 'Платёж сохранён' : `«${payload.name}» добавлен в обязательные`);
+      toast(payment ? 'Платёж сохранён' : `«${payload.name}» добавлен`);
       onClose();
       await onSaved();
     } catch (requestError) { setError(errorText(requestError)); setBusy(false); }
@@ -128,9 +149,14 @@ function RequiredSheet({ payment, onClose, onSaved }: { payment?: RequiredPaymen
     } catch (requestError) { setError(errorText(requestError)); setBusy(false); }
   }
 
-  return <Sheet title={payment ? 'Обязательный платёж' : 'Новый обязательный платёж'} onClose={onClose} onSubmit={() => void save()}>
-    <Field label="Название"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Например, аренда или интернет" maxLength={255} data-autofocus /></Field>
-    <div className="field"><span>Сумма в месяц</span><AmountInput value={amount} onChange={setAmount} label="Сумма в месяц" autoFocus={false} /></div>
+  return <Sheet title={payment ? 'Платёж' : 'Новый платёж'} onClose={onClose} onSubmit={() => void save()}>
+    <div className="seg" role="group" aria-label="Как часто">
+      <button type="button" aria-pressed={kind === 'MONTHLY'} onClick={() => setKind('MONTHLY')}>Каждый месяц</button>
+      <button type="button" aria-pressed={kind === 'ONCE'} onClick={() => setKind('ONCE')}>Один раз</button>
+    </div>
+    <Field label="Название"><input value={name} onChange={(event) => setName(event.target.value)}
+      placeholder={kind === 'MONTHLY' ? 'Например, аренда или интернет' : 'Например, страховка или виза'} maxLength={255} data-autofocus /></Field>
+    <div className="field"><span>{kind === 'MONTHLY' ? 'Сумма в месяц' : 'Сумма'}</span><AmountInput value={amount} onChange={setAmount} label="Сумма" autoFocus={false} /></div>
     <div className="two">
       <Field label="Категория">
         <select value={category} onChange={(event) => setCategory(event.target.value)}>
@@ -138,10 +164,17 @@ function RequiredSheet({ payment, onClose, onSaved }: { payment?: RequiredPaymen
           {choices.map((item) => <option key={item.id}>{item.name}</option>)}
         </select>
       </Field>
-      <Field label="Платить до" hint="Число месяца; 31 значит последний день">
-        <input value={day} onChange={(event) => setDay(event.target.value.replace(/\D/g, '').slice(0, 2))} inputMode="numeric" placeholder="5" />
-      </Field>
+      {kind === 'MONTHLY'
+        ? <Field label="Число месяца">
+          <input value={day} onChange={(event) => setDay(event.target.value.replace(/\D/g, '').slice(0, 2))} inputMode="numeric" placeholder="Например, 5" />
+        </Field>
+        : <Field label="Когда">
+          <input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
+        </Field>}
     </div>
+    <p className="muted small form-note">{kind === 'MONTHLY'
+      ? 'Если в месяце нет такого числа, срок будет в последний день.'
+      : 'Дату можно не указывать. Тогда платёж будет в «Предстоящих», пока не оплатишь.'}</p>
     {error && <p className="form-error" role="alert">{error}</p>}
     <div className="actions">
       {payment && <ConfirmButton label={<><Icon name="trash" />Удалить</>} confirmLabel="Убрать платёж?" onConfirm={remove} disabled={busy} />}

@@ -1,6 +1,7 @@
 package com.kirzhq.finances.service;
 
 import com.kirzhq.finances.domain.RequiredPayment;
+import com.kirzhq.finances.domain.RequiredPaymentKind;
 import com.kirzhq.finances.domain.RequiredPaymentTransaction;
 import com.kirzhq.finances.domain.Transaction;
 import com.kirzhq.finances.repository.RequiredPaymentRepository;
@@ -81,6 +82,50 @@ class RequiredPaymentServiceTest {
 
         assertThatThrownBy(() -> service.create(new RequiredPaymentRequest("Страховка", "Машина", BigDecimal.TEN, 3)))
                 .hasMessageContaining("выберите другую категорию");
+    }
+
+    @Test
+    void oneTimePaymentsShowWhileUnpaidAndInTheirMonth() {
+        RequiredPayment laptop = once(10L, "Ноутбук", null);
+        RequiredPayment visa = once(11L, "Виза", LocalDate.of(2027, 1, 20));
+        RequiredPayment gift = once(12L, "Подарок", LocalDate.of(2026, 11, 1));
+        when(payments.findAllByOrderByDayOfMonthAscNameAsc()).thenReturn(List.of(laptop, visa, gift));
+        when(paid.findPaidOnceIds()).thenReturn(List.of(12L));
+        when(paid.findAllByPeriod(LocalDate.of(2026, 10, 1))).thenReturn(List.of(link(gift, 5L, LocalDate.of(2026, 10, 30))));
+
+        assertThat(service.forMonth(2026, 11)).extracting(RequiredPaymentResponse::name, RequiredPaymentResponse::status)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("Ноутбук", "UPCOMING"), org.assertj.core.groups.Tuple.tuple("Виза", "UPCOMING"));
+        assertThat(service.forMonth(2026, 11).get(0).dueDate()).isNull();
+        assertThat(service.forMonth(2027, 1)).extracting(RequiredPaymentResponse::name).containsExactly("Виза");
+        assertThat(service.forMonth(2026, 10)).extracting(RequiredPaymentResponse::name, RequiredPaymentResponse::status)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("Подарок", "PAID"));
+        assertThat(service.forMonth(2026, 9)).isEmpty();
+    }
+
+    @Test
+    void oneTimePaymentIsPaidOnlyOnce() {
+        when(payments.findById(10L)).thenReturn(Optional.of(once(10L, "Ноутбук", null)));
+        when(paid.existsByRequiredPaymentId(10L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.pay(10L, new RequiredPaymentPayRequest(2026, 12, BigDecimal.TEN, LocalDate.of(2026, 11, 15))))
+                .hasMessageContaining("уже оплачен");
+        verify(transactionService, never()).create(any());
+    }
+
+    @Test
+    void monthlyPaymentNeedsADay() {
+        when(categories.exists(anyString(), any())).thenReturn(true);
+
+        assertThatThrownBy(() -> service.create(new RequiredPaymentRequest(RequiredPaymentKind.MONTHLY, "Аренда", "Жильё", BigDecimal.TEN, null, null)))
+                .hasMessageContaining("до какого числа");
+    }
+
+    private static RequiredPayment once(Long id, String name, LocalDate due) {
+        RequiredPayment payment = payment(id, name, 1);
+        payment.setKind(RequiredPaymentKind.ONCE);
+        payment.setDayOfMonth(null);
+        payment.setDueDate(due);
+        return payment;
     }
 
     private static RequiredPayment payment(Long id, String name, int day) {

@@ -32,6 +32,7 @@ public record BackupData(
     public record SavingsGoalItem(Long id, String name, BigDecimal targetAmount, LocalDate targetDate,
             LocalDate createdDate, String note, String color) {}
     public record SavingsEntryItem(Long id, Long goalId, BigDecimal amount, LocalDate entryDate, String comment) {}
-    public record RequiredPaymentItem(Long id, String name, String category, BigDecimal amount, Integer dayOfMonth) {}
+    public record RequiredPaymentItem(Long id, String name, String category, BigDecimal amount, Integer dayOfMonth,
+            String kind, LocalDate dueDate) {}
     public record RequiredPaymentTransactionItem(Long id, Long requiredPaymentId, Long transactionId, LocalDate period) {}
 }
