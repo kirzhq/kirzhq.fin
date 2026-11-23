@@ -65,6 +65,37 @@ public class TransactionService {
         return toResponse(transactionRepository.save(transaction), null);
     }
 
+    /** Creates an operation that came from the bank; refuses one whose bank id is already stored. */
+    @org.springframework.transaction.annotation.Transactional
+    public TransactionResponse createExternal(TransactionRequest request, String externalId) {
+        String id = externalId == null || externalId.isBlank() ? null : externalId.trim();
+        if (id != null && transactionRepository.existsByExternalId(id)) {
+            throw new DuplicateOperationException();
+        }
+        TransactionResponse created = create(request);
+        if (id != null) {
+            transactionRepository.findById(created.id()).ifPresent(transaction -> transaction.setExternalId(id));
+        }
+        return created;
+    }
+
+    public java.util.List<String> knownExternalIds(java.util.Collection<String> ids) {
+        return ids.isEmpty() ? java.util.List.of() : transactionRepository.findKnownExternalIds(ids);
+    }
+
+    /** Category and food subcategory of the latest expense with the same description, if there is one. */
+    public java.util.Optional<TransactionResponse> lastWithDescription(String description) {
+        if (description == null || description.isBlank()) return java.util.Optional.empty();
+        return transactionRepository.findFirstByTypeAndDescriptionIgnoreCaseOrderByTransactionDateDescIdDesc(TransactionType.EXPENSE, description.trim())
+                .map(transaction -> toResponse(transaction, null));
+    }
+
+    public static class DuplicateOperationException extends RuntimeException {
+        public DuplicateOperationException() {
+            super("Эта операция уже есть в fin");
+        }
+    }
+
     public TransactionResponse update(Long id, TransactionRequest request) {
         if (!categoryService.exists(request.category(), request.type())) {
             throw new IllegalArgumentException("Выбранная категория не существует");

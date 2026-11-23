@@ -59,6 +59,18 @@ public class Transaction {
     @Column(name = "excluded_from_totals", nullable = false)
     private boolean excludedFromTotals;
 
+    /** Id of the operation in the bank when it came from the browser extension. */
+    @Column(name = "external_id", unique = true, length = 128)
+    private String externalId;
+
+    public String getExternalId() {
+        return externalId;
+    }
+
+    public void setExternalId(String externalId) {
+        this.externalId = externalId;
+    }
+
     public boolean isExcludedFromTotals() {
         return excludedFromTotals;
     }

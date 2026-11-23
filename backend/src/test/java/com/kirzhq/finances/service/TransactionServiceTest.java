@@ -74,6 +74,15 @@ class TransactionServiceTest {
                 "", null, null, null, null, "Перекус", false)).excludedFromTotals()).isFalse();
     }
 
+    @Test
+    void bankOperationIsAddedOnlyOnce() {
+        when(transactions.existsByExternalId("alfa-1")).thenReturn(true);
+
+        assertThatThrownBy(() -> service(Clock.systemUTC()).createExternal(request("Еда"), " alfa-1 "))
+                .isInstanceOf(TransactionService.DuplicateOperationException.class);
+        org.mockito.Mockito.verify(transactions, org.mockito.Mockito.never()).save(any());
+    }
+
     private TransactionService service(Clock clock) {
         return new TransactionService(transactions, categories, mock(VehicleService.class), payments, clock);
     }

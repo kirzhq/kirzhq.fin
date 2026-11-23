@@ -77,7 +77,32 @@ public class ShortcutController {
                 request.fuelLiters(),
                 request.foodSubcategory()
         );
-        return transactionService.create(transaction);
+        return transactionService.createExternal(transaction, request.externalId());
     }
+
+    /** Which of the given bank operation ids are already in fin. */
+    @PostMapping("/transactions/known")
+    public List<String> known(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestBody List<String> externalIds
+    ) {
+        tokenAuthenticator.authenticate(authorization);
+        if (externalIds.size() > 500) throw new IllegalArgumentException("Слишком много операций за раз");
+        return transactionService.knownExternalIds(externalIds);
+    }
+
+    /** Category used last time for the same shop, so the extension can suggest it. */
+    @GetMapping("/suggestion")
+    public org.springframework.http.ResponseEntity<Suggestion> suggestion(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestParam String description
+    ) {
+        tokenAuthenticator.authenticate(authorization);
+        return transactionService.lastWithDescription(description)
+                .map(found -> org.springframework.http.ResponseEntity.ok(new Suggestion(found.category(), found.foodSubcategory())))
+                .orElseGet(() -> org.springframework.http.ResponseEntity.noContent().build());
+    }
+
+    public record Suggestion(String category, String foodSubcategory) {}
 
 }

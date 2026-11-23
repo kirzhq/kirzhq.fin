@@ -104,6 +104,24 @@ class RepositoryQueriesTest {
         assertThat(requiredPayments.moveCategory("ЖИЛЬЁ", "Квартира")).isEqualTo(1);
     }
 
+    @Test
+    void findsBankOperationsAndTheLastCategoryOfAShop() {
+        Transaction older = transaction(TransactionType.EXPENSE, "Еда");
+        older.setDescription("Пятёрочка");
+        older.setTransactionDate(LocalDate.of(2026, 9, 1));
+        older.setExternalId("alfa-1");
+        transactions.save(older);
+        Transaction newer = transaction(TransactionType.EXPENSE, "Маркетплейсы");
+        newer.setDescription("ПЯТЁРОЧКА");
+        newer.setTransactionDate(LocalDate.of(2026, 10, 5));
+        transactions.save(newer);
+
+        assertThat(transactions.existsByExternalId("alfa-1")).isTrue();
+        assertThat(transactions.findKnownExternalIds(List.of("alfa-1", "alfa-2"))).containsExactly("alfa-1");
+        assertThat(transactions.findFirstByTypeAndDescriptionIgnoreCaseOrderByTransactionDateDescIdDesc(TransactionType.EXPENSE, "пятёрочка"))
+                .get().extracting(Transaction::getCategory).isEqualTo("Маркетплейсы");
+    }
+
     private Transaction transaction(TransactionType type, String category) {
         Transaction transaction = new Transaction();
         transaction.setType(type);
