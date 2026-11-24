@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useInstallState } from './components/InstallPanel';
 import { Icon } from './components/Icon';
 import { Shell, ThemeToggle, VIEWS } from './components/Shell';
 import type { View } from './components/Shell';
@@ -25,6 +26,7 @@ export default function App() {
 }
 
 function Screens() {
+  const installState = useInstallState();
   const { draft, toasts } = useFinance();
   const [view, setView] = useState<View>(viewFromHash);
   const [category, setCategory] = useState<string | null>(null);
@@ -42,7 +44,7 @@ function Screens() {
     {view === 'debts' && <Debts />}
     {view === 'goals' && <Goals />}
     {view === 'car' && <Car />}
-    {view === 'settings' && <Settings />}
+    {view === 'settings' && <Settings installState={installState} />}
     {view === 'more' && <More />}
     {draft && <OperationSheet key={draft.operation?.id ?? 'new'} draft={draft} />}
     <div className="toasts" aria-live="polite">{toasts.map((item) => <div key={item.id} className={`toast${item.error ? ' error' : ''}`} role={item.error ? 'alert' : 'status'}>{item.text}</div>)}</div>

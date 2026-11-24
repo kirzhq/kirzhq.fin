@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { api } from '../api';
 import { CAR, categoryColor, DEBTS, FOOD } from '../categories';
+import { InstallPanel, type useInstallState } from '../components/InstallPanel';
 import { Icon } from '../components/Icon';
 import { ConfirmButton, PageHead } from '../components/ui';
 import { moneyRounded, parseAmount } from '../format';
@@ -9,13 +10,14 @@ import type { Category, TransactionType } from '../types';
 
 const SYSTEM = [FOOD, CAR, DEBTS];
 
-export function Settings() {
+export function Settings({ installState }: { installState: ReturnType<typeof useInstallState> }) {
   return <>
     <PageHead kicker="Финансы" title="Настройки" />
     <div className="grid2">
       <CategoryPanel type="EXPENSE" title="Категории расходов" />
       <div className="col">
         <CategoryPanel type="INCOME" title="Категории доходов" />
+        <InstallPanel state={installState} />
         <LimitsPanel />
         <BackupPanel />
       </div>
