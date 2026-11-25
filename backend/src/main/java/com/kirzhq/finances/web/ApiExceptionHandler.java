@@ -40,6 +40,11 @@ public class ApiExceptionHandler {
         return body(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 
+    @ExceptionHandler(com.kirzhq.finances.service.TransactionService.DuplicateOperationException.class)
+    ResponseEntity<Map<String, String>> duplicate(RuntimeException exception) {
+        return body(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<Map<String, String>> invalid(MethodArgumentNotValidException exception) {
         String message = exception.getBindingResult().getFieldErrors().stream()

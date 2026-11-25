@@ -45,8 +45,8 @@ public class TransactionService {
         this.clock = clock;
     }
 
-    public List<TransactionResponse> findAll(int year, Integer month) {
-        List<Transaction> transactions = transactionsForPeriod(year, month);
+    public List<TransactionResponse> findAll(int year, Integer month, boolean includeExcluded) {
+        List<Transaction> transactions = transactionsForPeriod(year, month, includeExcluded);
         Map<Long, String> debtNames = transactions.isEmpty() ? Map.of() : debtPaymentRepository
                 .findDebtNames(transactions.stream().map(Transaction::getId).toList()).stream()
                 .collect(Collectors.toMap(DebtPaymentRepository.TransactionDebt::getTransactionId,
@@ -63,6 +63,37 @@ public class TransactionService {
         Transaction transaction = new Transaction();
         applyRequest(transaction, request);
         return toResponse(transactionRepository.save(transaction), null);
+    }
+
+    /** Creates an operation that came from the bank; refuses one whose bank id is already stored. */
+    @org.springframework.transaction.annotation.Transactional
+    public TransactionResponse createExternal(TransactionRequest request, String externalId) {
+        String id = externalId == null || externalId.isBlank() ? null : externalId.trim();
+        if (id != null && transactionRepository.existsByExternalId(id)) {
+            throw new DuplicateOperationException();
+        }
+        TransactionResponse created = create(request);
+        if (id != null) {
+            transactionRepository.findById(created.id()).ifPresent(transaction -> transaction.setExternalId(id));
+        }
+        return created;
+    }
+
+    public java.util.List<String> knownExternalIds(java.util.Collection<String> ids) {
+        return ids.isEmpty() ? java.util.List.of() : transactionRepository.findKnownExternalIds(ids);
+    }
+
+    /** Category and food subcategory of the latest expense with the same description, if there is one. */
+    public java.util.Optional<TransactionResponse> lastWithDescription(String description) {
+        if (description == null || description.isBlank()) return java.util.Optional.empty();
+        return transactionRepository.findFirstByTypeAndDescriptionIgnoreCaseOrderByTransactionDateDescIdDesc(TransactionType.EXPENSE, description.trim())
+                .map(transaction -> toResponse(transaction, null));
+    }
+
+    public static class DuplicateOperationException extends RuntimeException {
+        public DuplicateOperationException() {
+            super("Эта операция уже есть в fin");
+        }
     }
 
     public TransactionResponse update(Long id, TransactionRequest request) {
@@ -87,7 +118,7 @@ public class TransactionService {
     }
 
     public SummaryResponse summary(int year, Integer month) {
-        List<Transaction> transactions = transactionsForPeriod(year, month);
+        List<Transaction> transactions = transactionsForPeriod(year, month, false);
 
         BigDecimal income = transactions.stream()
                 .filter(transaction -> transaction.getType() == TransactionType.INCOME)
@@ -208,13 +239,17 @@ public class TransactionService {
         transaction.setVehicleExpenseType(vehicleExpenseType);
         transaction.setOdometerKm(vehicleExpenseType == VehicleExpenseType.FUEL ? request.odometerKm() : null);
         transaction.setFuelLiters(vehicleExpenseType == VehicleExpenseType.FUEL ? request.fuelLiters() : null);
+        if (request.excludedFromTotals() != null) {
+            transaction.setExcludedFromTotals(request.excludedFromTotals());
+        }
     }
 
-    private List<Transaction> transactionsForPeriod(int year, Integer month) {
+    private List<Transaction> transactionsForPeriod(int year, Integer month, boolean includeExcluded) {
         LocalDate from = month == null ? LocalDate.of(year, 1, 1) : LocalDate.of(year, month, 1);
         LocalDate to = month == null ? from.plusYears(1) : from.plusMonths(1);
-        return transactionRepository
-                .findAllByTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateDescIdDesc(from, to);
+        return includeExcluded
+                ? transactionRepository.findAllByTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateDescIdDesc(from, to)
+                : transactionRepository.findAllByExcludedFromTotalsFalseAndTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateDescIdDesc(from, to);
     }
 
     private TransactionResponse toResponse(Transaction transaction, String debtName) {
@@ -231,7 +266,8 @@ public class TransactionService {
                 transaction.getOdometerKm(),
                 transaction.getFuelLiters(),
                 transaction.getFoodSubcategory(),
-                debtName
+                debtName,
+                transaction.isExcludedFromTotals()
         );
     }
 }

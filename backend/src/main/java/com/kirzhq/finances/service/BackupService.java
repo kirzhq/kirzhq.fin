@@ -26,7 +26,7 @@ public class BackupService {
     @Transactional(readOnly = true)
     public BackupData exportData() {
         return new BackupData(
-                6, Instant.now(),
+                8, Instant.now(),
                 jdbc.query("SELECT id, name, type FROM categories ORDER BY id",
                         (rs, row) -> new BackupData.CategoryItem(rs.getLong("id"), rs.getString("name"),
                                 TransactionType.valueOf(rs.getString("type")))),
@@ -34,7 +34,7 @@ public class BackupService {
                         (rs, row) -> new BackupData.VehicleItem(rs.getLong("id"), rs.getString("name"))),
                 jdbc.query("""
                         SELECT id, type, category, amount, transaction_date, description, vehicle_id,
-                               vehicle_expense_type, odometer_km, fuel_liters, food_subcategory
+                               vehicle_expense_type, odometer_km, fuel_liters, food_subcategory, excluded_from_totals
                         FROM transactions ORDER BY id
                         """, (rs, row) -> new BackupData.TransactionItem(
                                 rs.getLong("id"), TransactionType.valueOf(rs.getString("type")),
@@ -44,7 +44,7 @@ public class BackupService {
                                 rs.getString("vehicle_expense_type") == null ? null
                                         : VehicleExpenseType.valueOf(rs.getString("vehicle_expense_type")),
                                 rs.getObject("odometer_km", Long.class), rs.getBigDecimal("fuel_liters"),
-                                rs.getString("food_subcategory"))),
+                                rs.getString("food_subcategory"), rs.getBoolean("excluded_from_totals"))),
                 jdbc.query("SELECT id, name, initial_amount, created_date, note, due_date FROM debts ORDER BY id",
                         (rs, row) -> new BackupData.DebtItem(
                                 rs.getLong("id"), rs.getString("name"), rs.getBigDecimal("initial_amount"),
@@ -59,13 +59,22 @@ public class BackupService {
                                 rs.getDate("created_date").toLocalDate(), rs.getString("note"), rs.getString("color"))),
                 jdbc.query("SELECT id, goal_id, amount, entry_date, comment FROM savings_entries ORDER BY id",
                         (rs, row) -> new BackupData.SavingsEntryItem(rs.getLong("id"), rs.getLong("goal_id"),
-                                rs.getBigDecimal("amount"), rs.getDate("entry_date").toLocalDate(), rs.getString("comment")))
+                                rs.getBigDecimal("amount"), rs.getDate("entry_date").toLocalDate(), rs.getString("comment"))),
+                jdbc.query("SELECT id, name, category, amount, day_of_month, kind, due_date FROM required_payments ORDER BY id",
+                        (rs, row) -> new BackupData.RequiredPaymentItem(rs.getLong("id"), rs.getString("name"),
+                                rs.getString("category"), rs.getBigDecimal("amount"), rs.getObject("day_of_month", Integer.class),
+                                rs.getString("kind"), rs.getDate("due_date") == null ? null : rs.getDate("due_date").toLocalDate())),
+                jdbc.query("SELECT id, required_payment_id, transaction_id, period FROM required_payment_transactions ORDER BY id",
+                        (rs, row) -> new BackupData.RequiredPaymentTransactionItem(rs.getLong("id"), rs.getLong("required_payment_id"),
+                                rs.getLong("transaction_id"), rs.getDate("period").toLocalDate()))
         );
     }
 
     @Transactional
     public void importData(BackupData backup) {
         validate(backup);
+        jdbc.update("DELETE FROM required_payment_transactions");
+        jdbc.update("DELETE FROM required_payments");
         jdbc.update("DELETE FROM savings_entries");
         jdbc.update("DELETE FROM savings_goals");
         jdbc.update("DELETE FROM debt_payments");
@@ -81,6 +90,8 @@ public class BackupService {
         batchDebtPayments(backup.debtPayments());
         batchSavingsGoals(backup.savingsGoals() == null ? List.of() : backup.savingsGoals());
         batchSavingsEntries(backup.savingsEntries() == null ? List.of() : backup.savingsEntries());
+        batchRequiredPayments(backup.requiredPayments() == null ? List.of() : backup.requiredPayments());
+        batchRequiredPaymentTransactions(backup.requiredPaymentTransactions() == null ? List.of() : backup.requiredPaymentTransactions());
 
         resetSequence("categories");
         resetSequence("vehicles");
@@ -89,10 +100,12 @@ public class BackupService {
         resetSequence("debt_payments");
         resetSequence("savings_goals");
         resetSequence("savings_entries");
+        resetSequence("required_payments");
+        resetSequence("required_payment_transactions");
     }
 
     private void validate(BackupData backup) {
-        if (backup == null || (backup.version() < 1 || backup.version() > 6)
+        if (backup == null || (backup.version() < 1 || backup.version() > 8)
                 || backup.categories() == null || backup.vehicles() == null
                 || backup.transactions() == null || backup.debts() == null
                 || backup.debtPayments() == null) {
@@ -137,8 +150,8 @@ public class BackupService {
         jdbc.batchUpdate("""
                 INSERT INTO transactions
                     (id, type, category, amount, transaction_date, description, vehicle_id,
-                     vehicle_expense_type, odometer_km, fuel_liters, food_subcategory)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     vehicle_expense_type, odometer_km, fuel_liters, food_subcategory, excluded_from_totals)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, items, items.size(), (statement, item) -> {
                     statement.setLong(1, item.id());
                     statement.setString(2, item.type().name());
@@ -163,6 +176,7 @@ public class BackupService {
                     String foodSubcategory = normalizeFoodSubcategory(item.category(), item.description(), item.foodSubcategory());
                     if (foodSubcategory == null) statement.setNull(11, Types.VARCHAR);
                     else statement.setString(11, foodSubcategory);
+                    statement.setBoolean(12, Boolean.TRUE.equals(item.excludedFromTotals()));
                 });
     }
 
@@ -234,6 +248,27 @@ public class BackupService {
                     statement.setLong(1, item.id()); statement.setLong(2, item.goalId());
                     statement.setBigDecimal(3, item.amount()); statement.setDate(4, Date.valueOf(item.entryDate()));
                     statement.setString(5, item.comment());
+                });
+    }
+
+    private void batchRequiredPayments(List<BackupData.RequiredPaymentItem> items) {
+        if (items.isEmpty()) return;
+        jdbc.batchUpdate("INSERT INTO required_payments (id, name, category, amount, day_of_month, kind, due_date) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                items, items.size(), (statement, item) -> {
+                    statement.setLong(1, item.id()); statement.setString(2, item.name());
+                    statement.setString(3, item.category()); statement.setBigDecimal(4, item.amount());
+                    if (item.dayOfMonth() == null) statement.setNull(5, Types.INTEGER); else statement.setInt(5, item.dayOfMonth());
+                    statement.setString(6, item.kind() == null ? "MONTHLY" : item.kind());
+                    if (item.dueDate() == null) statement.setNull(7, Types.DATE); else statement.setDate(7, Date.valueOf(item.dueDate()));
+                });
+    }
+
+    private void batchRequiredPaymentTransactions(List<BackupData.RequiredPaymentTransactionItem> items) {
+        if (items.isEmpty()) return;
+        jdbc.batchUpdate("INSERT INTO required_payment_transactions (id, required_payment_id, transaction_id, period) VALUES (?, ?, ?, ?)",
+                items, items.size(), (statement, item) -> {
+                    statement.setLong(1, item.id()); statement.setLong(2, item.requiredPaymentId());
+                    statement.setLong(3, item.transactionId()); statement.setDate(4, Date.valueOf(item.period()));
                 });
     }
 

@@ -10,8 +10,11 @@ export function Operations({ category, setCategory }: { category: string | null;
   const { period, setPeriod, data, loadError, reload, openOperation } = useFinance();
   const [query, setQuery] = useState('');
   const [type, setType] = useState<TransactionType | 'ALL'>('ALL');
+  const [showExcluded, setShowExcluded] = useState(false);
 
-  const items = data?.transactions ?? [];
+  const excludedCount = data?.excluded.length ?? 0;
+  const showingExcluded = showExcluded && excludedCount > 0;
+  const items = useMemo(() => (showingExcluded ? data?.excluded : data?.transactions) ?? [], [data, showingExcluded]);
   const present = useMemo(() => {
     const seen = new Map<string, TransactionType>();
     items.forEach((item) => { if (!seen.has(item.category)) seen.set(item.category, item.type); });
@@ -42,6 +45,7 @@ export function Operations({ category, setCategory }: { category: string | null;
           <button type="button" aria-pressed={type === 'EXPENSE'} onClick={() => setType('EXPENSE')}>Расходы</button>
           <button type="button" aria-pressed={type === 'INCOME'} onClick={() => setType('INCOME')}>Доходы</button>
         </div>
+        {excludedCount > 0 && <button type="button" className="chip" aria-pressed={showingExcluded} onClick={() => { setShowExcluded(!showExcluded); setCategory(null); }}>Не в итогах · {excludedCount}</button>}
       </div>
       {present.length > 1 && <div className="chips filter-chips">
         {present.map(([name, kind]) => <button type="button" key={name} className="chip" aria-pressed={category === name}

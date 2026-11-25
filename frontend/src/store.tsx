@@ -4,7 +4,8 @@ import { api } from './api';
 import { currentPeriod, periodKey } from './format';
 import type { Category, CategoryBudget, Period, Summary, Transaction, Vehicle } from './types';
 
-type PeriodData = { key: string; transactions: Transaction[]; summary: Summary };
+/** transactions count in totals; excluded are kept apart and listed only on request. */
+type PeriodData = { key: string; transactions: Transaction[]; excluded: Transaction[]; summary: Summary };
 export type OperationDraft = { operation?: Transaction; category?: string; vehicleExpenseType?: 'FUEL' };
 type Toast = { id: number; text: string; error?: boolean };
 
@@ -65,8 +66,12 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const loadPeriod = useCallback(async (target: Period, signal?: AbortSignal) => {
     const key = periodKey(target);
-    const [transactions, summary] = await Promise.all([api.transactions(target, signal), api.summary(target, signal)]);
-    const fresh = { key, transactions, summary };
+    const [all, summary] = await Promise.all([api.transactions(target, signal, true), api.summary(target, signal)]);
+    const fresh = {
+      key, summary,
+      transactions: all.filter((item) => !item.excludedFromTotals),
+      excluded: all.filter((item) => item.excludedFromTotals),
+    };
     cache.current.set(key, fresh);
     return fresh;
   }, []);

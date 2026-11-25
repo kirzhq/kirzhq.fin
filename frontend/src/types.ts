@@ -16,6 +16,8 @@ export type Transaction = {
   fuelLiters: number | null;
   /** Set when the operation is a payment of this debt. */
   debtName: string | null;
+  /** Kept in the vehicle log but left out of totals, charts and the journal. */
+  excludedFromTotals: boolean;
 };
 
 export type TransactionPayload = Omit<Transaction, 'id' | 'vehicleName' | 'debtName'>;
@@ -65,6 +67,24 @@ export type Summary = {
 };
 
 export type CategoryBudget = { id: number; category: string; monthlyLimit: number };
+
+/** A payment known in advance, as it stands in one month: monthly, or one-time with an optional date. */
+export type RequiredPayment = {
+  id: number;
+  kind: 'MONTHLY' | 'ONCE';
+  name: string;
+  category: string;
+  amount: number;
+  dayOfMonth: number | null;
+  /** null for a one-time payment whose date is not known yet. */
+  dueDate: string | null;
+  status: 'PAID' | 'OVERDUE' | 'UPCOMING';
+  transactionId: number | null;
+  paidAmount: number | null;
+  paidDate: string | null;
+};
+
+export type RequiredPaymentPayload = { kind: 'MONTHLY' | 'ONCE'; name: string; category: string; amount: number; dayOfMonth: number | null; dueDate: string | null };
 
 export type Debt = {
   id: number;

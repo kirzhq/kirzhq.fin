@@ -90,10 +90,58 @@ export function isFuturePeriod(period: Period) {
   return period.year * 12 + period.month > now.year * 12 + (now.month ?? 1);
 }
 
-/** Parses «1 234,50» or «1234.5» typed on any keyboard. */
+const OPERATORS = /[+\-*/×÷:]/;
+
+/**
+ * Evaluates what was typed in an amount field: «1 234,50», «20+20», «1500/3», «100-20*2».
+ * Multiplication and division go first. Returns NaN if it is not a valid expression.
+ * A trailing operator is ignored while the user is still typing («20+» is 20).
+ */
 export function parseAmount(raw: string) {
-  const value = Number(raw.replace(/\s/g, '').replace(',', '.'));
-  return Number.isFinite(value) ? value : NaN;
+  const text = raw.replace(/\s/g, '').replace(/×/g, '*').replace(/[÷:]/g, '/').replace(/,/g, '.').replace(/[+\-*/]+$/, '');
+  if (!text) return NaN;
+  let position = 0;
+
+  function number() {
+    const match = /^\d+(\.\d*)?|^\.\d+/.exec(text.slice(position));
+    if (!match) return NaN;
+    position += match[0].length;
+    return Number(match[0]);
+  }
+  function factor(): number {
+    if (text[position] === '-') { position += 1; return -factor(); }
+    return number();
+  }
+  function term() {
+    let value = factor();
+    while (text[position] === '*' || text[position] === '/') {
+      const operator = text[position];
+      position += 1;
+      const next = factor();
+      value = operator === '*' ? value * next : value / next;
+    }
+    return value;
+  }
+
+  let value = term();
+  while (text[position] === '+' || text[position] === '-') {
+    const operator = text[position];
+    position += 1;
+    const next = term();
+    value = operator === '+' ? value + next : value - next;
+  }
+  if (position !== text.length || !Number.isFinite(value)) return NaN;
+  return Math.round(value * 100) / 100;
+}
+
+/** True once the text holds a calculation rather than a plain number. */
+export function isExpression(raw: string) {
+  return OPERATORS.test(raw.trim().replace(/^-/, ''));
+}
+
+/** The result in the same form the field uses: 40 or 12,5. */
+export function amountText(value: number) {
+  return String(value).replace('.', ',');
 }
 
 export function plural(count: number, one: string, few: string, many: string) {

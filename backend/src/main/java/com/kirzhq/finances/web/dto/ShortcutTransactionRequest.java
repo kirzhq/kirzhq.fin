@@ -5,6 +5,7 @@ import com.kirzhq.finances.domain.VehicleExpenseType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -18,6 +19,8 @@ public record ShortcutTransactionRequest(
         VehicleExpenseType vehicleExpenseType,
         Long odometerKm,
         BigDecimal fuelLiters,
-        String foodSubcategory
+        String foodSubcategory,
+        /** Id of the operation in the bank; an operation with a known id is refused. */
+        @Size(max = 128) String externalId
 ) {
 }

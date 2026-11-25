@@ -2,6 +2,8 @@ package com.kirzhq.finances.repository;
 
 import com.kirzhq.finances.domain.Debt;
 import com.kirzhq.finances.domain.DebtPayment;
+import com.kirzhq.finances.domain.RequiredPayment;
+import com.kirzhq.finances.domain.RequiredPaymentTransaction;
 import com.kirzhq.finances.domain.Transaction;
 import com.kirzhq.finances.domain.TransactionType;
 import org.junit.jupiter.api.Test;
@@ -25,6 +27,8 @@ class RepositoryQueriesTest {
     @Autowired TransactionRepository transactions;
     @Autowired DebtRepository debts;
     @Autowired DebtPaymentRepository payments;
+    @Autowired RequiredPaymentRepository requiredPayments;
+    @Autowired RequiredPaymentTransactionRepository requiredPaid;
 
     @Test
     void movesOperationsBetweenCategoriesOfOneType() {
@@ -35,6 +39,20 @@ class RepositoryQueriesTest {
         assertThat(transactions.countByCategoryAndType("ННТ", TransactionType.EXPENSE)).isEqualTo(2);
         assertThat(transactions.moveCategory("ННТ", "Прочее", TransactionType.EXPENSE)).isEqualTo(2);
         assertThat(transactions.countByCategoryAndType("ННТ", TransactionType.INCOME)).isEqualTo(1);
+    }
+
+    @Test
+    void periodQueryCanSkipOperationsLeftOutOfTotals() {
+        Transaction kept = transactions.save(transaction(TransactionType.EXPENSE, "Машина"));
+        Transaction history = transaction(TransactionType.EXPENSE, "Машина");
+        history.setExcludedFromTotals(true);
+        transactions.save(history);
+        LocalDate from = LocalDate.of(2026, 10, 1);
+        LocalDate to = LocalDate.of(2026, 11, 1);
+
+        assertThat(transactions.findAllByExcludedFromTotalsFalseAndTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateDescIdDesc(from, to))
+                .extracting(Transaction::getId).containsExactly(kept.getId());
+        assertThat(transactions.findAllByTransactionDateGreaterThanEqualAndTransactionDateLessThanOrderByTransactionDateDescIdDesc(from, to)).hasSize(2);
     }
 
     @Test
@@ -61,6 +79,47 @@ class RepositoryQueriesTest {
         });
         assertThat(payments.findByTransactionId(paid.getId())).get().extracting(item -> item.getDebt().getName()).isEqualTo("TNF Сплит");
         assertThat(payments.findByTransactionId(other.getId())).isEmpty();
+    }
+
+    @Test
+    void requiredPaymentsFollowTheirMonthAndCategory() {
+        RequiredPayment rent = new RequiredPayment();
+        rent.setName("Аренда");
+        rent.setCategory("Жильё");
+        rent.setAmount(new BigDecimal("18000"));
+        rent.setDayOfMonth(5);
+        requiredPayments.save(rent);
+        RequiredPaymentTransaction october = new RequiredPaymentTransaction();
+        october.setRequiredPayment(rent);
+        october.setTransaction(transactions.save(transaction(TransactionType.EXPENSE, "Жильё")));
+        october.setPeriod(LocalDate.of(2026, 10, 1));
+        requiredPaid.save(october);
+
+        assertThat(requiredPaid.findAllByPeriod(LocalDate.of(2026, 10, 1))).singleElement()
+                .satisfies(link -> assertThat(link.getTransaction().getAmount()).isEqualByComparingTo("100"));
+        assertThat(requiredPaid.findAllByPeriod(LocalDate.of(2026, 11, 1))).isEmpty();
+        assertThat(requiredPaid.existsByRequiredPaymentIdAndPeriod(rent.getId(), LocalDate.of(2026, 10, 1))).isTrue();
+
+        assertThat(requiredPayments.existsByCategoryIgnoreCase("жильё")).isTrue();
+        assertThat(requiredPayments.moveCategory("ЖИЛЬЁ", "Квартира")).isEqualTo(1);
+    }
+
+    @Test
+    void findsBankOperationsAndTheLastCategoryOfAShop() {
+        Transaction older = transaction(TransactionType.EXPENSE, "Еда");
+        older.setDescription("Пятёрочка");
+        older.setTransactionDate(LocalDate.of(2026, 9, 1));
+        older.setExternalId("alfa-1");
+        transactions.save(older);
+        Transaction newer = transaction(TransactionType.EXPENSE, "Маркетплейсы");
+        newer.setDescription("ПЯТЁРОЧКА");
+        newer.setTransactionDate(LocalDate.of(2026, 10, 5));
+        transactions.save(newer);
+
+        assertThat(transactions.existsByExternalId("alfa-1")).isTrue();
+        assertThat(transactions.findKnownExternalIds(List.of("alfa-1", "alfa-2"))).containsExactly("alfa-1");
+        assertThat(transactions.findFirstByTypeAndDescriptionIgnoreCaseOrderByTransactionDateDescIdDesc(TransactionType.EXPENSE, "пятёрочка"))
+                .get().extracting(Transaction::getCategory).isEqualTo("Маркетплейсы");
     }
 
     private Transaction transaction(TransactionType type, String category) {
